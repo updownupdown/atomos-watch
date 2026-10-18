@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -94,9 +95,9 @@ fun GamesScreen(model: AppModel, onGame: (String) -> Unit) {
 /** Rotary pixels per difficulty step on a game's page. */
 private const val PICK_PX = 60f
 
-/** One game's page for free play: its icon and name on one row, the difficulty across the middle
- *  (tap a dot or turn the crown; the picked dot holds a check), the best level reached at it, and
- *  Play near the foot. */
+/** One game's page for free play: its icon and name on one row, the difficulty (tap a dot or
+ *  turn the crown; the picked dot holds a check), the best level reached at it, and Play near the
+ *  foot. */
 @Composable
 fun FreePlayScreen(model: AppModel, game: Game, onPlay: (Int) -> Unit) {
     model.version
@@ -121,44 +122,44 @@ fun FreePlayScreen(model: AppModel, game: Game, onPlay: (Int) -> Unit) {
             .focusRequester(fr)
             .focusable(),
     ) {
-        Column(
-            Modifier.fillMaxSize().padding(top = 22.dp, bottom = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Row(
+            Modifier.align(Alignment.TopCenter).padding(top = 26.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GameIcon(game.id, 28)
-                Label(game.label, size = 18.sp, weight = FontWeight.SemiBold, lines = 1)
-            }
-            Spacer(Modifier.weight(1f))
+            GameIcon(game.id, 30)
+            Label(game.label, size = 18.sp, weight = FontWeight.SemiBold, lines = 1)
+        }
+        // Across the middle, where the round screen is widest: the level's name and five big
+        // dots to pick from, each in its own color; the picked one is filled and holds a check.
+        // Each dot's whole cell takes the tap.
+        Column(Modifier.align(Alignment.Center).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Label(Difficulty.WORDS[level], size = 15.sp, color = Color(Difficulty.COLORS[level]), weight = FontWeight.SemiBold)
-            // The five levels as dots to pick from, each in its own color, across the middle of the
-            // screen where it is widest. Each dot's tap target is its whole share of the row, so
-            // they touch; the picked one is filled and holds a check.
-            Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp)) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp)) {
                 for (i in 0 until Difficulty.LEVELS) {
-                    Box(Modifier.weight(1f).height(44.dp).clickable { set(i) }, contentAlignment = Alignment.Center) {
-                        Canvas(Modifier.size(34.dp)) {
-                            val pen = ComposePen(this, 34.0)
-                            val c = Difficulty.COLORS[i]
-                            if (i == level) {
-                                pen.dot(17.0, 17.0, 16.5, c)
-                                pen.icon(Icon.CHECK, 17.0, 17.0, 20.0, Ink.BLACK)
-                            } else {
-                                pen.dot(17.0, 17.0, 13.5, Ink.K800)
-                                pen.ring(17.0, 17.0, 12.5, c, 2.6)
-                            }
+                    Canvas(Modifier.weight(1f).aspectRatio(1f).clickable { set(i) }) {
+                        val pen = ComposePen(this, 36.0)
+                        val c = Difficulty.COLORS[i]
+                        if (i == level) {
+                            pen.dot(18.0, 18.0, 16.5, c)
+                            pen.icon(Icon.CHECK, 18.0, 18.0, 20.0, Ink.BLACK)
+                        } else {
+                            pen.dot(18.0, 18.0, 13.5, Ink.K800)
+                            pen.ring(18.0, 18.0, 12.5, c, 2.8)
                         }
                     }
                 }
             }
             val best = model.bestLevel(game, level)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (best > 0) Canvas(Modifier.size(18.dp)) { ComposePen(this, 18.0).levels(9.0, 9.0, 18.0, best, null) }
+                if (best > 0) Canvas(Modifier.size(20.dp)) { ComposePen(this, 20.0).levels(10.0, 10.0, 20.0, best, null) }
                 Label(if (best > 0) "Best: $best" else "No best yet", size = 13.sp, color = Tone.text2)
             }
-            Spacer(Modifier.weight(1f))
-            IconMark(Icon.PLAY, 46, Ink.BLACK, disc = Ink.WHITE, modifier = Modifier.clickable { onPlay(level) })
         }
+        IconMark(
+            Icon.PLAY, 50, Ink.BLACK, disc = Ink.WHITE,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp).clickable { onPlay(level) },
+        )
     }
 }
 

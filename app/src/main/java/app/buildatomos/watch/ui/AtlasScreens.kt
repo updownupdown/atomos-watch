@@ -2,8 +2,8 @@
 // round the rim (built ones in their own color); the crown steps through them. The table shows
 // all 118 in their standard places, the crown moving a highlight. Tapping the atom opens its
 // Atlas page, a watch-sized take on the phone's: its plate and where it sits, Build, the atom
-// itself and the headline, then its facts, name, discovery, structure, properties and
-// isotopes, and where it comes from and what it is for, each a section that folds.
+// itself, the headline and facts, its name and discovery, its structure, properties and
+// isotopes, and where it comes from and what it is for.
 
 package app.buildatomos.watch.ui
 
@@ -15,7 +15,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,7 +32,6 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -214,7 +212,6 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
     val core = NOBLE.lastOrNull { it < z }
     val coreSubs = core?.let { model.atlas.subs(it).toSet() } ?: emptySet()
     val outer = subs.filter { it !in coreSubs }
-    val open = model.atlasOpen
     WatchList(start = 1) {
         item { IdPlate(atom, 60) }
         item {
@@ -252,10 +249,10 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
         }
         item { Locator(model, z) { onTable(z) } }
         if (info.headline.isNotBlank()) item { Para(info.headline) }
-        if (info.facts.isNotEmpty()) item { Section(open, "Facts") { for (f in info.facts) Bullet(f) } }
-        info.origin?.let { o -> item { Section(open, "The name") { Para(o, inside = true) } } }
+        if (info.facts.isNotEmpty()) item { Section(model, "Facts", "${info.facts.size}") { for (f in info.facts) Bullet(f) } }
+        info.origin?.let { o -> item { Section(model, "The name", null) { Para(o, inside = true) } } }
         item {
-            Section(open, "Discovered") {
+            Section(model, "Discovered", info.year?.toString() ?: "Ancient") {
                 val ancient = info.year == null || info.who?.contains("ancient", true) == true
                 Label(info.year?.toString() ?: "In antiquity", size = 22.sp, weight = FontWeight.SemiBold, color = color, align = TextAlign.Start)
                 val by = listOfNotNull(info.who?.takeIf { !(ancient && it.contains("ancient", true)) }, info.where).joinToString(" · ")
@@ -263,7 +260,7 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
             }
         }
         item {
-            Section(open, "Structure") {
+            Section(model, "Structure", counts.joinToString(" ")) {
                 Canvas(Modifier.size(104.dp).align(Alignment.CenterHorizontally)) { shells(ComposePen(this, 96.0), counts, atom.color) }
                 // The shells as K 2, L 8, M 4.
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)) {
@@ -278,7 +275,7 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
             }
         }
         item {
-            Section(open, "Properties") {
+            Section(model, "Properties", info.phase) {
                 val rows = listOfNotNull(
                     info.melt?.let { "Melts" to celsius(it) },
                     info.boil?.let { "Boils" to celsius(it) },
@@ -292,7 +289,7 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
             }
         }
         item {
-            Section(open, "Isotopes") {
+            Section(model, "Isotopes", "${info.stableIsotopes} lasting") {
                 KeyValue("Lasting", if (info.stableIsotopes == 0) "None" else "${info.stableIsotopes}")
                 if (info.knownIsotopes > 0) KeyValue("Known", "${info.knownIsotopes}")
                 if (info.knownIsotopes > 0) {
@@ -306,8 +303,8 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
                 }
             }
         }
-        if (info.origins.isNotEmpty()) item { Section(open, "Made in") { for (f in info.origins.take(3)) Bullet(f) } }
-        if (info.uses.isNotEmpty()) item { Section(open, "Used for") { for (f in info.uses.take(3)) Bullet(f) } }
+        if (info.origins.isNotEmpty()) item { Section(model, "Made in", null) { for (f in info.origins.take(3)) Bullet(f) } }
+        if (info.uses.isNotEmpty()) item { Section(model, "Used for", null) { for (f in info.uses.take(3)) Bullet(f) } }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (z > 1) Step("${z - 1} ${model.atlas.atom(z - 1).symbol}", Modifier.weight(1f)) { onAtom(z - 1) }
@@ -382,28 +379,36 @@ private fun FlowPills(pills: List<Pair<String, Int>>) {
     }
 }
 
-/** A section that folds: its name and a chevron (right when closed, down when open); a tap on
- *  the name opens or closes it. `open` holds the names of the open ones. */
+/** A section of the page that folds: its name (and a word of what is inside) on a row with a
+ *  chevron; tapped, it opens or closes. Which sections are open is kept while stepping from atom
+ *  to atom. */
 @Composable
-private fun Section(open: SnapshotStateList<String>, title: String, content: @Composable ColumnScope.() -> Unit) {
-    val isOpen = title in open
-    Column(Modifier.fillMaxWidth().background(Tone.plate, RoundedCornerShape(20.dp))) {
+private fun Section(model: AppModel, title: String, summary: String?, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    val open = title in model.atlasOpen
+    Column(
+        Modifier.fillMaxWidth().background(Tone.plate, RoundedCornerShape(20.dp)),
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .clickable { if (isOpen) open.remove(title) else open.add(title) }
+                .clickable { model.atlasOpen = if (open) model.atlasOpen - title else model.atlasOpen + title }
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Label(title.uppercase(), Modifier.weight(1f), size = 13.sp, color = Tone.text2, align = TextAlign.Start, weight = FontWeight.SemiBold)
+            Label(title, Modifier.weight(1f), size = 15.sp, weight = FontWeight.SemiBold, align = TextAlign.Start, lines = 1)
+            if (!open && summary != null) Label(summary, size = 13.sp, color = Tone.text2, lines = 1)
             Canvas(Modifier.size(14.dp)) {
                 val pen = ComposePen(this, 14.0)
-                if (isOpen) pen.poly(doubleArrayOf(3.5, 7.0, 10.5), doubleArrayOf(5.25, 8.75, 5.25), 3, Ink.K400, 1.5)
-                else pen.icon(Icon.CHEVRON, 7.0, 7.0, 14.0, Ink.K400)
+                // Down when closed, up when open.
+                val y0 = if (open) 9.0 else 5.0
+                val y1 = if (open) 5.0 else 9.0
+                pen.poly(doubleArrayOf(3.0, 7.0, 11.0), doubleArrayOf(y0, y1, y0), 3, Ink.K300, 1.8)
             }
         }
-        if (isOpen) Column(
-            Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
+        if (open) Column(
+            Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(5.dp),
             content = content,
         )

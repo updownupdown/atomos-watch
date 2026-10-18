@@ -16,12 +16,12 @@ playing them. It works on its own, with no phone and no sync, and it is free.
 - **The Atlas** shows every atom on a wheel (the crown steps through them) or in the table. Each
   atom's Atlas page has its plate, Build, the atom itself, the headline and facts, its name and
   discovery, its structure, properties and isotopes, and where it comes from and what it is for,
-  each a section that folds (all closed to start).
+  each a section that folds (only the facts open to start).
 - **A run** opens on a card with the game's name, its difficulty and the levels to reach, and a
-  ring round the rim that fills until play starts (a tap starts it sooner). The
-  ATOMOS mark at the top of the screen (or the back button) pauses it: Exit on the left, Resume
-  in the middle, Restart on the right, with the level reached and the best at the foot. The
-  levels show as a tiny atom at the bottom of the screen.
+  ring round its icon that fills until play starts (a tap or a turn of the crown starts it
+  sooner). The ATOMOS mark at the top of the screen (or the back button) pauses it: Exit on the
+  left, Resume in the middle, Restart on the right, with the level reached and the best at the
+  foot. The levels show as a tiny atom at the bottom of the screen.
   - A run for an atom has a goal: 3 levels at Very easy up to 7 at Expert. Each level cleared
     fills one electron slot. Win, and the atom's next shell is built.
   - Free play has no goal. The tiny atom counts levels in binary across 8 slots, up to 255, and

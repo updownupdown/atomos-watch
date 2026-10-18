@@ -1,8 +1,7 @@
 // A run of one game. It opens on a card with the game's name, its difficulty and the levels to
-// reach, a ring round the rim filling until play starts. Then the court fills the screen: the
-// rim, the levels as a tiny atom at the bottom, and the ATOMOS mark at the top, which pauses the
-// run and opens its menu (Exit, Resume, Restart; the back button does the same).
-// The run ends on a card: what it built or reached, and what next.
+// reach, then the court fills the screen: the rim, the levels as a tiny atom at the bottom, and
+// the ATOMOS mark at the top, which pauses the run and opens its menu (Exit, Resume, Restart; the
+// back button does the same). The run ends on a card: what it built or reached, and what next.
 
 package app.buildatomos.watch.ui
 
@@ -139,6 +138,8 @@ fun GameScreen(model: AppModel, spec: RunSpec, onLeave: () -> Unit, onNextRun: (
             .fillMaxSize()
             .background(Color.Black)
             .onRotaryScrollEvent { e ->
+                // A turn of the crown on the opening card starts play at once, as a tap does.
+                if (phase == Phase.INTRO) go(Phase.PLAY)
                 if (phase == Phase.PLAY) run.toy.crown(run.stage, e.verticalScrollPixels * CROWN)
                 true
             }
@@ -231,11 +232,11 @@ private fun intro(pen: ComposePen, m: TextMeasurer, spec: RunSpec, since: Double
     val fade = if (since > INTRO_MS - 300) (INTRO_MS - since) / 300 else 1.0
     veil(pen, 0.92 * fade)
     if (fade <= 0) return
-    // Round the rim, how long until play starts: it fills clockwise from the top.
-    pen.ring(MID, MID, COURT_R + 7, Ink.K800, 4.0, fade)
-    pen.arc(MID, MID, COURT_R + 7, -PI / 2, TAU * (since / INTRO_MS).coerceIn(0.0, 1.0), Ink.WHITE, 4.0, fade)
     pen.dot(MID, 84.0, 30.0, Ink.WHITE, fade)
     pen.gameIcon(spec.game.id, MID, 84.0, 34.0, Ink.BLACK)
+    // Round the icon, the time left before play starts, filling clockwise from the top.
+    pen.ring(MID, 84.0, 38.0, Ink.K800, 3.0, fade)
+    pen.arc(MID, 84.0, 38.0, -PI / 2, TAU * (since / (INTRO_MS - 300)).coerceIn(0.0, 1.0), Ink.CYAN, 3.0, fade)
     pen.text(m, spec.game.label, MID, 140.0, 24.0, Ink.WHITE, FontWeight.SemiBold, fade)
     pen.text(m, Difficulty.word(spec.dial), MID, 168.0, 15.0, Difficulty.color(spec.dial), alpha = fade)
     pen.pips(MID, 188.0, 46.0, spec.dial)
