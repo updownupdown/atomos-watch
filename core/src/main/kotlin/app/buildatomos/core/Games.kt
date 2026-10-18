@@ -1,6 +1,6 @@
-// The watch's games, A to Z. Most are Nu's park games from the phone, fitted to the watch; Core is
-// the watch's own. All are played on the round court in levels; `crown` marks the ones the crown
-// steers.
+// The watch's games, A to Z. Most are Nu's park games from the phone, fitted to the watch; Core,
+// Dial and Lanes are the watch's own. All are played on the round court in levels; `crown` marks
+// the ones the crown steers.
 
 package app.buildatomos.core
 
@@ -18,6 +18,7 @@ object Games {
     val all: List<Game> = listOf(
         Game("blast", "Blast", crown = true) { Blast() },
         Game("core", "Core", crown = true) { Core() },
+        Game("dial", "Dial", crown = true) { Dial() },
         Game("dive", "Dive") { Dive() },
         Game("dodge", "Dodge", crown = true) { Dodge() },
         Game("echo", "Echo") { Echo() },
@@ -27,6 +28,7 @@ object Games {
         Game("hue", "Hue", crown = true) { Hue() },
         Game("juggle", "Juggle") { Juggle() },
         Game("land", "Land", crown = true) { Land() },
+        Game("lanes", "Lanes", crown = true) { Lanes() },
         Game("more", "More", crown = true) { More() },
         Game("orbit", "Orbit", crown = true) { Orbit() },
         Game("order", "Order") { Order() },

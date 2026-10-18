@@ -140,6 +140,17 @@ fun Pen.gameIcon(id: String, cx: Double, cy: Double, size: Double, color: Int) {
             f(12.0, 19.5, 2.4); l(12.0, 16.0, 12.8, 13.0)
         }
         "fuse" -> { f(9.0, 3.8, 2.3); l(3.0, 8.5, 21.0, 8.5); f(7.0, 17.5, 3.5); o(15.5, 16.0, 5.0) }
+        "dial" -> {
+            // The ring, its hub, the lit notch on it and Nu, the pointer, coming round to it.
+            o(12.0, 12.0, 8.0); f(12.0, 12.0, 2.0)
+            arc(ox + 12 * k, oy + 12 * k, 8.0 * k, -PI / 2 - 0.4, 0.8, color, 4.6 * k)
+            f(12.0 + 8 * cos(0.9), 12.0 + 8 * sin(0.9), 2.6)
+        }
+        "lanes" -> {
+            // Three whole rings, thin, and Nu on the middle one at three o'clock.
+            for (r in listOf(3.4, 6.6, 9.8)) ring(ox + 12 * k, oy + 12 * k, r * k, color, 1.5 * k)
+            f(18.6, 12.0, 2.5)
+        }
         "tune" -> { wave(2.0, 14.0, 12.0, 4.0, 1.0, false); wave(14.0, 22.0, 12.0, 2.7, 1.0, true); f(14.0, 12.0, 2.6) }
         "hue" -> {
             // A ring in four quarters, two of them dashed on the phone: here a small gap between each.
