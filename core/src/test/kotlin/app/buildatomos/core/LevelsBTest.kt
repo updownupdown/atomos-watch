@@ -91,17 +91,19 @@ class LevelsBTest {
         assertTrue(kick(100) > kick(1) * 1.2, "the kick up: ${kick(1)} at dial 1, ${kick(100)} at dial 100")
     }
 
-    // ---- More: counts the atoms each side and taps the side with more. ----
+    // ---- More: counts the atoms each side, whatever their colours, and taps the side with more. ----
 
-    private fun more(dial: Int, goal: Int?, ms: Double): Stage {
+    private fun atoms(seen: Seen) = seen.dots.filter { it.color in More.INKS }
+
+    private fun more(dial: Int, goal: Int?, ms: Double, look: (Stage, List<Seen.Dot>) -> Unit = { _, _ -> }): Stage {
         val g = More()
         var field = ""
         var since = 0
         return run(g, dial, goal, ms) { s, seen ->
-            val atoms = seen.of(Ink.CYAN)
+            val atoms = atoms(seen)
             if (atoms.isEmpty() || seen.of(Ink.GREEN).isNotEmpty()) return@run
             val key = "${atoms[0].x.toInt()},${atoms[0].y.toInt()}"
-            if (key != field) { field = key; since = 0 }
+            if (key != field) { field = key; since = 0; look(s, atoms) }
             // A look of half a second, then the tap.
             if (++since == 30) {
                 val left = atoms.count { it.x < s.c.x }
@@ -113,6 +115,23 @@ class LevelsBTest {
     @Test fun moreClearsLevels() {
         assertEquals(Result.WON, more(1, 3, 180_000.0).result)
         assertEquals(Result.WON, more(100, 7, 300_000.0).result)
+    }
+
+    /** Each ask deals its colours afresh: many colours over a run, the two sides sometimes alike
+     *  and sometimes not. */
+    @Test fun moreVariesItsColours() {
+        val seen = mutableSetOf<Int>()
+        var alike = 0
+        var unlike = 0
+        more(50, null, 120_000.0) { s, atoms ->
+            val l = atoms.filter { it.x < s.c.x }.map { it.color }.toSet()
+            val r = atoms.filter { it.x >= s.c.x }.map { it.color }.toSet()
+            assertTrue(l.size == 1 && r.size == 1, "one colour a side: $l, $r")
+            seen += l + r
+            if (l == r) alike++ else unlike++
+        }
+        assertTrue(seen.size >= 4, "colours seen: ${seen.size}")
+        assertTrue(alike >= 3 && unlike >= 3, "alike $alike, unlike $unlike")
     }
 
     @Test fun moreHeatHurries() {

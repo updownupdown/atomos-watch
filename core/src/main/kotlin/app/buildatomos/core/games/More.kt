@@ -19,10 +19,15 @@ import kotlin.math.roundToInt
  * the top, just under the menu. Every atom a side should have is always placed: if the field is
  * crowded the atoms may sit a little closer. The crown answers too, so no finger hides the
  * fields: a little turn anticlockwise picks the left side, clockwise the right.
+ * Each ask deals the fields' colours afresh, from cyan, blue, violet, yellow and pale grey: the
+ * two sides share one about a third of the time, and otherwise differ. Never green, which shows
+ * the side with more once the ask is answered.
  */
 class More : Toy {
     private class Atom(val x: Double, val y: Double, val r: Double)
     private var sides: List<List<Atom>> = listOf(emptyList(), emptyList())
+    /** Each side's colour this ask. */
+    private val inks = intArrayOf(Ink.CYAN, Ink.CYAN)
     /** The side with more: 0 left, 1 right. */
     private var more = 0
     /** When this ask began (set on the first frame after it). */
@@ -55,6 +60,12 @@ class More : Toy {
         val lo = 3 + floor(rnd() * min(10.0, 3 + h * 7)).toInt()
         val diff = max(1, (lo * max(0.12, 0.6 - h * 0.35)).roundToInt())
         more = if (rnd() < 0.5) 0 else 1
+        // Fresh colours: never the same pair twice running.
+        val was = inks.copyOf()
+        do {
+            inks[0] = INKS[(rnd() * INKS.size).toInt().coerceIn(0, INKS.size - 1)]
+            inks[1] = if (rnd() < 0.35) inks[0] else INKS.filter { it != inks[0] }.let { it[(rnd() * it.size).toInt().coerceIn(0, it.size - 1)] }
+        } while (inks.contentEquals(was))
         val mixed = rnd() < clamp((h - 0.3) * 0.8, 0.0, 0.9)
         sides = (0..1).map { side ->
             val n = if (side == more) lo + diff else lo
@@ -133,7 +144,7 @@ class More : Toy {
         }
         sides.forEachIndexed { i, side ->
             val lit = answered != null && i == more
-            for (a in side) pen.dot(a.x, a.y, a.r, if (lit) Ink.GREEN else Ink.CYAN, if (over) 0.4 else 0.9)
+            for (a in side) pen.dot(a.x, a.y, a.r, if (lit) Ink.GREEN else inks[i], if (over) 0.4 else 0.9)
         }
         lives(s, pen, left)
         s.nu.draw(pen, now)
@@ -150,5 +161,10 @@ class More : Toy {
         if (by * wound < 0) wound = 0.0
         wound += by
         if (abs(wound) >= 0.15) answer(s, s.now, if (wound > 0) 1 else 0)
+    }
+
+    internal companion object {
+        /** The fields' colours. */
+        val INKS = intArrayOf(Ink.CYAN, 0xFF5F8AE0.toInt(), 0xFFC266EC.toInt(), 0xFFF2CC48.toInt(), Ink.K200)
     }
 }
