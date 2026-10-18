@@ -16,8 +16,8 @@ private const val HI = 8.0
 private const val T_LO = 1.4
 private const val T_HI = 7.0
 /** How long a stretch lasts at the gentlest and at its shortest (ms). */
-private const val LONG = 5600.0
-private const val SHORT = 2600.0
+private const val LONG = 4800.0
+private const val SHORT = 1600.0
 /** From this stretch of a run on, a new stretch's wave also jumps along (its phase), more as it heats. */
 private const val JUMP_AT = 2
 /** How close Nu's wave is, by its colour: matched, near, nearer than far, and far (red). How
@@ -47,10 +47,12 @@ private fun wrap(x: Double) = ((((x + PI) % TAU) + TAU) % TAU) - PI
  * the last one lost loses the run.
  * Levels: a level is a few stretches matched (three, one more every three levels, up to five).
  * Lives carry from level to level, and every third level cleared gives one back. Heat makes the
- * stretches shorter (5.6 s at the gentlest, 3.9 s at Expert, never under 2.6 s), the match closer
- * (in frequency and in phase), the share of a stretch that must match larger (22% at the
- * gentlest, 30% at Expert, at most 40%), and each stretch's wave jump along further from where
- * the last left off.
+ * stretches shorter (4.8 s at the gentlest, about 2.8 s at Expert, never under 1.6 s), the waves
+ * roll in quicker (a third quicker at Expert, at most twice as quick), the match closer (in
+ * frequency and in phase), the share of a stretch that must match larger (30% at the gentlest,
+ * about 41% at Expert, at most 55%), and each stretch's wave jump along further from where the
+ * last left off. Each level plays about as two levels up did at first: on Hard the next stretch
+ * comes before there is time to dawdle over the last.
  * On the watch there is one control instead of the phone's two sliders: the crown tunes the
  * frequency (clockwise quicker, one whole turn across the range; a drag across the screen does
  * the same), and the phase matches itself, Nu's wave sliding along onto the stretch going past
@@ -91,8 +93,8 @@ class Tune : Toy {
     private fun cy(s: Stage) = s.c.y
     /** The waves' height. */
     private fun amp(s: Stage) = s.R * 0.34
-    /** The scroll speed (units/ms). */
-    private fun v(s: Stage) = W(s) / 5200
+    /** The scroll speed (units/ms): quicker as it heats. */
+    private fun v(s: Stage) = W(s) / 5200 * pace(s.heat)
     /** The frequency of the stretch going past, and Nu's: for the tests' player. */
     internal val going: Double? get() = at(scroll)?.c
     internal val tuned: Double get() = c
@@ -309,12 +311,14 @@ class Tune : Toy {
         /** Stretches matched to clear a level: three, one more every three levels, at most five. */
         fun need(level: Int) = 3 + min(2, level / 3)
         /** How long a stretch lasts at this heat (ms). */
-        fun stretchMs(heat: Double) = max(SHORT, LONG - heat * 1700)
+        fun stretchMs(heat: Double) = max(SHORT, LONG - heat * 2200)
+        /** How much quicker the waves roll in than at the gentlest. */
+        fun pace(heat: Double) = min(2.0, 1 + heat * 0.35)
         /** How close a match must be: in frequency (as a log ratio) and in phase (radians). */
-        fun tolF(heat: Double) = max(0.07, 0.17 - heat * 0.07)
-        fun tolP(heat: Double) = max(0.38, 0.8 - heat * 0.28)
+        fun tolF(heat: Double) = max(0.06, 0.15 - heat * 0.08)
+        fun tolP(heat: Double) = max(0.32, 0.7 - heat * 0.3)
         /** The share of a stretch's passing that must match for it to count. */
-        fun share(heat: Double) = min(0.4, 0.22 + heat * 0.08)
+        fun share(heat: Double) = min(0.55, 0.3 + heat * 0.12)
         /** How far a new stretch's wave may jump along, as a share of a whole turn either way. */
         fun jumps(heat: Double) = min(1.0, 0.3 + heat * 0.7)
     }

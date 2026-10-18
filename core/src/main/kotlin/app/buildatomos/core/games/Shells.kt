@@ -14,9 +14,9 @@ import kotlin.math.sin
  * Shells (the phone's src/nu/park.ts). Three shells. Nu hides under one and the shells shuffle;
  * tap the one it is under. A wrong shell loses the run.
  * Levels: a level is a few finds in a row (three, and one more every few levels, up to five).
- * Heat makes the shuffle longer (four swaps at the gentlest, about fourteen at Expert, more after)
- * and quicker (each swap from about half a second down to a fifth), and each find in a level
- * adds a swap. The next round follows a find by itself, after Nu has been shown.
+ * Heat makes the shuffle longer (six swaps at the gentlest, about eighteen at Expert, more after)
+ * and quicker (each swap from half a second down to about a quarter at Expert, a fifth past it),
+ * and each find in a level adds a swap. Each level plays as the next one up did at first. The next round follows a find by itself, after Nu has been shown.
  * On the watch the run is also lost if no shell is picked for 20 seconds (the phone waits for
  * ever): the shell Nu was under opens.
  */
@@ -143,9 +143,10 @@ class Shells : Toy {
         const val QUIET = 20_000.0
         /** Finds in a row to clear a level: three, one more every three levels, at most five. */
         fun need(level: Int) = 3 + min(2, level / 3)
-        /** Swaps in a shuffle at this heat: 4 at the gentlest, 14 at Expert, on up. */
-        fun swaps(heat: Double) = 4 + (heat * 10).roundToInt()
-        /** How long one swap takes (ms): about half a second at the gentlest, never under 180. */
-        fun swapMs(heat: Double) = max(180.0, 540.0 - heat * 260)
+        /** Swaps in a shuffle at this heat: 6 at the gentlest, 18 at Expert, on up. */
+        fun swaps(heat: Double) = 6 + (heat * 13).roundToInt()
+        /** How long one swap takes (ms): half a second at the gentlest, about a quarter at Expert,
+         *  never under 180. */
+        fun swapMs(heat: Double) = max(180.0, 500.0 - heat * 270)
     }
 }
