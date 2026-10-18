@@ -1,4 +1,5 @@
-// The tile: the game Nu wants to play, and a rose Play that opens straight into it.
+// The tile: the game Nu wants to play for the next shell of the atom being built, and a rose Build
+// that opens straight into that run.
 
 package app.buildatomos.watch.tile
 
@@ -17,6 +18,7 @@ import androidx.wear.protolayout.material.layouts.PrimaryLayout
 import androidx.wear.tiles.RequestBuilders
 import androidx.wear.tiles.TileBuilders
 import androidx.wear.tiles.TileService
+import app.buildatomos.core.Difficulty
 import app.buildatomos.core.Ink
 import app.buildatomos.watch.AppModel
 import app.buildatomos.watch.MainActivity
@@ -28,10 +30,11 @@ private const val RESOURCES = "1"
 class NuTileService : TileService() {
     override fun onTileRequest(request: RequestBuilders.TileRequest): ListenableFuture<TileBuilders.Tile> {
         val model = AppModel.get(this)
-        val game = model.nuPick()
+        val run = model.buildRun()
         val c = model.collection
-        val building = if (c.done) null else model.atlas.atom(c.building)
-        val layout = layout(request.deviceConfiguration, game.id, game.label, building?.let { "Building ${it.name}: ${c.electrons} of ${it.z}" } ?: "Every atom built")
+        val line = if (run == null) "Every atom built" else "${model.atlas.atom(c.building).name}: ${c.shells} of ${c.need} shells"
+        val label = run?.let { "${it.game.label}, ${Difficulty.word(it.dial).lowercase()}" } ?: model.nuPick().label
+        val layout = layout(request.deviceConfiguration, label, line, run != null)
         val tile = TileBuilders.Tile.Builder()
             .setResourcesVersion(RESOURCES)
             // Nu's pick changes each day and after each run; the app asks for a refresh then too.
@@ -44,13 +47,13 @@ class NuTileService : TileService() {
     override fun onTileResourcesRequest(request: RequestBuilders.ResourcesRequest): ListenableFuture<ResourceBuilders.Resources> =
         Futures.immediateFuture(ResourceBuilders.Resources.Builder().setVersion(RESOURCES).build())
 
-    private fun layout(device: DeviceParameters, id: String, label: String, line: String): LayoutElementBuilders.LayoutElement {
+    private fun layout(device: DeviceParameters, label: String, line: String, building: Boolean): LayoutElementBuilders.LayoutElement {
         val open = ActionBuilders.LaunchAction.Builder()
             .setAndroidActivity(
                 ActionBuilders.AndroidActivity.Builder()
                     .setPackageName(packageName)
                     .setClassName(MainActivity::class.java.name)
-                    .addKeyToExtraMapping(MainActivity.EXTRA_GAME, ActionBuilders.AndroidStringExtra.Builder().setValue(id).build())
+                    .addKeyToExtraMapping(MainActivity.EXTRA_BUILD, ActionBuilders.AndroidBooleanExtra.Builder().setValue(building).build())
                     .build(),
             )
             .build()
@@ -60,14 +63,14 @@ class NuTileService : TileService() {
                 Text.Builder(this, "Nu wants to play").setTypography(Typography.TYPOGRAPHY_CAPTION1).setColor(argb(Ink.ROSE)).build(),
             )
             .setContent(
-                Text.Builder(this, label).setTypography(Typography.TYPOGRAPHY_DISPLAY3).setColor(argb(Ink.WHITE)).build(),
+                Text.Builder(this, label).setTypography(Typography.TYPOGRAPHY_TITLE2).setColor(argb(Ink.WHITE)).build(),
             )
             .setSecondaryLabelTextContent(
                 Text.Builder(this, line).setTypography(Typography.TYPOGRAPHY_CAPTION2).setColor(argb(Ink.K300)).build(),
             )
             .setPrimaryChipContent(
                 Chip.Builder(this, click, device)
-                    .setPrimaryLabelContent("Play")
+                    .setPrimaryLabelContent(if (building) "Build" else "Open")
                     .setChipColors(ChipColors(Ink.ROSE, Ink.BLACK))
                     .build(),
             )

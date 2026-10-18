@@ -1,5 +1,5 @@
-// What the watch keeps: the collection, the games' bests and the settings, in one small store on
-// the watch. Nothing here is shared with the phone.
+// What the watch keeps: the collection, the best levels, the day's quiz and the settings, in one
+// small store on the watch. Nothing here is shared with the phone.
 //
 // Players' saved data: the keys and the JSON shapes below are a contract with every watch that has
 // played. Add new keys freely; never rename or reshape one without a migration.
@@ -8,54 +8,94 @@ package app.buildatomos.watch
 
 import android.content.Context
 import app.buildatomos.core.Collection
+import org.json.JSONArray
 import org.json.JSONObject
+
+/** The day's quiz: the answers given today (right or wrong, in order) and the streak of days done. */
+class QuizDay(val day: Long, val answers: List<Boolean>, val streak: Int, val streakDay: Long)
 
 class Store(context: Context) {
     private val prefs = context.getSharedPreferences("atomos", Context.MODE_PRIVATE)
 
-    // Keys, versioned by name: atomos.collection.v1 holds {building, electrons, built: {z: day}}.
     private companion object {
-        const val COLLECTION = "atomos.collection.v1"
-        const val BESTS = "atomos.bests.v1"
+        /** {building, electrons, built: {z: day}}: the first collections, counted in electrons.
+         *  Read once and moved to COLLECTION. */
+        const val COLLECTION_V1 = "atomos.collection.v1"
+        /** {building, shells, built: {z: day}}. */
+        const val COLLECTION = "atomos.collection.v2"
+        /** {"<game>.<level 0..4>": best level reached in free play}. */
+        const val LEVELS = "atomos.levels.v1"
+        /** {"<game>": difficulty level 0..4 last picked for free play}. */
+        const val PICKED = "atomos.picked.v1"
+        /** {day, answers: [bool], streak, streakDay}. */
+        const val QUIZ = "atomos.quiz.v1"
         const val SOUND = "atomos.sound"
         const val HAPTICS = "atomos.haptics"
         const val RUNS = "atomos.runs"
     }
 
     fun loadCollection(): Collection {
-        val raw = prefs.getString(COLLECTION, null) ?: return Collection()
+        prefs.getString(COLLECTION, null)?.let { raw ->
+            try {
+                val o = JSONObject(raw)
+                return Collection(o.optInt("building", 1).coerceIn(1, 119), o.optInt("shells", 0).coerceAtLeast(0), built(o))
+            } catch (_: Exception) {
+            }
+        }
+        val old = prefs.getString(COLLECTION_V1, null) ?: return Collection()
         return try {
-            val o = JSONObject(raw)
-            val built = mutableMapOf<Int, Long>()
-            o.optJSONObject("built")?.let { b -> b.keys().forEach { k -> k.toIntOrNull()?.let { built[it] = b.getLong(k) } } }
-            Collection(o.optInt("building", 1).coerceIn(1, 119), o.optInt("electrons", 0).coerceAtLeast(0), built)
-        } catch (e: Exception) {
+            val o = JSONObject(old)
+            Collection.fromElectrons(o.optInt("building", 1), o.optInt("electrons", 0), built(o)).also { saveCollection(it) }
+        } catch (_: Exception) {
             Collection()
         }
+    }
+
+    private fun built(o: JSONObject): MutableMap<Int, Long> {
+        val out = mutableMapOf<Int, Long>()
+        o.optJSONObject("built")?.let { b -> b.keys().forEach { k -> k.toIntOrNull()?.let { out[it] = b.getLong(k) } } }
+        return out
     }
 
     fun saveCollection(c: Collection) {
         val b = JSONObject()
         c.built.forEach { (z, day) -> b.put(z.toString(), day) }
-        val o = JSONObject().put("building", c.building).put("electrons", c.electrons).put("built", b)
+        val o = JSONObject().put("building", c.building).put("shells", c.shells).put("built", b)
         prefs.edit().putString(COLLECTION, o.toString()).apply()
     }
 
-    fun loadBests(): MutableMap<String, Double> {
-        val out = mutableMapOf<String, Double>()
-        val raw = prefs.getString(BESTS, null) ?: return out
+    private fun intMap(key: String): MutableMap<String, Int> {
+        val out = mutableMapOf<String, Int>()
         try {
-            val o = JSONObject(raw)
-            o.keys().forEach { k -> val v = o.optDouble(k); if (v.isFinite()) out[k] = v }
+            val o = JSONObject(prefs.getString(key, null) ?: return out)
+            o.keys().forEach { k -> out[k] = o.optInt(k) }
         } catch (_: Exception) {
         }
         return out
     }
 
-    fun saveBests(b: Map<String, Double>) {
+    private fun saveIntMap(key: String, m: Map<String, Int>) {
         val o = JSONObject()
-        b.forEach { (k, v) -> o.put(k, v) }
-        prefs.edit().putString(BESTS, o.toString()).apply()
+        m.forEach { (k, v) -> o.put(k, v) }
+        prefs.edit().putString(key, o.toString()).apply()
+    }
+
+    fun loadLevels() = intMap(LEVELS)
+    fun saveLevels(m: Map<String, Int>) = saveIntMap(LEVELS, m)
+    fun loadPicked() = intMap(PICKED)
+    fun savePicked(m: Map<String, Int>) = saveIntMap(PICKED, m)
+
+    fun loadQuiz(): QuizDay? = try {
+        val o = JSONObject(prefs.getString(QUIZ, null) ?: "")
+        val a = o.optJSONArray("answers") ?: JSONArray()
+        QuizDay(o.getLong("day"), (0 until a.length()).map { a.getBoolean(it) }, o.optInt("streak"), o.optLong("streakDay", -1))
+    } catch (_: Exception) {
+        null
+    }
+
+    fun saveQuiz(q: QuizDay) {
+        val o = JSONObject().put("day", q.day).put("answers", JSONArray(q.answers)).put("streak", q.streak).put("streakDay", q.streakDay)
+        prefs.edit().putString(QUIZ, o.toString()).apply()
     }
 
     /** Sound is off until the player turns it on. */
@@ -74,6 +114,6 @@ class Store(context: Context) {
         set(v) = prefs.edit().putInt(RUNS, v).apply()
 
     fun clearCollection() {
-        prefs.edit().remove(COLLECTION).apply()
+        prefs.edit().remove(COLLECTION).remove(COLLECTION_V1).apply()
     }
 }

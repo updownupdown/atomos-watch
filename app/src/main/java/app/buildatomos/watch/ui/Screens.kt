@@ -1,5 +1,5 @@
-// The list screens: all the games, one atom's page, and Settings. Each is a ScalingLazyColumn,
-// scrolled by touch or the crown.
+// The list screens: every game for free play, one game's page (pick a difficulty, then Play),
+// and Settings. Each is a ScalingLazyColumn, scrolled by touch or the crown.
 
 package app.buildatomos.watch.ui
 
@@ -7,6 +7,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,37 +20,40 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.rotary.onRotaryScrollEvent
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
+import androidx.wear.compose.foundation.lazy.ScalingLazyListScope
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import app.buildatomos.core.Difficulty
+import app.buildatomos.core.Game
 import app.buildatomos.core.Games
 import app.buildatomos.core.Ink
-import app.buildatomos.core.Nebula
 import app.buildatomos.core.gameIcon
-import app.buildatomos.core.scoreAtom
+import app.buildatomos.core.levels
+import app.buildatomos.core.pips
 import app.buildatomos.watch.AppModel
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
-private fun WatchList(content: androidx.wear.compose.foundation.lazy.ScalingLazyListScope.() -> Unit) {
-    val state = rememberScalingLazyListState(initialCenterItemIndex = 0)
+fun WatchList(start: Int = 0, content: ScalingLazyListScope.() -> Unit) {
+    val state = rememberScalingLazyListState(initialCenterItemIndex = start)
     ScalingLazyColumn(
         Modifier.fillMaxSize().background(Color.Black),
         state = state,
@@ -59,67 +63,90 @@ private fun WatchList(content: androidx.wear.compose.foundation.lazy.ScalingLazy
     )
 }
 
-/** Every game, A to Z: its card icon, its name, and the best as a tiny atom. */
+/** A game's card icon: black on a white circle. */
 @Composable
-fun GamesScreen(model: AppModel, onPlay: (String) -> Unit) {
+fun GameIcon(id: String, size: Int) {
+    Canvas(Modifier.size(size.dp)) {
+        val pen = ComposePen(this, size.toDouble())
+        pen.dot(size / 2.0, size / 2.0, size / 2.0, Ink.WHITE)
+        pen.gameIcon(id, size / 2.0, size / 2.0, size * 0.6, Ink.BLACK)
+    }
+}
+
+/** Every game, A to Z, for free play: its icon, its name, Nu's pick marked with a rose dot. */
+@Composable
+fun GamesScreen(model: AppModel, onGame: (String) -> Unit) {
     model.version
     val pick = model.nuPick().id
     WatchList {
         items(Games.all) { g ->
-            PlateRow(onClick = { onPlay(g.id) }) {
-                Canvas(Modifier.size(34.dp)) {
-                    val pen = ComposePen(this, 34.0)
-                    pen.dot(17.0, 17.0, 17.0, Ink.WHITE)
-                    pen.gameIcon(g.id, 17.0, 17.0, 20.0, Ink.BLACK)
-                }
+            PlateRow(onClick = { onGame(g.id) }) {
+                GameIcon(g.id, 34)
                 Label(g.label, Modifier.weight(1f), size = 15.sp, align = TextAlign.Start, lines = 1)
-                if (g.id == pick) {
-                    // Nu's pick today.
-                    Canvas(Modifier.size(10.dp)) { ComposePen(this, 10.0).dot(5.0, 5.0, 4.0, Ink.ROSE) }
-                }
-                val best = model.bests[g.id] ?: 0.0
-                if (best > 0) Canvas(Modifier.size(28.dp)) {
-                    ComposePen(this, 28.0).scoreAtom(14.0, 14.0, 26.0, Games.points(g.id, best), Ink.K300)
-                }
+                if (g.id == pick) Canvas(Modifier.size(10.dp)) { ComposePen(this, 10.0).dot(5.0, 5.0, 4.0, Ink.ROSE) }
             }
         }
     }
 }
 
-private val DAY = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US)
+/** Rotary pixels per difficulty step on a game's page. */
+private const val PICK_PX = 60f
 
-/** One atom: its cloud (in color once built), its name, when it was built, and two facts. */
+/** One game's page for free play: its icon and name, the difficulty (tap the pips or turn the
+ *  crown), the best level reached at it, and Play. */
 @Composable
-fun AtomScreen(model: AppModel, z: Int) {
+fun FreePlayScreen(model: AppModel, game: Game, onPlay: (Int) -> Unit) {
     model.version
-    val atom = model.atlas.atom(z)
-    val nebula = remember(z) { Nebula(atom, model.atlas.cloud(z)) }
-    val builtOn = model.collection.built[z]
-    var frame by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(Unit) { while (true) withFrameNanos { frame = it } }
-    WatchList {
-        item {
-            Canvas(Modifier.size(104.dp)) {
-                frame
-                nebula.draw(ComposePen(this, 104.0), 52.0, 52.0, 48.0, frame / 1e6, if (builtOn != null) 1.0 else 0.0, still = builtOn == null)
+    var level by remember(game.id) { mutableStateOf(model.pickedLevel(game)) }
+    var spun by remember { mutableFloatStateOf(0f) }
+    val fr = remember { FocusRequester() }
+    LaunchedEffect(Unit) { fr.requestFocus() }
+    fun set(l: Int) {
+        val to = l.coerceIn(0, Difficulty.LEVELS - 1)
+        if (to != level) { level = to; model.feel.buzz(15); model.pick(game, to) }
+    }
+    val dial = Difficulty.dialOf(level)
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .onRotaryScrollEvent { e ->
+                spun += e.verticalScrollPixels
+                val steps = (spun / PICK_PX).toInt()
+                if (steps != 0) { spun -= steps * PICK_PX; set(level + steps) }
+                true
             }
-        }
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Label("${atom.z}", size = 14.sp, color = Tone.text2)
-                Label(atom.name, size = 18.sp, weight = FontWeight.SemiBold)
+            .focusRequester(fr)
+            .focusable(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            GameIcon(game.id, 44)
+            Label(game.label, Modifier.padding(top = 6.dp), size = 18.sp, weight = FontWeight.SemiBold)
+            Label(Difficulty.WORDS[level], size = 14.sp, color = Color(Difficulty.COLORS[level]))
+            // The five pips; tap one to pick its level.
+            Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                for (i in 0 until Difficulty.LEVELS) {
+                    Canvas(Modifier.size(22.dp).clickable { set(i) }) {
+                        val pen = ComposePen(this, 22.0)
+                        pen.dot(11.0, 11.0, 5.0, if (i <= level) Difficulty.COLORS[level] else Ink.K700)
+                    }
+                }
             }
-        }
-        item {
-            if (builtOn != null) Label("Built: ${LocalDate.ofEpochDay(builtOn).format(DAY)}", size = 13.sp, color = Tone.green)
-            else Label("Not built yet", size = 13.sp, color = Tone.text2)
-        }
-        item {
-            val group = atom.group?.let { ", group $it" } ?: ""
-            Label("Period ${atom.period}$group, ${atom.block} block", size = 13.sp, color = Tone.text2)
-        }
-        for (f in listOf(atom.fact1, atom.fact2).filter { it.isNotBlank() }) item {
-            Label(f, Modifier.fillMaxWidth().padding(horizontal = 6.dp), size = 14.sp, weight = FontWeight.Normal)
+            val best = model.bestLevel(game, level)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Label(if (best > 0) "Best: $best" else "No best yet", size = 13.sp, color = Tone.text2)
+                if (best > 0) Canvas(Modifier.size(20.dp)) { ComposePen(this, 20.0).levels(10.0, 10.0, 20.0, best, null) }
+            }
+            Box(
+                Modifier
+                    .padding(top = 8.dp)
+                    .width(110.dp)
+                    .height(38.dp)
+                    .background(Tone.text, RoundedCornerShape(19.dp))
+                    .clickable { onPlay(level) },
+                contentAlignment = Alignment.Center,
+            ) { Label("Play", size = 15.sp, color = Color.Black, weight = FontWeight.SemiBold) }
         }
     }
 }
@@ -155,11 +182,9 @@ private fun SwitchRow(label: String, on: Boolean, set: (Boolean) -> Unit) {
     PlateRow(onClick = { set(!on) }) {
         Label(label, Modifier.weight(1f), size = 15.sp, align = TextAlign.Start)
         Canvas(Modifier.width(36.dp).height(22.dp)) {
-            val pen = ComposePen(this, 36.0)
-            // The pen's square is 36 across, centered: the switch sits on its middle line.
-            val y = 18.0
-            pen.rect(1.0, y - 10, 34.0, 20.0, 10.0, if (on) Ink.CYAN else Ink.K700)
-            pen.dot(if (on) 25.0 else 11.0, y, 7.0, if (on) Ink.BLACK else Ink.WHITE)
+            val pen = ComposePen(this, 36.0, wide = true)
+            pen.rect(1.0, 1.0, 34.0, 20.0, 10.0, if (on) Ink.CYAN else Ink.K700)
+            pen.dot(if (on) 25.0 else 11.0, 11.0, 7.0, if (on) Ink.BLACK else Ink.WHITE)
         }
     }
 }

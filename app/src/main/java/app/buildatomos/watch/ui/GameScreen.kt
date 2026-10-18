@@ -1,6 +1,7 @@
-// A run of one game: the court filling the screen, the rim, the score as a tiny atom, and the
-// run-over card with Again. Touches and the crown go to the game; a swipe in from the left edge
-// (or the back button) leaves.
+// A run of one game. It opens on a card with the game's name, its difficulty and the levels to
+// reach, then the court fills the screen: the rim, the levels as a tiny atom at the bottom, and
+// the ATOMOS mark at the top, which pauses the run and opens its menu (Resume, Restart, Exit; the
+// back button does the same). The run ends on a card: what it built or reached, and what next.
 
 package app.buildatomos.watch.ui
 
@@ -28,69 +29,95 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntSize
 import app.buildatomos.core.COURT_R
-import app.buildatomos.core.Game
+import app.buildatomos.core.Difficulty
 import app.buildatomos.core.Ink
+import app.buildatomos.core.MAX_LEVEL
 import app.buildatomos.core.Pt
+import app.buildatomos.core.Result
 import app.buildatomos.core.SCREEN
 import app.buildatomos.core.Stage
 import app.buildatomos.core.TAU
 import app.buildatomos.core.Toy
-import app.buildatomos.core.best
 import app.buildatomos.core.gameIcon
-import app.buildatomos.core.scoreAtom
-import app.buildatomos.core.Games
+import app.buildatomos.core.levels
+import app.buildatomos.core.mark
+import app.buildatomos.core.pips
 import app.buildatomos.watch.AppModel
+import app.buildatomos.watch.RunSpec
 import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.min
+import kotlin.math.sin
 
 /** Crown turn per pixel of rotary scroll, in radians: a full turn of a Pixel Watch crown is
  *  roughly a full turn of Nu round its ring. */
 private const val CROWN = 0.006
+/** How long the opening card shows before play starts (a tap starts it sooner). */
+private const val INTRO_MS = 2200L
+private const val MID = SCREEN / 2
+/** The menu button: the mark at the top. */
+private val MENU = Pt(MID, 17.0)
+/** The levels counter at the bottom. */
+private val COUNTER = Pt(MID, 272.0)
 
-private class Run(val game: Game, model: AppModel) {
-    val stage = Stage(model.feel, model.bests)
-    val toy: Toy = game.make()
-    val bestBefore = best(stage, game.id)
-    var paid: Int? = null
+private enum class Phase { INTRO, PLAY, PAUSED, OVER }
+
+private class Run(val spec: RunSpec, model: AppModel) {
+    val stage = Stage(model.feel).also { it.dial = spec.dial; it.goal = spec.goal }
+    val toy: Toy = spec.game.make()
     var newBest = false
+    var shownLevel = 0
 }
 
 @Composable
-fun GameScreen(model: AppModel, game: Game, onLeave: () -> Unit) {
+fun GameScreen(model: AppModel, spec: RunSpec, onLeave: () -> Unit, onNextRun: () -> Unit) {
     var round by remember { mutableIntStateOf(0) }
-    val run = remember(round) {
-        Run(game, model).also { r -> r.stage.now = 1000.0; r.toy.enter(r.stage) }
-    }
+    val run = remember(round) { Run(spec, model).also { r -> r.stage.now = 1000.0; r.toy.enter(r.stage) } }
+    var phase by remember(round) { mutableStateOf(Phase.INTRO) }
+    var phaseAt by remember(round) { mutableLongStateOf(System.currentTimeMillis()) }
     var frame by remember { mutableLongStateOf(0L) }
-    var over by remember(round) { mutableStateOf(false) }
-    var waiting by remember(round) { mutableStateOf(false) }
     val focus = remember { FocusRequester() }
+    val measurer = rememberTextMeasurer()
+    fun go(p: Phase) { phase = p; phaseAt = System.currentTimeMillis() }
 
-    BackHandler { onLeave() }
+    BackHandler {
+        when (phase) {
+            Phase.PLAY -> go(Phase.PAUSED)
+            Phase.PAUSED -> go(Phase.PLAY)
+            else -> onLeave()
+        }
+    }
 
     LaunchedEffect(run) {
         var last = withFrameNanos { it }
+        var overAt = 0L
         while (true) {
             withFrameNanos { t ->
                 val dt = ((t - last) / 1e6).coerceIn(0.0, 50.0)
                 last = t
-                val s = run.stage
-                s.now += dt
-                run.toy.step(s, dt, s.now)
                 frame = t
-                waiting = s.waiting != null
-                val end = s.ended
-                if (end != null && run.paid == null) {
-                    run.newBest = end > run.bestBefore && run.bestBefore > 0
-                    run.paid = model.finishRun(game.id, end, run.bestBefore)
+                val s = run.stage
+                if (phase == Phase.INTRO && System.currentTimeMillis() - phaseAt > INTRO_MS) go(Phase.PLAY)
+                if (phase == Phase.PLAY && !s.over) {
+                    s.now += dt
+                    run.toy.step(s, dt, s.now)
+                    if (s.level > run.shownLevel) {
+                        run.shownLevel = s.level
+                        s.fx.ring(COUNTER, Ink.CYAN, 10.0, 34.0, 700.0)
+                    }
+                    val result = s.result
+                    if (result != null) {
+                        run.newBest = model.finishRun(spec, result, s.level)
+                        overAt = System.currentTimeMillis()
+                    }
                 }
-            }
-            if (run.paid != null && !over) {
-                // Let the miss play out a moment before the card.
-                kotlinx.coroutines.delay(700)
-                over = true
+                // Let the end play out a moment before the card.
+                if (phase == Phase.PLAY && s.over && System.currentTimeMillis() - overAt > 800) go(Phase.OVER)
             }
         }
     }
@@ -108,39 +135,54 @@ fun GameScreen(model: AppModel, game: Game, onLeave: () -> Unit) {
             .fillMaxSize()
             .background(Color.Black)
             .onRotaryScrollEvent { e ->
-                if (!over) run.toy.crown(run.stage, e.verticalScrollPixels * CROWN)
+                if (phase == Phase.PLAY) run.toy.crown(run.stage, e.verticalScrollPixels * CROWN)
                 true
             }
             .focusRequester(focus)
             .focusable()
-            .pointerInput(run, over) {
+            .pointerInput(run) {
                 size = this.size
                 awaitEachGesture {
                     val down = awaitFirstDown()
-                    val edge = down.position.x < size.width * 0.1f
+                    val at = court(down.position)
                     val s = run.stage
-                    if (over) return@awaitEachGesture
-                    if (!edge) {
-                        val go = s.waiting
-                        if (go != null && court(down.position).let { p -> p.y > SCREEN * 0.72 && p.x in SCREEN * 0.3..SCREEN * 0.7 }) {
-                            s.waiting = null
-                            go()
+                    when (phase) {
+                        Phase.INTRO -> { go(Phase.PLAY); return@awaitEachGesture }
+                        Phase.PAUSED -> {
+                            when (menuButton(at)) {
+                                0 -> { round++ }
+                                1 -> go(Phase.PLAY)
+                                2 -> onLeave()
+                            }
                             return@awaitEachGesture
                         }
-                        run.toy.down(s, court(down.position))
+                        Phase.OVER -> {
+                            when (overButton(at)) {
+                                0 -> onLeave()
+                                1 -> if (spec.building != null && s.result == Result.WON) onNextRun() else round++
+                            }
+                            return@awaitEachGesture
+                        }
+                        Phase.PLAY -> {}
                     }
+                    if (hypot(at.x - MENU.x, at.y - MENU.y) < 22) { go(Phase.PAUSED); return@awaitEachGesture }
+                    val next = s.waiting
+                    if (next != null && hypot(at.x - MID, at.y - NEXT_Y) < 30) {
+                        s.waiting = null
+                        next()
+                        return@awaitEachGesture
+                    }
+                    run.toy.down(s, at)
                     var pos = down.position
                     while (true) {
                         val e = awaitPointerEvent()
                         val c = e.changes.firstOrNull { it.id == down.id } ?: break
                         pos = c.position
                         if (!c.pressed) break
-                        if (!edge) run.toy.move(s, court(pos))
+                        if (phase == Phase.PLAY) run.toy.move(s, court(pos))
                         c.consume()
                     }
-                    if (edge) {
-                        if (pos.x - down.position.x > size.width * 0.3f) onLeave()
-                    } else run.toy.up(s, court(pos))
+                    run.toy.up(s, court(pos))
                 }
             },
     ) {
@@ -149,85 +191,150 @@ fun GameScreen(model: AppModel, game: Game, onLeave: () -> Unit) {
             val pen = ComposePen(this)
             val s = run.stage
             run.toy.draw(s, pen, s.now)
-            s.fx.draw(pen, s.now, 16.0)
-            // The rim's countdown, if the game keeps one.
+            s.fx.draw(pen, s.now, if (phase == Phase.PLAY) 16.0 else 0.0)
             s.rim?.let { left ->
                 pen.arc(s.c.x, s.c.y, COURT_R + 7, -PI / 2, TAU * left.coerceIn(0.0, 1.0), Ink.CYAN, 4.0, 0.8)
             }
-            if (!over) {
-                // The count, as a tiny atom at the bottom.
-                pen.scoreAtom(s.c.x, s.c.y + COURT_R - 4, 18.0, Games.points(game.id, s.shown), Ink.K300)
+            if (phase == Phase.PLAY) {
+                pen.dot(MENU.x, MENU.y, 15.0, Ink.BLACK, 0.7)
+                pen.mark(MENU.x, MENU.y, 24.0, Ink.WHITE)
+                pen.levels(COUNTER.x, COUNTER.y, 32.0, s.level, s.goal, s.part)
                 if (s.waiting != null) nextButton(pen)
             }
+            val since = (System.currentTimeMillis() - phaseAt).toDouble()
+            when (phase) {
+                Phase.INTRO -> intro(pen, measurer, spec, since)
+                Phase.PAUSED -> menu(pen, measurer, spec, s)
+                Phase.OVER -> over(pen, measurer, model, spec, run, since)
+                Phase.PLAY -> {}
+            }
         }
-        if (over) OverCard(run, game, onAgain = { round++ }, onLeave = onLeave)
     }
 }
 
-/** The rose Next button low on the court: a skip-forward mark. */
+private const val NEXT_Y = 232.0
+
+/** The rose Next button, between levels of a round-based game: a skip-forward mark. */
 private fun nextButton(pen: ComposePen) {
-    val x = SCREEN / 2
-    val y = SCREEN * 0.83
+    val x = MID
+    val y = NEXT_Y
     pen.dot(x, y, 22.0, Ink.ROSE)
     pen.line(x - 7, y - 8, x + 3, y, Ink.BLACK, 4.0)
     pen.line(x + 3, y, x - 7, y + 8, Ink.BLACK, 4.0)
     pen.line(x + 8, y - 8, x + 8, y + 8, Ink.BLACK, 4.0)
 }
 
-/** The run is over: the score atom (in the accent if it's a new best), what it paid, and Again. */
-@Composable
-private fun OverCard(run: Any, game: Game, onAgain: () -> Unit, onLeave: () -> Unit) {
-    val r = run as Run
-    val points = Games.points(game.id, r.stage.ended ?: 0.0)
-    val best = Games.points(game.id, best(r.stage, game.id))
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.82f))
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    val down = awaitFirstDown()
-                    var end = down.position
-                    while (true) {
-                        val e = awaitPointerEvent()
-                        val c = e.changes.firstOrNull { it.id == down.id } ?: break
-                        end = c.position
-                        if (!c.pressed) break
-                    }
-                    val side = min(size.width, size.height).toFloat()
-                    val k = side / SCREEN.toFloat()
-                    val x = (end.x - (size.width - side) / 2) / k
-                    val y = (end.y - (size.height - side) / 2) / k
-                    if (end.x - down.position.x > size.width * 0.3f) onLeave()
-                    else if (y > SCREEN * 0.68 && x in (SCREEN * 0.3).toFloat()..(SCREEN * 0.7).toFloat()) onAgain()
-                }
-            },
-    ) {
-        Canvas(Modifier.fillMaxSize()) {
-            val pen = ComposePen(this)
-            val c = SCREEN / 2
-            pen.scoreAtom(c, 104.0, 92.0, points, if (r.newBest) Ink.CYAN else Ink.WHITE, ring = if (r.newBest) Ink.CYAN else null)
-            // The best, small, beside the game's icon.
-            pen.dot(c - 22, 176.0, 12.0, Ink.WHITE)
-            pen.gameIcon(game.id, c - 22, 176.0, 14.0, Ink.BLACK)
-            pen.scoreAtom(c + 14, 176.0, 26.0, best, Ink.K300)
-            // Again: a big white circle with a turning arrow.
-            val y = 236.0
-            pen.dot(c, y, 30.0, Ink.WHITE)
-            pen.arc(c, y, 12.0, -PI * 0.35, PI * 1.6, Ink.BLACK, 4.5)
-            val ax = c + 12 * kotlin.math.cos(-PI * 0.35)
-            val ay = y + 12 * kotlin.math.sin(-PI * 0.35)
-            pen.line(ax, ay, ax - 7, ay - 2, Ink.BLACK, 4.5)
-            pen.line(ax, ay, ax + 1, ay - 8, Ink.BLACK, 4.5)
-        }
-        Electrons(r.paid ?: 0)
+private fun veil(pen: ComposePen, alpha: Double) = pen.dot(MID, MID, SCREEN, Ink.BLACK, alpha)
+
+/** The opening card: the game, its difficulty, and the levels to reach. */
+private fun intro(pen: ComposePen, m: androidx.compose.ui.text.TextMeasurer, spec: RunSpec, since: Double) {
+    val fade = if (since > INTRO_MS - 300) (INTRO_MS - since) / 300 else 1.0
+    veil(pen, 0.92 * fade)
+    if (fade <= 0) return
+    pen.dot(MID, 84.0, 30.0, Ink.WHITE, fade)
+    pen.gameIcon(spec.game.id, MID, 84.0, 34.0, Ink.BLACK)
+    pen.text(m, spec.game.label, MID, 140.0, 24.0, Ink.WHITE, FontWeight.SemiBold, fade)
+    pen.text(m, Difficulty.word(spec.dial), MID, 168.0, 15.0, Difficulty.color(spec.dial), alpha = fade)
+    pen.pips(MID, 188.0, 46.0, spec.dial)
+    val goal = spec.goal
+    if (goal != null) {
+        pen.levels(MID, 228.0, 40.0, 0, goal)
+        pen.text(m, "Reach $goal levels", MID, 260.0, 13.0, Ink.K300, alpha = fade)
+    } else {
+        pen.text(m, "Free play", MID, 234.0, 13.0, Ink.K300, alpha = fade)
     }
 }
 
-@Composable
-private fun Electrons(n: Int) {
-    if (n <= 0) return
-    Box(Modifier.fillMaxSize()) {
-        Label("+$n", Modifier.align(androidx.compose.ui.Alignment.Center), color = Color(Ink.CYAN))
+/** Which of the menu's buttons is at `p`: 0 Restart, 1 Resume, 2 Exit, or -1. */
+private fun menuButton(p: Pt): Int = when {
+    hypot(p.x - MID, p.y - 168) < 38 -> 1
+    hypot(p.x - (MID - 78), p.y - 168) < 30 -> 0
+    hypot(p.x - (MID + 78), p.y - 168) < 30 -> 2
+    else -> -1
+}
+
+/** The menu: what is being played, then Restart, Resume (the big one) and Exit. */
+private fun menu(pen: ComposePen, m: androidx.compose.ui.text.TextMeasurer, spec: RunSpec, s: Stage) {
+    veil(pen, 0.9)
+    pen.text(m, spec.game.label, MID, 70.0, 20.0, Ink.WHITE, FontWeight.SemiBold)
+    pen.text(m, Difficulty.word(spec.dial), MID, 95.0, 13.0, Difficulty.color(spec.dial))
+    pen.levels(MID, 118.0, 26.0, s.level, s.goal, s.part)
+    // Resume: a white disc with a play mark.
+    pen.dot(MID, 168.0, 32.0, Ink.WHITE)
+    pen.line(MID - 7, 156.0, MID - 7, 180.0, Ink.BLACK, 4.0)
+    pen.line(MID - 7, 156.0, MID + 12, 168.0, Ink.BLACK, 4.0)
+    pen.line(MID + 12, 168.0, MID - 7, 180.0, Ink.BLACK, 4.0)
+    // Restart: a turning arrow.
+    roundButton(pen, MID - 78, 168.0) { x, y -> again(pen, x, y, Ink.WHITE) }
+    // Exit: a cross.
+    roundButton(pen, MID + 78, 168.0) { x, y -> cross(pen, x, y, Ink.WHITE) }
+    pen.text(m, "Restart", MID - 78, 206.0, 13.0, Ink.K300)
+    pen.text(m, "Resume", MID, 214.0, 13.0, Ink.K300)
+    pen.text(m, "Exit", MID + 78, 206.0, 13.0, Ink.K300)
+}
+
+private fun roundButton(pen: ComposePen, x: Double, y: Double, mark: (Double, Double) -> Unit) {
+    pen.dot(x, y, 24.0, Ink.K800)
+    mark(x, y)
+}
+
+private fun again(pen: ComposePen, x: Double, y: Double, color: Int) {
+    pen.arc(x, y, 10.0, -PI * 0.35, PI * 1.6, color, 3.5)
+    val ax = x + 10 * cos(-PI * 0.35)
+    val ay = y + 10 * sin(-PI * 0.35)
+    pen.line(ax, ay, ax - 6, ay - 2, color, 3.5)
+    pen.line(ax, ay, ax + 1, ay - 7, color, 3.5)
+}
+
+private fun cross(pen: ComposePen, x: Double, y: Double, color: Int) {
+    pen.line(x - 7, y - 7, x + 7, y + 7, color, 3.5)
+    pen.line(x + 7, y - 7, x - 7, y + 7, color, 3.5)
+}
+
+/** Which of the end card's buttons is at `p`: 0 Exit, 1 Again (or Next), or -1. */
+private fun overButton(p: Pt): Int = when {
+    hypot(p.x - (MID + 34), p.y - 226) < 32 -> 1
+    hypot(p.x - (MID - 44), p.y - 226) < 28 -> 0
+    else -> -1
+}
+
+/** The end card. For an atom: the shell built (or the atom), and Next; or how far the run got,
+ *  and Again. For free play: the level reached and the best. */
+private fun over(pen: ComposePen, m: androidx.compose.ui.text.TextMeasurer, model: AppModel, spec: RunSpec, run: Run, since: Double) {
+    val s = run.stage
+    veil(pen, 0.9 * min(1.0, since / 250))
+    val won = s.result == Result.WON
+    val z = spec.building
+    val goal = s.goal
+    if (z != null && won) {
+        val atom = model.atlas.atom(z)
+        val built = model.collection.isBuilt(z)
+        pen.levels(MID, 84.0, 64.0, s.level, goal, 0.0, Ink.GREEN)
+        pen.text(m, if (built) "${atom.name} built" else "Shell built", MID, 140.0, 20.0, Ink.GREEN, FontWeight.SemiBold)
+        val shells = if (built) app.buildatomos.core.periodOf(z) else model.collection.shells
+        pen.text(m, "${atom.name}: $shells of ${app.buildatomos.core.periodOf(z)} shells", MID, 166.0, 13.0, Ink.K300)
+    } else if (z != null) {
+        pen.levels(MID, 84.0, 64.0, s.level, goal)
+        pen.text(m, "Try again", MID, 140.0, 20.0, Ink.WHITE, FontWeight.SemiBold)
+        pen.text(m, "Level ${s.level} of $goal", MID, 166.0, 13.0, Ink.K300)
+    } else {
+        pen.levels(MID, 84.0, 64.0, s.level, null, 0.0, if (run.newBest) Ink.CYAN else Ink.WHITE)
+        pen.text(m, if (won) "Every level cleared" else "Level ${s.level}", MID, 140.0, 20.0, Ink.WHITE, FontWeight.SemiBold)
+        val best = model.bestLevel(spec.game, Difficulty.level(spec.dial))
+        pen.text(m, if (run.newBest) "New best" else "Best: $best", MID, 166.0, 13.0, if (run.newBest) Ink.CYAN else Ink.K300)
+        if (won && s.level >= MAX_LEVEL) pen.text(m, "of $MAX_LEVEL", MID, 186.0, 13.0, Ink.K300)
+    }
+    // Exit, and Again (white, a turning arrow) or, after a shell is built, Next (rose).
+    roundButton(pen, MID - 44, 226.0) { x, y -> cross(pen, x, y, Ink.WHITE) }
+    if (z != null && won) {
+        val x = MID + 34
+        val y = 226.0
+        pen.dot(x, y, 28.0, Ink.ROSE)
+        pen.line(x - 8, y - 9, x + 3, y, Ink.BLACK, 4.0)
+        pen.line(x + 3, y, x - 8, y + 9, Ink.BLACK, 4.0)
+        pen.line(x + 9, y - 9, x + 9, y + 9, Ink.BLACK, 4.0)
+    } else {
+        pen.dot(MID + 34, 226.0, 28.0, Ink.WHITE)
+        again(pen, MID + 34, 226.0, Ink.BLACK)
     }
 }

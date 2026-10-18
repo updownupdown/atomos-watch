@@ -23,17 +23,24 @@ import app.buildatomos.core.TAU
 import kotlin.math.max
 import kotlin.math.min
 
-/** Draws in court units (SCREEN across) onto the square at the middle of `scope`. */
-class ComposePen(private val scope: DrawScope, units: Double = SCREEN) : Pen {
+/** Draws in court units (SCREEN across) onto the square at the middle of `scope`; or, `wide`,
+ *  `units` across the whole width from the top left, for bars and rows of pips. */
+class ComposePen(private val scope: DrawScope, units: Double = SCREEN, wide: Boolean = false) : Pen {
     private val k: Float
     private val ox: Float
     private val oy: Float
 
     init {
-        val side = min(scope.size.width, scope.size.height)
-        k = (side / units).toFloat()
-        ox = (scope.size.width - side) / 2
-        oy = (scope.size.height - side) / 2
+        if (wide) {
+            k = (scope.size.width / units).toFloat()
+            ox = 0f
+            oy = 0f
+        } else {
+            val side = min(scope.size.width, scope.size.height)
+            k = (side / units).toFloat()
+            ox = (scope.size.width - side) / 2
+            oy = (scope.size.height - side) / 2
+        }
     }
 
     private fun X(x: Double) = ox + x.toFloat() * k

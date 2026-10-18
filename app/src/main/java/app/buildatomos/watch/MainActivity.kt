@@ -1,4 +1,5 @@
-// The one activity. The tile opens it with the game Nu picked as the "game" extra.
+// The one activity. The tile and the Nu complication open it with the "build" extra, straight into
+// the next run for the atom being built.
 
 package app.buildatomos.watch
 
@@ -10,20 +11,20 @@ import androidx.compose.runtime.mutableStateOf
 import app.buildatomos.watch.ui.App
 
 class MainActivity : ComponentActivity() {
-    private val launchGame = mutableStateOf<String?>(null)
+    private val launchBuild = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val model = AppModel.get(this)
-        if (savedInstanceState == null) launchGame.value = intent?.getStringExtra(EXTRA_GAME)
+        if (savedInstanceState == null) launchBuild.value = intent?.getBooleanExtra(EXTRA_BUILD, false) == true
         setContent {
-            App(model, launchGame.value, onLaunched = { launchGame.value = null }, onExit = { finish() })
+            App(model, launchBuild.value, onLaunched = { launchBuild.value = false }, onExit = { finish() })
         }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        intent.getStringExtra(EXTRA_GAME)?.let { launchGame.value = it }
+        if (intent.getBooleanExtra(EXTRA_BUILD, false)) launchBuild.value = true
     }
 
     override fun onDestroy() {
@@ -32,6 +33,6 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        const val EXTRA_GAME = "game"
+        const val EXTRA_BUILD = "build"
     }
 }
