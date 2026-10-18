@@ -176,7 +176,7 @@ fun Pen.gameIcon(id: String, cx: Double, cy: Double, size: Double, color: Int) {
 }
 
 /** The app's own icons, drawn on a 24 grid like the phone's: flat strokes and fills, round caps. */
-enum class Icon { PLAY, RESTART, EXIT, NEXT, CHECK, GEAR, LOCK, CHEVRON, GAMES, TABLE, WHEEL }
+enum class Icon { PLAY, RESTART, EXIT, NEXT, CHECK, GEAR, LOCK, CHEVRON, BACK, GAMES, TABLE, WHEEL, ATLAS }
 
 /** Icon `icon` round (cx, cy), `size` across. */
 fun Pen.icon(icon: Icon, cx: Double, cy: Double, size: Double, color: Int) {
@@ -200,6 +200,7 @@ fun Pen.icon(icon: Icon, cx: Double, cy: Double, size: Double, color: Int) {
         Icon.EXIT -> { l(6.5, 6.5, 17.5, 17.5); l(17.5, 6.5, 6.5, 17.5) }
         Icon.CHECK -> poly(doubleArrayOf(X(5.5), X(10.0), X(18.5)), doubleArrayOf(Y(12.5), Y(17.0), Y(7.5)), 3, color, 2.8 * k)
         Icon.CHEVRON -> poly(doubleArrayOf(X(9.5), X(15.5), X(9.5)), doubleArrayOf(Y(6.0), Y(12.0), Y(18.0)), 3, color, 2.6 * k)
+        Icon.BACK -> poly(doubleArrayOf(X(14.5), X(8.5), X(14.5)), doubleArrayOf(Y(6.0), Y(12.0), Y(18.0)), 3, color, 2.6 * k)
         Icon.RESTART -> {
             // A ring turning clockwise, open at the top right, the arrowhead at its end.
             val r = 7.5
@@ -232,5 +233,16 @@ fun Pen.icon(icon: Icon, cx: Double, cy: Double, size: Double, color: Int) {
         Icon.GAMES -> for (r in 0..1) for (c in 0..1) rect(X(4.5 + c * 8.5), Y(4.5 + r * 8.5), 6.5 * k, 6.5 * k, 2.0 * k, color)
         Icon.TABLE -> for (i in 0..5) rect(X(4.0 + (i % 3) * 6), Y(7.0 + (i / 3) * 6), 4.4 * k, 4.4 * k, 1.0 * k, color)
         Icon.WHEEL -> { ring(X(12.0), Y(12.0), 7.5 * k, color, 2.4 * k); dot(X(12.0), Y(4.5), 2.6 * k, color) }
+        Icon.ATLAS -> {
+            // The phone's Atlas: an open book, lines of text on the left page, a little table on the
+            // right (one cell left open), drawn a touch bolder for the watch.
+            val w = 1.9
+            val xs = doubleArrayOf(12.0, 9.6, 6.3, 2.75, 2.75, 6.3, 9.6, 12.0, 14.4, 17.7, 21.25, 21.25, 17.7, 14.4, 12.0)
+            val ys = doubleArrayOf(6.4, 4.7, 4.3, 4.9, 19.1, 18.5, 18.9, 20.6, 18.9, 18.5, 19.1, 4.9, 4.3, 4.7, 6.4)
+            poly(DoubleArray(xs.size) { X(xs[it]) }, DoubleArray(ys.size) { Y(ys[it]) }, xs.size, color, w * k)
+            l(12.0, 6.4, 12.0, 20.6, w)
+            l(5.0, 9.0, 9.4, 9.0, w); l(5.0, 12.0, 9.4, 12.0, w); l(5.0, 15.0, 8.0, 15.0, w)
+            for ((cx, cy) in listOf(14.4 to 8.2, 17.6 to 8.2, 14.4 to 11.4, 14.4 to 14.6)) rect(X(cx), Y(cy), 2.4 * k, 2.4 * k, 0.6 * k, color)
+        }
     }
 }
