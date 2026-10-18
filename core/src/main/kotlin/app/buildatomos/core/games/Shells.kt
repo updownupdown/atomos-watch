@@ -6,13 +6,18 @@ import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
  * Shells (the phone's src/nu/park.ts). Three shells. Nu hides under one and the shells shuffle;
- * tap the one it is under. Each find in a row shuffles a little longer and faster. A wrong shell
- * ends the run.
- * On the watch the run also ends if no shell is picked for 20 seconds (the phone waits for
+ * tap the one it is under. A wrong shell loses the run.
+ * Levels: a level is a few finds in a row (three, and one more every few levels, up to five).
+ * Heat makes the shuffle longer (four swaps at the gentlest, about fourteen at Expert, more after)
+ * and quicker (each swap from about half a second down to a fifth), and each find in a level
+ * adds a swap. The next round follows a find by itself, after Nu has been shown.
+ * On the watch the run is also lost if no shell is picked for 20 seconds (the phone waits for
  * ever): the shell Nu was under opens.
  */
 class Shells : Toy {
@@ -25,11 +30,11 @@ class Shells : Toy {
     private class Swap(val a: Int, val b: Int, val t0: Double, val ms: Double)
     private var swap: Swap? = null
     private var left = 0
-    private var streak = 0
+    /** Finds so far in this level. */
+    private var found = 0
     private var timer = 0.0
     private val open = mutableSetOf<Int>()
     private val pos = Array(3) { Pt(0.0, 0.0) }
-    private var over = false
     /** When the shells stopped and the pick began. */
     private var since = 0.0
 
@@ -39,21 +44,21 @@ class Shells : Toy {
         val r = s.R * 0.42
         spots = listOf(-90.0, 30.0, 150.0).map { d -> polar(s, d * PI / 180, r) }
         for (i in 0 until 3) pos[i] = spots[at[i]].copy()
-        streak = 0
-        round(s)
+        found = 0
+        round()
     }
 
-    private fun round(s: Stage) {
+    private fun round() {
         under = floor(rnd() * 3).toInt()
         state = St.HIDE
         open.clear()
         open += listOf(0, 1, 2)
         timer = 1100.0
-        s.score(streak)
     }
 
     override fun step(s: Stage, dt: Double, now: Double) {
         val nu = s.nu
+        s.part = clamp(found.toDouble() / need(s.level), 0.0, 1.0)
         // Positions: each shell at its spot, or on its arc while two swap.
         for (i in 0 until 3) pos[i] = spots[at[i]].copy()
         swap?.let { w ->
@@ -77,26 +82,25 @@ class Shells : Toy {
             nu.seek(pos[under], dt, 0.55, 0.015)
             timer -= dt
             if (timer < 300) open.clear()
-            if (timer <= 0) { state = St.SHUFFLE; left = 4 + streak * 2 }
+            if (timer <= 0) { state = St.SHUFFLE; left = swaps(s.heat) + found }
         }
         if (state == St.SHUFFLE && swap == null) {
             val a = floor(rnd() * 3).toInt()
             val b = (a + 1 + floor(rnd() * 2).toInt()) % 3
-            swap = Swap(a, b, now, max(240.0, 520.0 - streak * 40))
+            swap = Swap(a, b, now, swapMs(s.heat))
         }
         if (state != St.HIDE) { nu.x = pos[under].x; nu.y = pos[under].y }
         if (state == St.PICK && now - since > QUIET) {
-            // Walked off: Nu's shell opens and the run is over.
+            // Walked off: Nu's shell opens and the run is lost.
             open.clear()
             open += under
             state = St.SHOW
-            over = true
             s.out.miss()
-            finish(s, "shells", streak)
+            s.lose()
         }
-        if (state == St.SHOW && !over) {
+        if (state == St.SHOW && !s.over) {
             timer -= dt
-            if (timer <= 0) round(s)
+            if (timer <= 0) round()
         }
     }
 
@@ -116,7 +120,7 @@ class Shells : Toy {
     }
 
     override fun down(s: Stage, p: Pt) {
-        if (state != St.PICK || over) return
+        if (state != St.PICK || s.over) return
         val i = (0 until 3).firstOrNull { dist(p, pos[it]) < 36 } ?: return
         open.clear()
         open += i
@@ -124,20 +128,24 @@ class Shells : Toy {
         state = St.SHOW
         timer = 1300.0
         if (i == under) {
-            streak++
-            setBest(s, "shells", streak.toDouble())
             s.fx.burst(pos[i], 10, Ink.ROSE, 0.12)
-            s.out.complete()
-            s.score(streak)
+            s.out.capture()
+            if (++found >= need(s.level)) { found = 0; s.clear() }
         } else {
-            over = true
             s.out.miss()
-            finish(s, "shells", streak)
+            s.lose()
         }
+        s.part = clamp(found.toDouble() / need(s.level), 0.0, 1.0)
     }
 
-    private companion object {
-        /** How long the watch waits for a pick before the run ends. */
+    internal companion object {
+        /** How long the watch waits for a pick before the run is lost. */
         const val QUIET = 20_000.0
+        /** Finds in a row to clear a level: three, one more every three levels, at most five. */
+        fun need(level: Int) = 3 + min(2, level / 3)
+        /** Swaps in a shuffle at this heat: 4 at the gentlest, 14 at Expert, on up. */
+        fun swaps(heat: Double) = 4 + (heat * 10).roundToInt()
+        /** How long one swap takes (ms): about half a second at the gentlest, never under 180. */
+        fun swapMs(heat: Double) = max(180.0, 540.0 - heat * 260)
     }
 }
