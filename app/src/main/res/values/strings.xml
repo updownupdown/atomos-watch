@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ATOMOS</string>
+    <string name="tile_label">Nu’s pick</string>
+    <string name="tile_description">The game Nu wants to play today.</string>
+    <string name="complication_label">Atom being built</string>
+</resources>

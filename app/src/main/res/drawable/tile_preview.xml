@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The tile's picture in the tile picker: Nu's pick, a white game disc on black. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="192dp" android:height="192dp" android:viewportWidth="192" android:viewportHeight="192">
+    <path android:fillColor="#FF000000" android:pathData="M0,96a96,96 0 1,0 192,0a96,96 0 1,0 -192,0"/>
+    <path android:fillColor="#FFE4E8EA" android:pathData="M66,86a30,30 0 1,0 60,0a30,30 0 1,0 -60,0"/>
+    <path android:strokeColor="#FF101112" android:strokeWidth="4" android:pathData="M80,86a16,16 0 1,0 32,0a16,16 0 1,0 -32,0"/>
+    <path android:fillColor="#FF101112" android:pathData="M90.8,70a5.2,5.2 0 1,0 10.4,0a5.2,5.2 0 1,0 -10.4,0"/>
+    <path android:fillColor="#FFFF5AA8" android:pathData="M74,140h44a14,14 0 0,1 0,28h-44a14,14 0 0,1 0,-28z"/>
+</vector>

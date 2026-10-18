@@ -291,7 +291,7 @@ open class Mover(var x: Double, var y: Double, var vx: Double = 0.0, var vy: Dou
 fun lives(s: Stage, pen: Pen, left: Int, of: Int = 3) {
     for (i in 0 until of) {
         val x = s.c.x + (i - (of - 1) / 2.0) * 14
-        val y = s.c.y - s.R + 20
+        val y = s.c.y - s.R + 12
         if (i < left) pen.dot(x, y, 4.0, Ink.WHITE, 0.85) else pen.ring(x, y, 4.0, Ink.K500, 2.0, 0.8)
     }
 }

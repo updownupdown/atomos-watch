@@ -13,13 +13,19 @@ const data = await import(join(phone, 'src/gallery/data.ts'));
 const orbital = await import(join(phone, 'src/gallery/orbital.ts'));
 const facts = JSON.parse(readFileSync(join(phone, 'src/data/element-facts.json'), 'utf8')) as { h: string; f: string[] }[];
 
-const BUDGET = 900;
+const BUDGET = 1400;
 const atoms: unknown[] = [];
 const chunks: Buffer[] = [];
 for (const e of data.ELEMENTS) {
-  const perSlot = Math.max(4, Math.min(60, Math.round(BUDGET / e.z)));
+  // Outer subshells get more points than the core, as on the phone (the count of each orbital
+  // grows with the square root of its reach), so the valence shape shows and the core glows.
+  const subs = e.subshells as { n: number; l: string; count: number; zeff: number; meanRadius: number }[];
+  const rmax = Math.max(...subs.map((s) => s.meanRadius));
+  const weight = subs.map((s) => Math.max(0.15, Math.sqrt(s.meanRadius / rmax)));
+  const base = BUDGET / subs.reduce((a, s, i) => a + s.count * weight[i], 0);
   const pts: { x: number; y: number; z: number; sub: number; oi: number }[] = [];
-  e.subshells.forEach((s: { n: number; l: string; count: number; zeff: number }, si: number) => {
+  subs.forEach((s, si) => {
+    const perSlot = Math.max(3, Math.round(base * weight[si]));
     const cloud = orbital.sampleSubshell(s.n, s.l, perSlot, 1.6, 0.85);
     for (let i = 0; i < cloud.slot.length; i++) {
       if (cloud.slot[i] >= s.count) continue;

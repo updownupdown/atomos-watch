@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The ATOMOS mark for small places (the tile, complications). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="100" android:viewportHeight="100">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M43.66,50.00a6.34,6.34 0 1,0 12.67,0a6.34,6.34 0 1,0 -12.67,0M58.07,58.32a6.34,6.34 0 1,0 12.67,0a6.34,6.34 0 1,0 -12.67,0M29.26,58.32a6.34,6.34 0 1,0 12.67,0a6.34,6.34 0 1,0 -12.67,0M43.66,33.37a6.34,6.34 0 1,0 12.67,0a6.34,6.34 0 1,0 -12.67,0M72.99,78.99a6.00,6.00 0 1,0 12.00,0a6.00,6.00 0 1,0 -12.00,0M15.01,21.01a6.00,6.00 0 1,0 12.00,0a6.00,6.00 0 1,0 -12.00,0"/>
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="2.28" android:pathData="M44.74,66.63a5.26,5.26 0 1,0 10.52,0a5.26,5.26 0 1,0 -10.52,0"/>
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="2.28" android:pathData="M30.34,41.68a5.26,5.26 0 1,0 10.52,0a5.26,5.26 0 1,0 -10.52,0"/>
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="2.28" android:pathData="M59.14,41.68a5.26,5.26 0 1,0 10.52,0a5.26,5.26 0 1,0 -10.52,0"/>
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="7.50" android:strokeLineCap="round" android:pathData="M67.33,87.16A41.00,41.00 0 0,1 12.84,32.67M32.67,12.84A41.00,41.00 0 0,1 87.16,67.33"/>
+</vector>
