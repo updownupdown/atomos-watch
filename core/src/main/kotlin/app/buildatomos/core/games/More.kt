@@ -8,11 +8,15 @@ import kotlin.math.roundToInt
 
 /**
  * More (the phone's src/nu/lawn.ts). Two fields of atoms, one each side: tap the side with more
- * before the rim runs out. The counts come closer and the time shorter as you go; later the atoms
- * come in all sizes, to fool the eye. Three wrong and it's over.
+ * before the rim runs out. A wrong side, or the rim running out, costs one of three lives.
+ * A level is a set of right answers: six at first and one more every other level, up to eleven,
+ * flowing straight on. The lives carry on from level to level, and one lost comes back every
+ * third level. Heat shortens the rim's time, puts more atoms in the fields and brings the two
+ * counts closer, and mixes the atoms' sizes, to fool the eye, more and more often.
  * On the watch each field is half the round court (off the line down the middle, in from the
- * edge), not the phone's two rectangles; Nu waits at the top, under the lives. Every atom a
- * side should have is always placed: if the field is crowded the atoms may sit a little closer.
+ * edge, under the menu and over the level counter), not the phone's two rectangles; Nu waits at
+ * the top, just under the menu. Every atom a side should have is always placed: if the field is
+ * crowded the atoms may sit a little closer.
  */
 class More : Toy {
     private class Atom(val x: Double, val y: Double, val r: Double)
@@ -24,25 +28,30 @@ class More : Toy {
     private var shownAt = 0.0
     private var answered: Int? = null
     private var left = 3
+    /** Right answers this level. */
     private var count = 0
     private var over = false
-    private fun ms() = max(1800.0, 4200.0 - count * 130)
+    /** The rim's time for one ask: 4.5 s at the easiest, 2.5 s at Expert, never under 1.1 s. */
+    private fun ms(s: Stage) = max(1100.0, 4500.0 / (1 + s.heat * 0.8))
+    private fun need(s: Stage) = 6 + min(s.level, 10) / 2
 
-    private fun home(s: Stage) = Pt(s.c.x, s.c.y - s.R + 40)
+    private fun home(s: Stage) = Pt(s.c.x, s.c.y - s.R + 44)
     private fun spot(s: Stage, side: Int) = Pt(s.c.x + (if (side == 1) 1 else -1) * s.hw * 0.5, s.c.y)
 
     override fun enter(s: Stage) {
         s.nu.r = 9.0
         s.nu.at(home(s))
         ask(s)
-        s.score(0)
     }
 
     private fun ask(s: Stage) {
-        val lo = 3 + floor(rnd() * min(10, 3 + count)).toInt()
-        val diff = max(1, (lo * max(0.12, 0.6 - count * 0.04)).roundToInt())
+        val h = s.heat
+        // From 3-5 a side at the easiest to 3-12 at Expert; the gap from 60% of the smaller down
+        // to an eighth of it (one atom, mostly).
+        val lo = 3 + floor(rnd() * min(10.0, 3 + h * 7)).toInt()
+        val diff = max(1, (lo * max(0.12, 0.6 - h * 0.35)).roundToInt())
         more = if (rnd() < 0.5) 0 else 1
-        val mixed = count >= 6
+        val mixed = rnd() < clamp((h - 0.3) * 0.8, 0.0, 0.9)
         sides = (0..1).map { side ->
             val n = if (side == more) lo + diff else lo
             val out = mutableListOf<Atom>()
@@ -52,10 +61,12 @@ class More : Toy {
             var tries = 0
             while (out.size < n && gap > -1) {
                 val r = if (mixed) 4 + rnd() * (if (side == more) 4 else 7) else 6.0
-                // Somewhere in this half: off the middle line, in from the rim, under the lives.
+                // Somewhere in this half: off the middle line, in from the rim, under the menu and
+                // over the level counter.
                 val off = 18 + r + rnd() * (s.R - 30 - 2 * r)
                 val p = Atom(s.c.x + sx * off, s.c.y + (rnd() * 2 - 1) * (s.R - 12 - r), r)
-                val fits = dist(p.x, p.y, s.c.x, s.c.y) <= s.R - 12 - r && p.y - r > s.c.y - s.R + 30
+                val fits = dist(p.x, p.y, s.c.x, s.c.y) <= s.R - 12 - r && p.y - r > s.c.y - s.R + 30 &&
+                    p.y + r < s.c.y + s.R - 32
                 if (fits && out.all { q -> dist(p.x, p.y, q.x, q.y) > p.r + q.r + gap }) out += p
                 if (++tries % 2000 == 0) gap -= 3
             }
@@ -77,7 +88,7 @@ class More : Toy {
         }
         nu.seek(home(s), dt, 0.6, 0.03)
         if (over) { s.rim = 0.0; return }
-        val left = 1 - (now - start) / ms()
+        val left = 1 - (now - start) / ms(s)
         s.rim = clamp(left, 0.0, 1.0)
         if (left <= 0) answer(s, now, 1 - more, true)
     }
@@ -90,20 +101,26 @@ class More : Toy {
             count++
             s.fx.ring(at, Ink.GREEN, 16.0, 70.0, 600.0)
             s.out.capture()
+            if (count >= need(s)) {
+                count = 0
+                s.clear()
+                if (s.over) { over = true; return }
+                if (s.level % 3 == 0) left = min(3, left + 1)
+            }
+            s.part = count.toDouble() / need(s)
         } else {
             left--
             s.fx.ring(at, Ink.RED, 16.0, 70.0, 600.0)
             s.out.miss()
             s.out.buzz(22)
         }
-        s.score(count)
-        if (left <= 0) { over = true; finish(s, "more", count) }
+        if (left <= 0) { over = true; s.lose() }
     }
 
     override fun draw(s: Stage, pen: Pen, now: Double) {
-        // The line down the middle, in dashes.
+        // The line down the middle, in dashes, stopping short of the level counter.
         val y0 = s.c.y - s.R + 58
-        val y1 = s.c.y + s.R - 16
+        val y1 = s.c.y + s.R - 38
         var y = y0
         while (y < y1) {
             pen.line(s.c.x, y, s.c.x, min(y + 8, y1), Ink.K500, 3.0, 0.8)

@@ -10,30 +10,38 @@ import kotlin.math.sin
 /**
  * Halo (the phone's src/nu/court.ts). The nucleus throws photons outward; Nu runs round the ring
  * to catch them. A red one caught, or a photon that gets past, costs one of three lives.
+ * A level is a set of catches: ten at first and one more each level, up to twenty. The lives
+ * carry on from level to level, and one lost comes back every third level; between levels the
+ * nucleus rests a moment before it throws again. Heat throws them quicker and faster, and more
+ * of them red (reds come from the fourth catch of a run).
  * On the watch the crown is the wheel: turn it and Nu goes round the ring just as far. A finger
  * on the screen still works too: Nu runs round toward it.
  */
 class Halo : Toy {
-    private var a = -Math.PI / 2
+    /** Nu's place on the ring: it starts at nine o'clock, clear of the menu at the top. */
+    private var a = Math.PI
     private var want: Double? = null
     /** Turning by the crown: `want` is then not wrapped, so a quick turn still goes the right way. */
     private var turning = false
     private class Shot(val a: Double, var r: Double, val v: Double, val red: Boolean)
     private val shots = mutableListOf<Shot>()
+    /** Catches this run, and this level. */
     private var caught = 0
+    private var got = 0
     private var left = 3
     private var next = 600.0
     private var over = false
 
-    private fun track(s: Stage) = s.R * 0.78
+    /** The ring: in far enough that Nu at its top and bottom stays off the menu and the level counter. */
+    private fun track(s: Stage) = s.R * 0.72
     private fun pos(s: Stage, a: Double, r: Double = track(s)) = polar(s, a, r)
     private fun at(s: Stage) = atan2(s.nu.y - s.c.y, s.nu.x - s.c.x)
     private fun reach(s: Stage) = 2 * s.nu.r + 4.5
+    private fun need(s: Stage) = 10 + min(s.level, 10)
 
     override fun enter(s: Stage) {
         s.nu.r = 10.0
         s.nu.at(pos(s, a))
-        s.score(0)
     }
 
     override fun step(s: Stage, dt: Double, now: Double) {
@@ -48,8 +56,13 @@ class Halo : Toy {
         if (over) return
         next -= dt
         if (next <= 0) {
-            next = max(420.0, 1300.0 - caught * 18) * (0.7 + rnd() * 0.6)
-            shots += Shot(rnd() * TAU, s.R * 0.1, 0.06 + min(0.08, caught * 0.002), caught > 3 && rnd() < 0.25)
+            val h = s.heat
+            // About one every 1.3 s at the easiest and 0.75 s at Expert, never quicker than 0.36 s;
+            // out at 0.05 units/ms at the easiest, 0.11 at Expert, never over 0.18.
+            next = max(360.0, 1300.0 - h * 550) * (0.7 + rnd() * 0.6)
+            val v = min(0.18, 0.05 + h * 0.06) * (0.9 + rnd() * 0.2)
+            val red = caught > 3 && rnd() < min(0.4, 0.1 + h * 0.15)
+            shots += Shot(rnd() * TAU, s.R * 0.1, v, red)
         }
         val t = track(s)
         val at = at(s)
@@ -64,10 +77,19 @@ class Halo : Toy {
                 val near = abs(turn(at, q.a)) * t < reach
                 if (near && !q.red) {
                     caught++
+                    got++
                     it.remove()
                     s.fx.ring(s.nu.p, Ink.CYAN, s.nu.r, s.nu.r + 18, 400.0)
                     s.out.capture()
-                    s.score(caught)
+                    if (got >= need(s)) {
+                        got = 0
+                        s.clear()
+                        if (s.over) { over = true; return }
+                        if (s.level % 3 == 0) left = min(3, left + 1)
+                        // A breath before the next level's first throw.
+                        next = max(next, 900.0)
+                    }
+                    s.part = got.toDouble() / need(s)
                     continue
                 }
                 if (near && q.red) { it.remove(); lose(s, s.nu.p); if (over) return; continue }
@@ -86,7 +108,7 @@ class Halo : Toy {
         if (left <= 0) {
             over = true
             shots.clear()
-            finish(s, "halo", caught)
+            s.lose()
         }
     }
 
