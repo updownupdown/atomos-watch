@@ -26,10 +26,14 @@ class Atom(
     val fact2: String,
 )
 
-/** An atom's cloud: points in -1..1 (the frame round 85% of them, with room), and for each the
- *  subshell and orbital it belongs to. */
+/** An atom's cloud: points inside the unit sphere (the frame round 85% of them, with room; the
+ *  few that reach further drawn in toward its edge), and for each the subshell and orbital it
+ *  belongs to. */
 class Cloud(val x: FloatArray, val y: FloatArray, val z: FloatArray, val sub: ByteArray, val orb: ByteArray) {
     val size get() = x.size
+
+    /** How far out each point is, 0 at the nucleus and 1 at the frame. */
+    val reach: FloatArray by lazy { FloatArray(size) { hypot(hypot(x[it], y[it]), z[it]) } }
 
     /** The orbitals the light walks: (sub, orb) keys of the outer subshells whose points reach
      *  a fair way out, so their shape shows. */
@@ -37,8 +41,7 @@ class Cloud(val x: FloatArray, val y: FloatArray, val z: FloatArray, val sub: By
         val reach = HashMap<Int, Float>()
         for (i in 0 until size) {
             val k = sub[i] * 16 + orb[i]
-            val r = hypot(hypot(x[i], y[i]), z[i])
-            reach[k] = max(reach[k] ?: 0f, r)
+            reach[k] = max(reach[k] ?: 0f, this.reach[i])
         }
         reach.filter { it.value > 0.35f }.keys.sorted().toIntArray().takeLast(6).toIntArray()
     }
@@ -141,14 +144,19 @@ class Nebula(val atom: Atom, val cloud: Cloud) {
             val inColor = share >= 1 || (share > 0 && ((atan2(px - cx, -(py - cy)) + TAU) % TAU) / TAU < share)
             val key = cloud.sub[i] * 16 + cloud.orb[i]
             val core = rr < 0.18
+            // The outermost points thin out, so the cloud ends in a soft round edge.
+            val edge = 1 - 0.5 * smooth((cloud.reach[i] - 0.8) / 0.2)
             if (!inColor) {
-                pen.dot(px, py, size, gray, (if (core) 0.45 else 0.26) * 0.7 * bright)
+                pen.dot(px, py, size, gray, (if (core) 0.45 else 0.26) * 0.7 * bright * edge)
             } else if (key == litKey) {
-                pen.dot(px, py, size * 1.1, lit, (0.4 + 0.5 * fade) * bright)
+                pen.dot(px, py, size * 1.1, lit, (0.4 + 0.5 * fade) * bright * edge)
             } else {
                 val c = if (i % 3 == 0) restDeep else rest
-                pen.dot(px, py, size, c, (if (core) 0.7 else 0.36) * bright * (1 - 0.35 * fade * (if (litKey >= 0) 1 else 0)))
+                pen.dot(px, py, size, c, (if (core) 0.7 else 0.36) * bright * edge * (1 - 0.35 * fade * (if (litKey >= 0) 1 else 0)))
             }
         }
     }
 }
+
+/** 0 below 0, 1 above 1, and an S between. */
+private fun smooth(t: Double): Double { val c = t.coerceIn(0.0, 1.0); return c * c * (3 - 2 * c) }
