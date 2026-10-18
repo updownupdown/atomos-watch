@@ -32,7 +32,7 @@ fun App(model: AppModel, launchGame: String?, onLaunched: () -> Unit, onExit: ()
 
     // The tile's Play opens straight into the game.
     LaunchedEffect(launchGame) {
-        if (launchGame != null && Games.byId[launchGame] != null) {
+        if (launchGame != null && Games.byId(launchGame) != null) {
             nav.popBackStack(Routes.HOME, inclusive = false)
             nav.navigate(Routes.play(launchGame))
             onLaunched()
@@ -61,7 +61,7 @@ fun App(model: AppModel, launchGame: String?, onLaunched: () -> Unit, onExit: ()
                 AtomScreen(model, e.arguments?.getString("z")?.toIntOrNull() ?: 1)
             }
             composable("play/{id}") { e ->
-                val game = Games.byId[e.arguments?.getString("id")] ?: Games.all.first()
+                val game = e.arguments?.getString("id")?.let(Games::byId) ?: Games.all.first()
                 GameScreen(model, game) { nav.popBackStack() }
             }
         }
