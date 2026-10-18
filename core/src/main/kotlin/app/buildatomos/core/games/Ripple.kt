@@ -14,6 +14,10 @@ private const val SPEED = 0.24 * SMALL
 private const val WAIT = 5000.0
 /** The calm between levels, while the rim fills again (ms). */
 private const val CALM_MS = 800.0
+/** The rim's soft edge: within this of the rim the water eases Nu back in (units), and how hard
+ *  at the rim itself (units/ms²). */
+private const val CUSHION = 16.0
+private const val EASE = 0.00003
 
 /**
  * Ripple (the phone's src/nu/swim.ts). Nu floats on still water. A tap starts a ripple, and as
@@ -23,7 +27,9 @@ private const val CALM_MS = 800.0
  * short calm while the rim fills again, and the next level's clock starts. Heat makes the rings
  * smaller (a radius of 32 at Very easy, about 22 at Expert, never under 16) and gives less time for
  * each (8 s at Very easy, 4.5 s at Expert, never under 3 s).
- * On the watch the water is the circle, and Nu bounces off its rim. A new ring is placed well
+ * On the watch the water is the circle, and Nu bounces off its rim, keeping most of its speed;
+ * near the rim the water also eases Nu gently back in, so it never sits stuck against the edge
+ * with no room outside it to tap. A new ring is placed well
  * away from Nu as on the phone, but the phone's 140 is more than most of the circle allows, so
  * it wants three quarters of the court's radius and otherwise takes the farthest spot it tried;
  * never under the shell's menu at the top. The first level's clock starts with the first ripple,
@@ -119,9 +125,17 @@ class Ripple : Toy {
         val drag = exp(-dt / 1100)
         b.vx *= drag
         b.vy *= drag
+        // The soft edge: eased back in, the harder the nearer the rim.
+        val (out, nx, ny) = edge(s, Pt(b.x, b.y))
+        val gap = -out - nu.r
+        if (gap < CUSHION) {
+            val k = EASE * (1 - gap.coerceAtLeast(0.0) / CUSHION)
+            b.vx -= nx * k * dt
+            b.vy -= ny * k * dt
+        }
         b.x += b.vx * dt
         b.y += b.vy * dt
-        if (bounceIn(s, b, nu.r, 0.6)) s.out.tick(0)
+        if (bounceIn(s, b, nu.r, 0.85)) s.out.tick(0)
         nu.x = b.x
         nu.y = b.y
         nu.vx = b.vx

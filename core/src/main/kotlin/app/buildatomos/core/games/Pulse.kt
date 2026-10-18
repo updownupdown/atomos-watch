@@ -14,13 +14,18 @@ private const val BACK_MS = 260.0
 /** The calm beat between levels: the next wave waits this long before it spreads. */
 private const val CALM_MS = 700.0
 
+/** The first wave waits this long, so the player can settle before it spreads. */
+private const val FIRST_MS = 1400.0
+
 /**
  * Pulse (the phone's src/nu/court.ts). A wave spreads out from the nucleus, Nu riding it at the
  * top. Tap as it crosses the marked band. Each catch moves the band; a miss, or letting the wave
  * go by, loses the run. Nu bounces on a catch as far as the tap was off: dead on, it hardly moves.
  * A level is a set of catches (14, and one more every third level); then a short calm and the
  * next wave. Heat quickens the wave and narrows the band, a little with every catch too, so the
- * window to tap in shrinks from about 750 ms at Very easy to under 100 ms in late free play.
+ * window to tap in shrinks from about a second at Very easy (570 ms at Medium, 390 ms at
+ * Expert) to about 120 ms in late free play: gentler than the phone, for the watch's small court.
+ * The first wave waits a moment before it spreads.
  * On the phone the court is drawn bigger than the screen, its sides cropped; on the watch it is
  * just the round court. A tap anywhere counts, as on the phone. The band's outer edge stays
  * within 0.8 of the court, so Nu is never under the shell's menu at the top when the tap counts.
@@ -61,13 +66,13 @@ class Pulse : Toy {
 
     private fun place(s: Stage) {
         val h = h(s)
-        speed = min(0.28, 0.085 + 0.09 * h)
-        bandW = max(8.0, 32 / (1 + 1.1 * h))
+        speed = min(0.2, 0.07 + 0.05 * h)
+        bandW = max(12.0, 37 / (1 + 0.75 * h))
         bandR = s.R * 0.3 + rnd() * max(0.0, s.R * 0.5 - bandW)
     }
 
     override fun step(s: Stage, dt: Double, now: Double) {
-        if (!begun) { begun = true; hitAt = now }
+        if (!begun) { begun = true; hitAt = now; calm = now + FIRST_MS }
         val nu = s.nu
         if (over) {
             nu.seek(Pt(s.c.x, s.c.y - s.R * 0.1), dt, 0.4, 0.02)

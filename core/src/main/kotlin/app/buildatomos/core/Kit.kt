@@ -322,15 +322,23 @@ fun polar(s: Stage, a: Double, r: Double) = Pt(s.c.x + cos(a) * r, s.c.y + sin(a
 open class Mover(var x: Double, var y: Double, var vx: Double = 0.0, var vy: Double = 0.0)
 
 /** Lives left, as small dots along the bottom of the rim, to the left of the level counter (the
- *  top is the menu's). */
-fun lives(s: Stage, pen: Pen, left: Int, of: Int = 3) {
+ *  top is the menu's). `lost` is how long ago (ms) the last life went, for a game that marks it:
+ *  the lives swell for a moment, and the one just lost flashes red and fades. */
+fun lives(s: Stage, pen: Pen, left: Int, of: Int = 3, lost: Double = Double.POSITIVE_INFINITY) {
+    val swell = if (lost in 0.0..LIFE_SWELL_MS) 1 + 0.5 * sin(PI * lost / LIFE_SWELL_MS) else 1.0
+    val flash = if (lost in 0.0..LIFE_FLASH_MS) 1 - lost / LIFE_FLASH_MS else 0.0
     for (i in 0 until of) {
         val a = PI / 2 + (20 + i * 9) * PI / 180
         val x = s.c.x + cos(a) * (s.R - 6)
         val y = s.c.y + sin(a) * (s.R - 6)
-        if (i < left) pen.dot(x, y, 4.0, Ink.WHITE, 0.85) else pen.ring(x, y, 4.0, Ink.K500, 2.0, 0.8)
+        if (i < left) pen.dot(x, y, 4.0 * swell, Ink.WHITE, 0.85) else pen.ring(x, y, 4.0, Ink.K500, 2.0, 0.8)
+        if (i == left && flash > 0) pen.dot(x, y, 4.0 * swell + 1.5, Ink.RED, 0.95 * flash)
     }
 }
+
+/** How long the lives swell, and the lost one flashes, after a life goes (ms). */
+const val LIFE_SWELL_MS = 360.0
+const val LIFE_FLASH_MS = 1100.0
 
 /**
  * One of Nu's games. The shell makes a fresh one for each run, calls `enter`, then `step` and

@@ -4,15 +4,21 @@ import app.buildatomos.core.*
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sin
 import kotlin.math.sqrt
 
 /** The calm between levels: no drops start for this long. */
 private const val CALM_MS = 900.0
 
+/** How long Nu shakes after a red (ms). */
+private const val SHAKE_MS = 320.0
+
 /**
  * Rain (the phone's src/nu/field.ts). Nu runs along the bottom; photons rain down: catch them.
  * Red ones rain too: each caught costs one of three lives, and the last one loses the run. Some
- * drops fall faster than the rest.
+ * drops fall faster than the rest. A life lost shows plainly: red sparks and a wide red ring
+ * from Nu, Nu shaken for a moment, the lives swelling and the lost one flashing red, and a tap
+ * on the wrist.
  * A level is a set of photons caught (12, and one more every other level); then a short calm
  * with no new drops, and the rain comes back harder. The lives carry on from level to level, and
  * one comes back every third level. Heat makes the rain faster, thicker and redder, and brings in
@@ -36,6 +42,8 @@ class Rain : Toy {
     /** Photons caught in this level. */
     private var caught = 0
     private var left = 3
+    /** When the last life was lost. */
+    private var hitAt = -1e9
     private var next = 600.0
     /** Drops fall about a third as far here as on the phone, so they fall slower, to leave the
      *  phone's time to get under them. */
@@ -128,9 +136,11 @@ class Rain : Toy {
                 it.remove()
                 if (d.red) {
                     left--
-                    s.fx.ring(nu.p, Ink.RED, nu.r, nu.r + 24, 500.0)
+                    hitAt = now
+                    s.fx.ring(nu.p, Ink.RED, nu.r, nu.r + 44, 700.0)
+                    s.fx.burst(nu.p, 10, Ink.RED, 0.14)
                     s.out.miss()
-                    s.out.buzz(22)
+                    s.out.buzz(30)
                     if (left <= 0) {
                         over = true
                         drops.clear()
@@ -164,8 +174,13 @@ class Rain : Toy {
             if (d.red) pen.dot(d.x, d.y, 6.0, Ink.RED)
             else { pen.glow(d.x, d.y, 5.0, Ink.CYAN); pen.dot(d.x, d.y, 5.0, Ink.CYAN) }
         }
-        lives(s, pen, left)
+        lives(s, pen, left, lost = now - hitAt)
+        // Shaken for a moment by a red: drawn aside, not moved.
+        val shake = clamp(1 - (now - hitAt) / SHAKE_MS, 0.0, 1.0)
+        val dx = sin((now - hitAt) / 18) * 4 * shake
+        s.nu.x += dx
         s.nu.draw(pen, now)
+        s.nu.x -= dx
     }
 
     override fun crown(s: Stage, by: Double) {
