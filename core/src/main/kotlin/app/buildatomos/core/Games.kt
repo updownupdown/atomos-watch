@@ -16,13 +16,16 @@ class Game(
 object Games {
     val all: List<Game> = listOf(
         Game("blast", "Blast") { Blast() },
+        Game("core", "Core", crown = true) { Core() },
         Game("dive", "Dive") { Dive() },
+        Game("dodge", "Dodge", crown = true) { Dodge() },
         Game("echo", "Echo") { Echo() },
         Game("flash", "Flash") { Flash() },
         Game("halo", "Halo", crown = true) { Halo() },
         Game("juggle", "Juggle") { Juggle() },
         Game("more", "More") { More() },
         Game("orbit", "Orbit", crown = true) { Orbit() },
+        Game("pairs", "Pairs") { Pairs() },
         Game("pulse", "Pulse") { Pulse() },
         Game("rain", "Rain", crown = true) { Rain() },
         Game("ready", "Ready") { Ready() },
