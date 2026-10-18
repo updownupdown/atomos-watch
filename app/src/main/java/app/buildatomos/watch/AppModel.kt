@@ -40,6 +40,10 @@ class AppModel(private val context: Context) {
         get() { version; return store.haptics }
         set(v) { store.haptics = v; version++ }
 
+    val versionName: String by lazy {
+        try { context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "" } catch (_: Exception) { "" }
+    }
+
     fun today(): Long = LocalDate.now().toEpochDay()
 
     /** The game Nu wants to play now: today's pick, then a different one after each run. */

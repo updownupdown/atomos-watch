@@ -12,6 +12,11 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import app.buildatomos.core.Pen
 import app.buildatomos.core.SCREEN
 import app.buildatomos.core.TAU
@@ -91,5 +96,14 @@ class ComposePen(private val scope: DrawScope, units: Double = SCREEN) : Pen {
     override fun rectRing(x: Double, y: Double, w: Double, h: Double, radius: Double, color: Int, width: Double, alpha: Double) {
         if (alpha <= 0) return
         scope.drawRoundRect(col(color, alpha), Offset(X(x), Y(y)), Size(L(w), L(h)), CornerRadius(L(radius)), style = Stroke(L(width)))
+    }
+
+    /** Text centered on (x, y), `size` tall in court units, in Outfit. Not part of the core's Pen:
+     *  games draw no text. */
+    fun text(measurer: TextMeasurer, s: String, x: Double, y: Double, size: Double, color: Int, weight: FontWeight = FontWeight.Medium, alpha: Double = 1.0) {
+        if (s.isEmpty() || alpha <= 0) return
+        val sp = (L(size) / (scope.density * scope.fontScale)).sp
+        val laid = measurer.measure(s, TextStyle(color = col(color, alpha), fontSize = sp, fontFamily = Outfit, fontWeight = weight))
+        scope.drawText(laid, topLeft = Offset(X(x) - laid.size.width / 2f, Y(y) - laid.size.height / 2f))
     }
 }

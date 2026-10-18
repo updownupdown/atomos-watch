@@ -2,5 +2,7 @@
 <resources>
     <style name="Theme.Atomos" parent="@android:style/Theme.DeviceDefault">
         <item name="android:windowBackground">@color/black</item>
+        <!-- Home swipes the app away itself; in a run the game owns every swipe. -->
+        <item name="android:windowSwipeToDismiss">false</item>
     </style>
 </resources>
