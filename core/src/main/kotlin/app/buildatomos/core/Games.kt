@@ -24,6 +24,8 @@ object Games {
         Game("echo", "Echo") { Echo() },
         Game("flash", "Flash") { Flash() },
         Game("fuse", "Fuse", crown = true) { Fuse() },
+        Game("gate", "Gate", crown = true) { Gate() },
+        Game("grow", "Grow") { Grow() },
         Game("halo", "Halo", crown = true) { Halo() },
         Game("hop", "Hop", crown = true) { Hop() },
         Game("hue", "Hue", crown = true) { Hue() },
