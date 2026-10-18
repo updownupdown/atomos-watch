@@ -1,6 +1,5 @@
 package app.buildatomos.core
 
-import app.buildatomos.core.games.Halo
 import app.buildatomos.core.games.Juggle
 import app.buildatomos.core.games.More
 import app.buildatomos.core.games.Orbit
@@ -11,7 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Halo, Juggle, More and Orbit in levels: small bots that play by what they see (the dots each
+ * Juggle, More and Orbit in levels: small bots that play by what they see (the dots each
  * game draws, and Nu) clear levels, and heat makes each game harder.
  */
 class LevelsBTest {
@@ -55,29 +54,6 @@ class LevelsBTest {
     private fun dist(s: Stage, d: Seen.Dot) = dist(d.x, d.y, s.c.x, s.c.y)
     /** How far ahead of `from` angle `to` is, going round the way `dir` says (0..2π). */
     private fun ahead(from: Double, to: Double, dir: Int) = (((to - from) * dir) % TAU + TAU) % TAU
-
-    // ---- Halo: runs round to the photon that will cross the ring next. ----
-
-    private fun halo(dial: Int, goal: Int?, ms: Double): Stage {
-        val g = Halo()
-        val track = COURT_R * 0.72
-        return run(g, dial, goal, ms) { s, seen ->
-            val next = seen.of(Ink.CYAN, 4.5).filter { it.alpha == 1.0 && dist(s, it) < track + 1 }.maxByOrNull { dist(s, it) }
-            if (next != null) g.move(s, polar(s, angle(s, next.x, next.y), track))
-        }
-    }
-
-    @Test fun haloClearsLevels() {
-        val s = halo(1, 3, 180_000.0)
-        assertEquals(Result.WON, s.result, "Very easy: ${s.level} levels")
-        assertTrue(halo(100, 7, 180_000.0).level >= 1, "Expert clears a level")
-    }
-
-    @Test fun haloHeatThrowsHarder() {
-        val easy = run(Halo(), 1, null, 600_000.0).now
-        val hard = run(Halo(), 100, null, 600_000.0).now
-        assertTrue(hard < easy * 0.8, "left alone, lost at $easy (dial 1) and $hard (dial 100)")
-    }
 
     // ---- Juggle: kicks Nu up as it falls, nudging it back toward the middle. ----
 

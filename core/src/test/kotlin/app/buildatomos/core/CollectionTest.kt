@@ -76,6 +76,6 @@ class CollectionTest {
         m.mark(150.0, 150.0, 100.0, nu = 3)
         for (goal in listOf(3, 7, null)) for (lv in listOf(0, 2, 200)) m.levels(150.0, 150.0, 44.0, lv, goal, 0.5)
         m.pips(150.0, 150.0, 40.0, 55)
-        for (g in listOf("halo", "orbit", "tune", "recall", "x")) m.gameIcon(g, 150.0, 150.0, 30.0, Ink.BLACK)
+        for (g in listOf("pulse", "orbit", "tune", "recall", "x")) m.gameIcon(g, 150.0, 150.0, 30.0, Ink.BLACK)
     }
 }

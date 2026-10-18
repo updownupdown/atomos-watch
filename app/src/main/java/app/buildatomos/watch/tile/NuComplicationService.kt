@@ -23,7 +23,7 @@ import app.buildatomos.watch.MainActivity
 import app.buildatomos.watch.R
 
 class NuComplicationService : SuspendingComplicationDataSourceService() {
-    override fun getPreviewData(type: ComplicationType): ComplicationData? = make(type, "Halo")
+    override fun getPreviewData(type: ComplicationType): ComplicationData? = make(type, "Orbit")
 
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationData? =
         make(request.complicationType, AppModel.get(this).nuPick().label)

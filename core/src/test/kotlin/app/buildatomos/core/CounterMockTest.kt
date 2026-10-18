@@ -9,7 +9,7 @@ class CounterMockTest {
 
     @Test fun counters() {
         if (System.getenv("MOCK") != "1") return
-        for (id in listOf("halo", "flash", "recall")) {
+        for (id in listOf("orbit", "flash", "recall")) {
             val g = Games.byId(id)!!
             for ((style, free) in listOf("a" to false, "a" to true, "b" to false, "b" to true, "c" to true)) {
                 val s = play(g, ms = 7000.0, rate = 2.0, seed = 3, dial = 30, goal = if (free) null else 5)
