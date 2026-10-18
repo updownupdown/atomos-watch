@@ -151,6 +151,8 @@ fun Pen.gameIcon(id: String, cx: Double, cy: Double, size: Double, color: Int) {
             for (r in listOf(3.4, 6.6, 9.8)) ring(ox + 12 * k, oy + 12 * k, r * k, color, 1.5 * k)
             f(18.6, 12.0, 2.5)
         }
+        "hop" -> { f(15.0, 5.0, 2.8); l(13.5, 12.5, 19.5, 12.5, 3.0); l(4.5, 19.0, 10.5, 19.0, 3.0) }
+        "shade" -> { f(4.0, 4.0, 2.2); l(5.5, 5.5, 21.0, 12.0); l(5.5, 5.5, 12.0, 21.0); o(18.0, 19.0, 3.5); f(18.0, 19.0, 1.6) }
         "tune" -> { wave(2.0, 14.0, 12.0, 4.0, 1.0, false); wave(14.0, 22.0, 12.0, 2.7, 1.0, true); f(14.0, 12.0, 2.6) }
         "hue" -> {
             // A ring in four quarters, two of them dashed on the phone: here a small gap between each.
