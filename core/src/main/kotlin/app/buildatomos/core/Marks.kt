@@ -135,6 +135,17 @@ fun Pen.gameIcon(id: String, cx: Double, cy: Double, size: Double, color: Int) {
         }
         "blast" -> { f(12.0, 12.0, 3.2); o(4.5, 5.0, 2.0); o(19.5, 17.0, 2.0); f(17.5, 6.5, 1.5); l(14.5, 9.5, 16.0, 8.0) }
         "rain" -> { f(7.0, 4.5, 1.9); f(16.0, 7.0, 1.9); o(11.0, 11.0, 1.9); f(12.0, 19.0, 3.2) }
+        "dial" -> {
+            // The ring, its hub, the lit notch on it and Nu, the pointer, coming round to it.
+            o(12.0, 12.0, 8.0); f(12.0, 12.0, 2.0)
+            arc(ox + 12 * k, oy + 12 * k, 8.0 * k, -PI / 2 - 0.4, 0.8, color, 4.6 * k)
+            f(12.0 + 8 * cos(0.9), 12.0 + 8 * sin(0.9), 2.6)
+        }
+        "lanes" -> {
+            // Three whole rings, thin, and Nu on the middle one at three o'clock.
+            for (r in listOf(3.4, 6.6, 9.8)) ring(ox + 12 * k, oy + 12 * k, r * k, color, 1.5 * k)
+            f(18.6, 12.0, 2.5)
+        }
         "tune" -> { wave(2.0, 14.0, 12.0, 4.0, 1.0, false); wave(14.0, 22.0, 12.0, 2.7, 1.0, true); f(14.0, 12.0, 2.6) }
         else -> { o(12.0, 12.0, 8.0); f(12.0, 12.0, 3.0) }
     }

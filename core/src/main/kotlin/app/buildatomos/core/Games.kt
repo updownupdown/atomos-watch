@@ -1,5 +1,6 @@
-// The watch's games, A to Z. Every game is one of Nu's park games from the phone, played on the
-// round court in levels; `crown` marks the ones the crown steers.
+// The watch's games, A to Z. Every game is one of Nu's park games from the phone, or made for the
+// watch's crown (Dial and Lanes), played on the round court in levels; `crown` marks the ones the
+// crown steers.
 
 package app.buildatomos.core
 
@@ -16,11 +17,13 @@ class Game(
 object Games {
     val all: List<Game> = listOf(
         Game("blast", "Blast") { Blast() },
+        Game("dial", "Dial", crown = true) { Dial() },
         Game("dive", "Dive") { Dive() },
         Game("echo", "Echo") { Echo() },
         Game("flash", "Flash") { Flash() },
         Game("halo", "Halo", crown = true) { Halo() },
         Game("juggle", "Juggle") { Juggle() },
+        Game("lanes", "Lanes", crown = true) { Lanes() },
         Game("more", "More") { More() },
         Game("orbit", "Orbit", crown = true) { Orbit() },
         Game("pulse", "Pulse") { Pulse() },

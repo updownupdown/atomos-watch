@@ -50,7 +50,8 @@ From a terminal: `gradlew :app:installDebug` builds and installs to the connecte
 
 ## Layout
 
-- `core/` is plain Kotlin with no Android in it: the game kit, the 17 games, the collection, the
+- `core/` is plain Kotlin with no Android in it: the game kit, the 19 games (17 of Nu's park games
+  from the phone, and Dial and Lanes, made for the crown), the collection, the
   atom clouds and the drawn marks. It is tested on any machine with
   `gradle -p core test` (or `gradlew -p core test`).
   `RENDER=1 gradle -p core test` also draws every game and cloud into `core/build/render/*.svg`.
