@@ -3,18 +3,24 @@ package app.buildatomos.core.games
 import app.buildatomos.core.*
 import kotlin.math.PI
 import kotlin.math.floor
+import kotlin.math.min
 import kotlin.math.sin
 
 /**
  * Echo (the phone's src/nu/park.ts). Nu flies a tune between five atoms; play it back, one note
- * longer each round. A wrong note ends the run: the court flushes red and shakes, the wrong atom
+ * longer each round. A wrong note loses the run: the court flushes red and shakes, the wrong atom
  * rings red and the right one blinks white.
- * On the watch the run also ends if the player leaves the tune unplayed for 20 seconds (the
+ * On the watch the run is also lost if the player leaves the tune unplayed for 20 seconds (the
  * phone waits for ever), so a run left on the wrist comes to an end.
+ *
+ * A level is a tune of three rounds: it starts a few notes long and grows a note a round; play
+ * the third back and, after a breath, a new tune starts. Heat makes the tunes start longer (two
+ * notes at the easiest, four at Expert, up to eight) and Nu fly them faster.
  */
 class Echo : Toy {
     private enum class St { SHOW, LISTEN, WRONG, WAIT, ROUND }
-    private var nodes = listOf<Pt>()
+    internal var nodes = listOf<Pt>()
+        private set
     private val tune = mutableListOf<Int>()
     private var state = St.WAIT
     private var at = 0
@@ -24,28 +30,56 @@ class Echo : Toy {
     private var wrongAt = 0.0
     /** The atom wrongly tapped, or -1 when the run ran out of time. */
     private var wrongNode = -1
-    private var over = false
     /** When the player last played a note (or their turn began). */
     private var since = 0.0
+    /** Rounds of this level's tune played back. */
+    private var rounds = 0
+    /** How fast Nu flies the tune, units/ms: the level's, set when it starts. */
+    private var pace = 0.7
 
     override fun enter(s: Stage) {
         s.nu.r = 9.0
         s.nu.at(s.c)
         val r = s.R * 0.56
+        // One atom at the top, two at the bottom: clear of the menu and the counter.
         nodes = List(5) { i -> polar(s, -PI / 2 + i * TAU / 5, r) }
+        level(s)
+    }
+
+    /** How many notes a level's tune starts with, and how fast Nu flies it. */
+    internal fun length(h: Double) = min(8, 2 + floor(h * 2).toInt())
+    internal fun pace(h: Double) = min(1.6, 0.45 + 0.55 * h)
+
+    /** A new tune for the next level. */
+    private fun level(s: Stage) {
         tune.clear()
+        rounds = 0
+        pace = pace(s.heat)
+        repeat(length(s.heat) - 1) { add() }
         next(s)
     }
 
-    private fun next(s: Stage) {
+    private fun add() {
         var n = floor(rnd() * 5).toInt()
         if (tune.isNotEmpty() && n == tune.last()) n = (n + 1 + floor(rnd() * 4).toInt()) % 5
         tune += n
+    }
+
+    /** One note longer, and Nu flies it. */
+    private fun next(s: Stage) {
+        add()
         state = St.WAIT
         timer = 900.0
         at = 0
-        s.score(tune.size)
+        progress(s)
     }
+
+    private fun progress(s: Stage) {
+        s.part = clamp((rounds + at.toDouble() / tune.size) / ROUNDS, 0.0, 1.0)
+    }
+
+    /** The atom due next while it's the player's turn, else null. */
+    internal val due: Int? get() = if (state == St.LISTEN) tune[at] else null
 
     private fun light(s: Stage, i: Int, now: Double) {
         lit[i] = now
@@ -55,7 +89,8 @@ class Echo : Toy {
     override fun step(s: Stage, dt: Double, now: Double) {
         val nu = s.nu
         val to = flyTo
-        if (to != null) nu.seek(to, dt, 0.7, 0.02) else nu.seek(s.c, dt, 0.4, 0.01)
+        if (to != null) nu.seek(to, dt, pace, 0.02) else nu.seek(s.c, dt, 0.4, 0.01)
+        if (s.over && state != St.WRONG) return
         when (state) {
             St.WAIT -> {
                 timer -= dt
@@ -71,14 +106,14 @@ class Echo : Toy {
                 }
             }
             St.LISTEN -> if (now - since > QUIET) {
-                // Walked off: the run ends, and the note that was due blinks.
+                // Walked off: the run is lost, and the note that was due blinks.
                 wrongNode = -1
                 lose(s, now)
             }
             St.WRONG -> {}
             St.ROUND -> {
                 timer -= dt
-                if (timer <= 0) next(s)
+                if (timer <= 0) { if (rounds >= ROUNDS) level(s) else next(s) }
             }
         }
     }
@@ -115,7 +150,7 @@ class Echo : Toy {
     }
 
     override fun down(s: Stage, p: Pt) {
-        if (state != St.LISTEN || over) return
+        if (state != St.LISTEN || s.over) return
         val i = nodes.indexOfFirst { dist(p, it) < 36 }
         if (i < 0) return
         val now = s.now
@@ -130,26 +165,30 @@ class Echo : Toy {
         }
         light(s, i, now)
         at++
+        progress(s)
         if (at >= tune.size) {
-            setBest(s, "echo", tune.size.toDouble())
             s.fx.burst(nodes[i], 10, Ink.NOTES[i], 0.12)
-            // A breath, then one note longer.
+            rounds++
+            // A breath, then one note longer; after the level's last round, a longer one and a
+            // new tune.
             state = St.ROUND
-            timer = 650.0
+            timer = if (rounds >= ROUNDS) 1100.0 else 650.0
+            if (rounds >= ROUNDS) s.clear()
         }
     }
 
     private fun lose(s: Stage, now: Double) {
         s.out.miss()
         state = St.WRONG
-        over = true
         wrongAt = now
         flyTo = null
-        finish(s, "echo", tune.size - 1)
+        s.lose()
     }
 
     private companion object {
-        /** How long the watch waits for a note before the run ends. */
+        /** How long the watch waits for a note before the run is lost. */
         const val QUIET = 20_000.0
+        /** Rounds in a level: the tune grows a note each. */
+        const val ROUNDS = 3
     }
 }
