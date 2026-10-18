@@ -109,7 +109,7 @@ class LevelsETest {
 
     @Test fun heatMakesThemHarder() {
         assertTrue(Dial.width(1.0) < Dial.width(0.0) && Dial.hold(1.0) > Dial.hold(0.0) && Dial.each(1.0) < Dial.each(0.0))
-        assertEquals(0.0, Dial.drift(0.0))
+        assertTrue(Dial.drift(0.0) > 0 && Dial.drift(1.0) > Dial.drift(0.0))
         assertTrue(Dial.drift(1.0) > 0 && Dial.notches(6) > Dial.notches(0))
         assertTrue(Lanes.pace(1.0) > Lanes.pace(0.0) && Lanes.every(1.0) < Lanes.every(0.0) && Lanes.reds(1.0) > Lanes.reds(0.0))
         assertTrue(Lanes.rings(0.0) == 3 && Lanes.rings(1.0) == 4)

@@ -19,6 +19,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.wear.compose.foundation.ExperimentalWearFoundationApi
+import androidx.wear.compose.foundation.rememberActiveFocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.Font
@@ -141,3 +144,10 @@ fun IdPlate(atom: Atom, size: Int, modifier: Modifier = Modifier) {
         Text(atom.symbol, color = ink, fontSize = (size * 0.42).sp, fontFamily = Outfit, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
+
+/** The focus that takes the crown's turns on a screen that reads the crown itself. It asks for
+ *  focus whenever its screen is the one showing: the navigation host moves focus between screens
+ *  as they come and go, so a screen asking once when it first draws can lose it for good. */
+@OptIn(ExperimentalWearFoundationApi::class)
+@Composable
+fun rememberCrownFocus(): FocusRequester = rememberActiveFocusRequester()

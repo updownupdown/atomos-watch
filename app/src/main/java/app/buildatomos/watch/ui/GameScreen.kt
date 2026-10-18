@@ -23,7 +23,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -84,7 +83,7 @@ fun GameScreen(model: AppModel, spec: RunSpec, onLeave: () -> Unit, onNextRun: (
     var phase by remember(round) { mutableStateOf(Phase.INTRO) }
     var phaseAt by remember(round) { mutableLongStateOf(System.currentTimeMillis()) }
     var frame by remember { mutableLongStateOf(0L) }
-    val focus = remember { FocusRequester() }
+    val focus = rememberCrownFocus()
     val measurer = rememberTextMeasurer()
     fun go(p: Phase) { phase = p; phaseAt = System.currentTimeMillis() }
 
@@ -124,7 +123,6 @@ fun GameScreen(model: AppModel, spec: RunSpec, onLeave: () -> Unit, onNextRun: (
             }
         }
     }
-    LaunchedEffect(Unit) { focus.requestFocus() }
 
     var size by remember { mutableStateOf(IntSize.Zero) }
     fun court(o: Offset): Pt {

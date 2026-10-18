@@ -24,10 +24,10 @@ private const val TICKS = 48
  * on one clock on the rim. Running out of time costs one of three lives, and the clock fills
  * again with the pins kept; the last life lost loses the run. Lives carry on from level to level,
  * and one comes back every third level. Between levels the rim fills again for a breath.
- * Heat narrows the notches (24 degrees at the gentlest, 12 at Expert, never under 9), holds them
- * longer (0.55 s to 0.8 s, at most 0.95 s), gives less time for each (4.6 s to 2.9 s, never under
- * 1.9 s), and from the middle of Easy sets them drifting round the ring, faster with the heat
- * (about 22 degrees a second at Expert), so a lock means following one.
+ * Every notch creeps round the ring, so a lock means following it. Heat narrows the notches (17
+ * degrees at the gentlest, 9 at Expert, never under 8.6), holds them longer (0.6 s to 0.9 s, at
+ * most 0.95 s), gives less time for each (3.4 s to 2.1 s, never under 1.9 s), and drifts them
+ * faster (7 degrees a second at the gentlest, about 35 at Expert, never over 40).
  * The crown is the dial. A finger works too: Nu runs round the ring toward it.
  */
 class Dial : Toy {
@@ -73,7 +73,7 @@ class Dial : Toy {
         var from = a
         combo = List(n) {
             val side = if (rnd() < 0.5) -1 else 1
-            from += side * (1.1 + rnd() * 1.9)
+            from += side * (1.5 + rnd() * 2.4)
             val v = drift(h) * (0.7 + rnd() * 0.3) * (if (rnd() < 0.5) -1 else 1)
             Notch(from, width(h), v)
         }
@@ -201,13 +201,13 @@ class Dial : Toy {
         /** Notches in a level's combination: five, one more every other level, at most eight. */
         fun notches(level: Int) = 5 + min(3, level / 2)
         /** A notch's width (radians). */
-        fun width(heat: Double) = max(0.16, 0.42 - 0.21 * heat)
+        fun width(heat: Double) = max(0.15, 0.3 - 0.15 * heat)
         /** How long Nu must hold a notch to lock it (ms). */
-        fun hold(heat: Double) = min(950.0, 550 + 250 * heat)
+        fun hold(heat: Double) = min(950.0, 600 + 300 * heat)
         /** The clock's time for each notch of the combination (ms). */
-        fun each(heat: Double) = max(1900.0, 4600 - 1700 * heat)
-        /** How fast notches drift round the ring (rad/ms): none at first, about 22 degrees a second
-         *  at Expert, never over 40. */
-        fun drift(heat: Double) = clamp((heat - 0.3) * 0.00055, 0.0, 0.0007)
+        fun each(heat: Double) = max(1900.0, 3400 - 1300 * heat)
+        /** How fast notches drift round the ring (rad/ms): 7 degrees a second at the gentlest, about
+         *  35 at Expert, never over 40. */
+        fun drift(heat: Double) = clamp(0.00012 + heat * 0.0005, 0.0, 0.0007)
     }
 }

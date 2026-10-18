@@ -31,7 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
@@ -103,8 +102,7 @@ fun FreePlayScreen(model: AppModel, game: Game, onPlay: (Int) -> Unit) {
     model.version
     var level by remember(game.id) { mutableStateOf(model.pickedLevel(game)) }
     var spun by remember { mutableFloatStateOf(0f) }
-    val fr = remember { FocusRequester() }
-    LaunchedEffect(Unit) { fr.requestFocus() }
+    val fr = rememberCrownFocus()
     fun set(l: Int) {
         val to = l.coerceIn(0, Difficulty.LEVELS - 1)
         if (to != level) { level = to; model.feel.buzz(15); model.pick(game, to) }

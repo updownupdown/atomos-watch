@@ -35,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -86,9 +85,9 @@ fun AtlasScreen(model: AppModel, start: Int, startTable: Boolean, onAtom: (Int) 
     var table by remember { mutableStateOf(startTable) }
     var spun by remember { mutableFloatStateOf(0f) }
     var frame by remember { mutableLongStateOf(0L) }
-    val fr = remember { FocusRequester() }
+    val fr = rememberCrownFocus()
     val measurer = rememberTextMeasurer()
-    LaunchedEffect(Unit) { fr.requestFocus(); while (true) withFrameNanos { frame = it } }
+    LaunchedEffect(Unit) { while (true) withFrameNanos { frame = it } }
     val atom = model.atlas.atom(z)
     val nebula = remember(z) { Nebula(atom, model.atlas.cloud(z)) }
     var size by remember { mutableStateOf(IntSize.Zero) }
