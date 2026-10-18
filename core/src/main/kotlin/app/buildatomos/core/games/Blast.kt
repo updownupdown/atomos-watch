@@ -3,6 +3,7 @@ package app.buildatomos.core.games
 import app.buildatomos.core.*
 import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.max
@@ -21,6 +22,10 @@ import kotlin.math.sin
  * from wave to wave, and every third wave cleared gives one back. Heat brings the reds faster,
  * thicker and less straight at Nu. They never come from under the menu at the top or the counter
  * at the bottom.
+ * On the watch the crown can aim too, so the finger needn't cover the reds: turn it and a short
+ * white pointer swings round Nu, a turn of the crown for a turn of the pointer; tap Nu and the
+ * photon goes along it. A tap anywhere else fires toward the tap, as before, and hides the
+ * pointer until the crown turns again.
  */
 class Blast : Toy {
     internal val reds = mutableListOf<Mover>()
@@ -32,6 +37,12 @@ class Blast : Toy {
     private var need = 0
     /** The breath between waves: when the next one starts. */
     private var calmUntil = 0.0
+    /** The crown's aim (radians, clockwise from three o'clock): it starts up, and follows the
+     *  last shot fired by touch. Shown, and fired along by a tap on Nu, once the crown turns. */
+    internal var aim = -PI / 2
+        private set
+    internal var aiming = false
+        private set
 
     override fun enter(s: Stage) {
         s.nu.r = 11.0
@@ -62,8 +73,8 @@ class Blast : Toy {
             val v = speed(h)
             val p = polar(s, a, s.R - 6)
             // Not quite straight at Nu, more askew the hotter.
-            val aim = a + PI + (rnd() - 0.5) * min(0.8, 0.2 + 0.2 * h)
-            reds += Mover(p.x, p.y, cos(aim) * v, sin(aim) * v)
+            val way = a + PI + (rnd() - 0.5) * min(0.8, 0.2 + 0.2 * h)
+            reds += Mover(p.x, p.y, cos(way) * v, sin(way) * v)
         }
         for (q in shots) { q.x += q.vx * dt; q.y += q.vy * dt }
         shots.removeAll { dist(it.x, it.y, s.c.x, s.c.y) >= s.R }
@@ -116,6 +127,12 @@ class Blast : Toy {
         for (r in reds) { pen.dot(r.x, r.y, 9.0, Ink.RED, 0.25); pen.ring(r.x, r.y, 7.5, Ink.RED, 3.0, 0.9) }
         for (q in shots) pen.dot(q.x, q.y, 4.5, Ink.CYAN)
         lives(s, pen, left, LIVES)
+        if (aiming && !s.over) {
+            val nu = s.nu
+            val a = nu.r + 6
+            val b = nu.r + 24
+            pen.line(nu.x + cos(aim) * a, nu.y + sin(aim) * a, nu.x + cos(aim) * b, nu.y + sin(aim) * b, Ink.WHITE, 3.0, 0.85)
+        }
         s.nu.draw(pen, now)
     }
 
@@ -124,14 +141,31 @@ class Blast : Toy {
         val dx = p.x - s.nu.x
         val dy = p.y - s.nu.y
         val d = hypot(dx, dy)
+        // Aiming by the crown: a tap on Nu fires along the pointer.
+        if (aiming && d < s.nu.r + TRIGGER) { fire(s, cos(aim), sin(aim)); return }
         if (d < 4 || shots.size >= 4) return
-        shots += Mover(s.nu.x, s.nu.y, dx / d * 0.6, dy / d * 0.6)
+        aim = atan2(dy, dx)
+        aiming = false
+        fire(s, dx / d, dy / d)
+    }
+
+    private fun fire(s: Stage, ux: Double, uy: Double) {
+        if (shots.size >= 4) return
+        shots += Mover(s.nu.x, s.nu.y, ux * 0.6, uy * 0.6)
         s.out.tick(2)
+    }
+
+    override fun crown(s: Stage, by: Double) {
+        if (s.over) return
+        aim += by
+        aiming = true
     }
 
     private companion object {
         const val LIVES = 3
         /** The breath between waves, ms. */
         const val CALM = 800.0
+        /** How far past Nu's edge a tap still fires along the crown's aim: about a fingertip. */
+        const val TRIGGER = 14.0
     }
 }

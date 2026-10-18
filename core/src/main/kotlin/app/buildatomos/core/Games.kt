@@ -15,7 +15,7 @@ class Game(
 
 object Games {
     val all: List<Game> = listOf(
-        Game("blast", "Blast") { Blast() },
+        Game("blast", "Blast", crown = true) { Blast() },
         Game("dive", "Dive") { Dive() },
         Game("echo", "Echo") { Echo() },
         Game("flash", "Flash") { Flash() },

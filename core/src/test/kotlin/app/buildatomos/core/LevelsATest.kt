@@ -4,6 +4,7 @@ import app.buildatomos.core.games.Blast
 import app.buildatomos.core.games.Dive
 import app.buildatomos.core.games.Echo
 import app.buildatomos.core.games.Flash
+import kotlin.math.atan2
 import kotlin.math.hypot
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -47,6 +48,21 @@ class LevelsATest {
         }
     }
 
+    /** The same, aiming with the crown instead: turns the pointer onto the red and taps Nu. */
+    private fun crownBlaster(): (Blast, Stage) -> Unit {
+        var last = 0.0
+        return { t, s ->
+            val r = t.reds.minByOrNull { dist(it.x, it.y, s.c.x, s.c.y) }
+            if (r != null && s.now - last > 220) {
+                val lead = dist(r.x, r.y, s.c.x, s.c.y) / 0.6
+                val want = atan2(r.y + r.vy * lead - s.nu.y, r.x + r.vx * lead - s.nu.x)
+                t.crown(s, turn(t.aim, want))
+                tap(t, s, s.nu.p)
+                last = s.now
+            }
+        }
+    }
+
     /** Taps a lit cyan after a quarter second, as a quick hand would. */
     private fun flasher(): (Flash, Stage) -> Unit {
         var seen: Pt? = null
@@ -71,6 +87,7 @@ class LevelsATest {
 
     @Test fun aGoodPlayerWinsAnEasyRun() {
         assertEquals(Result.WON, run(Blast(), 1, 3, bot = blaster()).result, "blast")
+        assertEquals(Result.WON, run(Blast(), 1, 3, bot = crownBlaster()).result, "blast by the crown")
         assertEquals(Result.WON, run(Dive(), 1, 3, bot = diver).result, "dive")
         assertEquals(Result.WON, run(Echo(), 1, 3, bot = echoer()).result, "echo")
         assertEquals(Result.WON, run(Flash(), 1, 3, bot = flasher()).result, "flash")
@@ -78,6 +95,7 @@ class LevelsATest {
 
     @Test fun aGoodPlayerClearsLevelsAtExpert() {
         assertTrue(run(Blast(), 100, 7, bot = blaster()).level >= 1, "blast")
+        assertTrue(run(Blast(), 100, 7, bot = crownBlaster()).level >= 1, "blast by the crown")
         assertEquals(Result.WON, run(Dive(), 100, 7, bot = diver).result, "dive")
         assertEquals(Result.WON, run(Echo(), 100, 7, bot = echoer()).result, "echo")
         assertTrue(run(Flash(), 100, 7, bot = flasher()).level >= 1, "flash")
@@ -90,15 +108,37 @@ class LevelsATest {
             return s.now
         }
         val b = Blast(); val bb = blaster()
+        val bc = Blast(); val bcb = crownBlaster()
         val d = Dive()
         val e = Echo(); val eb = echoer()
         val f = Flash(); val fb = flasher()
         for ((name, ms) in listOf(
             "blast" to firstLevel(b) { bb(b, it) },
+            "blast by the crown" to firstLevel(bc) { bcb(bc, it) },
             "dive" to firstLevel(d) { diver(d, it) },
             "echo" to firstLevel(e) { eb(e, it) },
             "flash" to firstLevel(f) { fb(f, it) },
         )) assertTrue(ms in 6_000.0..30_000.0, "$name: first level took $ms ms")
+    }
+
+    /** Blast's crown aims and a tap on Nu fires along it; a tap anywhere else still fires at the
+     *  tap and puts the pointer away. Without the crown, a tap on Nu fires toward the tap. */
+    @Test fun blastAimsByTheCrownOrTheTap() {
+        val s = Stage()
+        val b = Blast()
+        b.enter(s)
+        assertTrue(!b.aiming)
+        tap(b, s, Pt(s.c.x + 8, s.c.y))
+        assertEquals(0.0, b.aim, 1e-9)
+        assertTrue(!b.aiming)
+        b.crown(s, 0.5)
+        assertTrue(b.aiming)
+        assertEquals(0.5, b.aim, 1e-9)
+        tap(b, s, Pt(s.c.x - 8, s.c.y))
+        assertEquals(0.5, b.aim, 1e-9, "a tap on Nu fires along the crown's aim")
+        tap(b, s, Pt(s.c.x, s.c.y + 80))
+        assertTrue(!b.aiming)
+        assertEquals(Math.PI / 2, b.aim, 1e-9)
     }
 
     @Test fun heatMakesThemHarder() {
