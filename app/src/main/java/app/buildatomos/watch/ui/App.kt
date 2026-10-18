@@ -92,6 +92,7 @@ fun App(model: AppModel, launchBuild: Boolean, onLaunched: () -> Unit, onExit: (
                     onBuild = run,
                     onAtlas = { nav.across("atom/{z}", it) },
                     onAtom = { z -> nav.swap(Routes.build(z)) },
+                    onBack = { nav.popBackStack() },
                 )
             }
             composable(Routes.GAMES) { GamesScreen(model) { id -> nav.go(Routes.game(id)) } }
