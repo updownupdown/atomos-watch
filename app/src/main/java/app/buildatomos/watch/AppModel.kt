@@ -16,6 +16,9 @@ import app.buildatomos.core.Collection
 import app.buildatomos.core.Difficulty
 import app.buildatomos.core.Game
 import app.buildatomos.core.Games
+import app.buildatomos.core.Quiz
+import app.buildatomos.core.QuizDay
+import app.buildatomos.core.QuizQuestion
 import app.buildatomos.core.Result
 import app.buildatomos.watch.tile.BuildComplicationService
 import app.buildatomos.watch.tile.NuComplicationService
@@ -60,6 +63,29 @@ class AppModel(private val context: Context) {
     }
 
     fun today(): Long = LocalDate.now().toEpochDay()
+
+    // ---- Nu asks: three questions a day, the same ones the phone deals that day. ----
+
+    private val quiz by lazy { Quiz(atlas.atoms.map { it.name }, atlas.infos) }
+    private var dealt: Pair<Int, List<QuizQuestion>>? = null
+    private var quizDay: QuizDay = store.loadQuiz() ?: QuizDay(today().toInt())
+
+    /** Today's questions. */
+    fun questions(): List<QuizQuestion> {
+        val day = today().toInt()
+        dealt?.let { if (it.first == day) return it.second }
+        return quiz.today(day).also { dealt = day to it }
+    }
+
+    /** Today's answers so far and the streak. */
+    fun quizToday(): QuizDay { version; return quizDay.on(today().toInt()) }
+
+    fun answer(right: Boolean) {
+        quizDay = quizToday().answer(right, questions().size)
+        store.saveQuiz(quizDay)
+        if (right) feel.capture() else feel.miss()
+        version++
+    }
 
     /** The game Nu wants to play next: today's pick, moved on by every run played. */
     fun nuPick(): Game { version; return Games.forRun(today(), store.runs) }

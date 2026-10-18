@@ -8,11 +8,9 @@ package app.buildatomos.watch
 
 import android.content.Context
 import app.buildatomos.core.Collection
+import app.buildatomos.core.QuizDay
 import org.json.JSONArray
 import org.json.JSONObject
-
-/** The day's quiz: the answers given today (right or wrong, in order) and the streak of days done. */
-class QuizDay(val day: Long, val answers: List<Boolean>, val streak: Int, val streakDay: Long)
 
 class Store(context: Context) {
     private val prefs = context.getSharedPreferences("atomos", Context.MODE_PRIVATE)
@@ -88,7 +86,7 @@ class Store(context: Context) {
     fun loadQuiz(): QuizDay? = try {
         val o = JSONObject(prefs.getString(QUIZ, null) ?: "")
         val a = o.optJSONArray("answers") ?: JSONArray()
-        QuizDay(o.getLong("day"), (0 until a.length()).map { a.getBoolean(it) }, o.optInt("streak"), o.optLong("streakDay", -1))
+        QuizDay(o.getInt("day"), (0 until a.length()).map { a.getBoolean(it) }, o.optInt("streak"), o.optInt("streakDay", Int.MIN_VALUE))
     } catch (_: Exception) {
         null
     }
