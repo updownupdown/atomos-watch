@@ -18,6 +18,13 @@ private const val PER_LEVEL = 4
 /** Nu sits on its perch this long at most before it drops on its own. */
 private const val PERCH_MS = 2200.0
 
+/** The fall: gravity (units/ms²), the fastest fall, and a hop's kick up (units/ms). Softer than
+ *  the phone's (0.0012 and 0.42), for the watch's small court: a hop rises about 45 units, a
+ *  little over half a ring's width, and takes about 0.4 s to top out. */
+private const val GRAVITY = 0.0006
+private const val FASTEST = 0.32
+private const val KICK = 0.23
+
 /**
  * Hue (the phone's src/nu/meadow.ts). Rings stacked up the court, turning, each in two to five
  * colours. Nu wears one colour (the ring round it); a tap hops it up and it falls between taps.
@@ -25,24 +32,30 @@ private const val PERCH_MS = 2200.0
  * rings changes Nu's colour to one of the next ring's. Touch another colour, or fall off the
  * bottom, and the run is lost.
  * A level is a set of four rings passed: two colours, then three, four, five, and the next set
- * starts again at two. Heat turns the rings faster and adds colours to the first rings of a set
- * (from two up to five at Expert).
+ * starts again at two. Heat turns the rings a little faster and, from Expert on, adds a colour to
+ * the first rings of a set (two more deep in free play). Nu falls slowly and hops gently, so a
+ * hop is a small step up the court, not a leap past the next ring.
  * On the watch Nu climbs straight up the middle of the round court, and the view climbs with it.
  * The crown turns the ring Nu is about to pass (drawn a little bolder): spin it forward or back
  * to bring Nu's colour round, while the rings still turn by themselves. A tap still hops. Nu
  * waits on its perch a moment at the start, then drops on its own, so a run left alone is lost.
  */
 class Hue : Toy {
-    private class Ring(val y: Double, var a: Double, val v: Double, val n: Int, val i: Int) {
+    /** A ring: its middle's height in the world, its turn, its spin, its colours and its number. */
+    internal class Ring(val y: Double, var a: Double, val v: Double, val n: Int, val i: Int) {
         var passed = false
         var swap = true
     }
-    private val rings = mutableListOf<Ring>()
+    internal val rings = mutableListOf<Ring>()
     /** Nu's height in the world (down is +), its speed, and how far the view has climbed (−). */
-    private var y = 0.0
-    private var vy = 0.0
+    internal var y = 0.0
+        private set
+    internal var vy = 0.0
+        private set
     private var cam = 0.0
-    private var hue = 0
+    /** Nu's colour. */
+    internal var hue = 0
+        private set
     private var made = 0
     private var started = false
     private var since = 0.0
@@ -63,8 +76,8 @@ class Hue : Toy {
         val last = rings.lastOrNull()
         val y = last?.let { it.y - (2 * RING_R + GAP) } ?: (base(s) - 70 - RING_R)
         val i = made++
-        val n = min(5, 2 + i % PER_LEVEL + (s.heat * 2).toInt())
-        val v = (if (rnd() < 0.5) -1 else 1) * min(0.0021, 0.0007 + s.heat * 0.0006) * (0.7 + n * 0.06)
+        val n = min(5, 2 + i % PER_LEVEL + (s.heat * 1.25).toInt())
+        val v = (if (rnd() < 0.5) -1 else 1) * min(0.0016, 0.0005 + s.heat * 0.0004) * (0.7 + n * 0.06)
         rings += Ring(y, rnd() * TAU, v, n, i)
     }
 
@@ -76,7 +89,7 @@ class Hue : Toy {
     }
 
     /** The ring Nu will pass next: the lowest not yet passed. */
-    private fun target(): Ring? = rings.firstOrNull { !it.passed }
+    internal fun target(): Ring? = rings.firstOrNull { !it.passed }
 
     override fun step(s: Stage, dt: Double, now: Double) {
         val nu = s.nu
@@ -88,7 +101,7 @@ class Hue : Toy {
             started = true
             vy = 0.0
         }
-        vy = min(0.5, vy + 0.0011 * dt)
+        vy = min(FASTEST, vy + GRAVITY * dt)
         y += vy * dt
         // The view climbs with Nu, never back down.
         val high = s.c.y - 10
@@ -166,7 +179,7 @@ class Hue : Toy {
     override fun down(s: Stage, p: Pt) {
         if (over) return
         started = true
-        vy = -0.38
+        vy = -KICK
         s.out.tick(1)
     }
 
@@ -174,5 +187,10 @@ class Hue : Toy {
     override fun crown(s: Stage, by: Double) {
         if (over) return
         target()?.let { it.a += by }
+    }
+
+    internal companion object {
+        /** The rings' radius. */
+        const val R = RING_R
     }
 }

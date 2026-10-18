@@ -29,7 +29,7 @@ object Games {
         Game("hop", "Hop", crown = true) { Hop() },
         Game("hue", "Hue", crown = true) { Hue() },
         Game("juggle", "Juggle") { Juggle() },
-        Game("land", "Land", crown = true) { Land() },
+        Game("land", "Land") { Land() },
         Game("lanes", "Lanes", crown = true) { Lanes() },
         Game("more", "More", crown = true) { More() },
         Game("orbit", "Orbit", crown = true) { Orbit() },
