@@ -7,18 +7,18 @@ playing them. It works on its own, with no phone and no sync, and it is free.
   - **Build**: the atom you are building (its cloud fills with color shell by shell, the game
     and difficulty of the next shell, and the rose Build button), and your collection.
   - **Atlas**: the atom of the day (the same one the phone shows) and every atom.
-  - **Games**: the game Nu picked for today, and Nu's three questions of the day (the same ones
-    the phone asks).
-  - **Nu's park**: Nu to play with (tap the arena and Nu flies there; tap Nu and it hops), and
-    every game.
+  - **Games**: the game Nu picked for today, Nu's three questions of the day (the same ones the
+    phone asks), and Play all games.
   - The Settings button.
 - **Build** shows the atom being built and every period's atoms, built ones in their own color.
   Each atom's Build page has its cloud, View in Atlas, and its shells as a track: built ones
   checked, the next with its game, difficulty and Play.
 - **The Atlas** shows every atom on a wheel (the crown steps through them) or in the table. Each
   atom's Atlas page has its plate, Build, the atom itself, the headline and facts, its name and
-  discovery, its structure, properties and isotopes, and where it comes from and what it is for.
-- **A run** opens on a card with the game's name, its difficulty and the levels to reach. The
+  discovery, its structure, properties and isotopes, and where it comes from and what it is for,
+  each a section that folds (all closed to start).
+- **A run** opens on a card with the game's name, its difficulty and the levels to reach, and a
+  ring round the rim that fills until play starts (a tap starts it sooner). The
   ATOMOS mark at the top of the screen (or the back button) pauses it: Exit on the left, Resume
   in the middle, Restart on the right, with the level reached and the best at the foot. The
   levels show as a tiny atom at the bottom of the screen.
