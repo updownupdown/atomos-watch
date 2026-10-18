@@ -31,6 +31,11 @@ class GamesTest {
     }
 
     @Test fun nuPicksAGame() { for (d in 0L..400L) assertNotNull(Games.nuPick(d)) }
+
+    /** Nu picks every game in turn, one a day, whatever the number of games. */
+    @Test fun nuPicksEveryGame() {
+        assertEquals(Games.all.size, (0L until Games.all.size).map { Games.nuPick(it).id }.toSet().size)
+    }
 }
 
 class StageTest {

@@ -1,5 +1,6 @@
-// The watch's games, A to Z. Every game is one of Nu's park games from the phone, played on the
-// round court in levels; `crown` marks the ones the crown steers.
+// The watch's games, A to Z. Most are Nu's park games from the phone, fitted to the watch; Core is
+// the watch's own. All are played on the round court in levels; `crown` marks the ones the crown
+// steers.
 
 package app.buildatomos.core
 
@@ -21,6 +22,7 @@ object Games {
         Game("dodge", "Dodge", crown = true) { Dodge() },
         Game("echo", "Echo") { Echo() },
         Game("flash", "Flash") { Flash() },
+        Game("fuse", "Fuse", crown = true) { Fuse() },
         Game("halo", "Halo", crown = true) { Halo() },
         Game("hue", "Hue", crown = true) { Hue() },
         Game("juggle", "Juggle") { Juggle() },
@@ -29,6 +31,7 @@ object Games {
         Game("orbit", "Orbit", crown = true) { Orbit() },
         Game("order", "Order") { Order() },
         Game("pairs", "Pairs") { Pairs() },
+        Game("pop", "Pop", crown = true) { Pop() },
         Game("pulse", "Pulse") { Pulse() },
         Game("rain", "Rain", crown = true) { Rain() },
         Game("ready", "Ready") { Ready() },
@@ -43,7 +46,13 @@ object Games {
     fun byId(id: String): Game? = all.firstOrNull { it.id == id }
 
     /** The game Nu fancies on day `day` (days since 1970): the same all day, a different one most days. */
-    fun nuPick(day: Long): Game = all[(((day * 5 + 3) % all.size + all.size) % all.size).toInt()]
+    fun nuPick(day: Long): Game = all[(((day * STRIDE + 3) % all.size + all.size) % all.size).toInt()]
+
+    /** How far Nu's pick moves on each day: 5 or more, and sharing no factor with the number of
+     *  games, so every game comes round in turn. */
+    private val STRIDE: Long = generateSequence(5L) { it + 1 }.first { gcd(it, all.size.toLong()) == 1L }
+
+    private tailrec fun gcd(a: Long, b: Long): Long = if (b == 0L) a else gcd(b, a % b)
 
     /** The game a shell of an atom is built with: Nu's pick, moved on by every run played, so
      *  shell after shell brings a different game. */
