@@ -16,18 +16,21 @@ class CheckPen : Pen {
 
 /**
  * Plays a game for `ms` with random taps, drags and crown turns at about `rate` per second,
- * pressing Next whenever it waits. Returns the stage (ended, or not).
+ * pressing Next whenever it waits, at `dial` toward `goal` (null: free play). Returns the stage
+ * (over, or not).
  */
-fun play(game: Game, ms: Double = 120_000.0, rate: Double = 3.0, seed: Int = 1, idle: Boolean = false): Stage {
+fun play(game: Game, ms: Double = 120_000.0, rate: Double = 3.0, seed: Int = 1, idle: Boolean = false, dial: Int = 30, goal: Int? = null): Stage {
     val r = seeded(seed)
     val s = Stage()
+    s.dial = dial
+    s.goal = goal
     val t = game.make()
     val pen = CheckPen()
     t.enter(s)
     var now = 1000.0
     s.now = now
     var held = false
-    while (now < ms && s.ended == null) {
+    while (now < ms && !s.over) {
         val dt = 16.0 + r() * 4
         now += dt
         s.now = now
@@ -44,7 +47,7 @@ fun play(game: Game, ms: Double = 120_000.0, rate: Double = 3.0, seed: Int = 1, 
         t.step(s, dt, now)
         t.draw(s, pen, now)
         s.fx.draw(pen, now, dt)
-        require(s.shown.isFinite())
+        require(s.part.isFinite() && s.part in -1e-9..1.0 + 1e-9) { "${game.id}: part ${s.part}" }
     }
     return s
 }

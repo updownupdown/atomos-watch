@@ -210,12 +210,25 @@ class Fx(private val clock: () -> Double) {
 
 // ---- The court ---------------------------------------------------------------------------------
 
+/** The most levels a run can clear: free play has no goal, so this is where it stops. Games grow
+ *  harder with every level (see `heat`), so the last ones are very hard to reach. */
+const val MAX_LEVEL = 255
+
+/** How much harder a game plays with every level cleared, on the 0..1 scale of `heat`. */
+const val HEAT_PER_LEVEL = 0.05
+
+enum class Result { WON, LOST }
+
 /**
  * Where a game plays: the round court filling the watch's screen. `c` is its middle and `R` its
  * radius, both in court units. The shell (the app) owns the stage: it keeps the clock, draws the
- * rim and the score, and shows the run-over card when the game calls `end`.
+ * rim, the levels and the menu, and shows the card at the end.
+ *
+ * A run is played in levels. The game calls `clear` when the player finishes one and `lose` when
+ * they fail; a run for an atom is won at its `goal`, free play at MAX_LEVEL. The game reads how
+ * hard to play from `heat`.
  */
-class Stage(val out: Out = object : Out {}, val bests: MutableMap<String, Double> = mutableMapOf()) {
+class Stage(val out: Out = object : Out {}) {
     val c = Pt(SCREEN / 2, SCREEN / 2)
     val R = COURT_R
     /** The screen's own middle (the same as the court's on a watch). */
@@ -228,26 +241,52 @@ class Stage(val out: Out = object : Out {}, val bests: MutableMap<String, Double
     val fx = Fx { now }
     /** The rim's countdown, 0..1 left, or null for none. */
     var rim: Double? = null
-    /** The count shown, in the game's own count. */
-    var shown = 0.0
-        private set
-    /** The run ended, at this count. */
-    var ended: Double? = null
-        private set
     /** A level is done and the next waits for the player: the shell shows Next, which calls this. */
     var waiting: (() -> Unit)? = null
 
-    fun score(n: Double) { shown = n }
-    fun score(n: Int) { shown = n.toDouble() }
-    fun end(raw: Double) { if (ended == null) ended = raw }
+    /** How hard to play, 1..100: the phone's dial (Difficulty). Set before `enter`. */
+    var dial = 30
+    /** Levels to clear to win: a run for an atom has one; free play has none. Set before `enter`. */
+    var goal: Int? = null
+    /** Levels cleared so far. */
+    var level = 0
+        private set
+    /** How far into the level being played, 0..1, for the shell's counter. The game sets it. */
+    var part = 0.0
+    /** Won or lost, once the run is over. */
+    var result: Result? = null
+        private set
+    val over get() = result != null
+
+    /** How hard the game should play now: 0 at the dial's easiest, 1 at its hardest, and a little
+     *  more with every level cleared, without end. Games turn this into speeds and counts. */
+    val heat: Double get() = (dial - 1) / 99.0 + level * HEAT_PER_LEVEL
+
+    /** The player finished a level. Wins the run at the goal. */
+    fun clear() {
+        if (over) return
+        level++
+        part = 0.0
+        out.complete()
+        if (level >= (goal ?: MAX_LEVEL)) result = Result.WON
+    }
+
+    /** The player failed: the run is lost. */
+    fun lose() { if (!over) result = Result.LOST }
+
     fun prompt(go: () -> Unit) { waiting = go }
+
+    // ---- Until every game plays in levels: the old score calls, kept so the rest compile. ----
+    @Deprecated("Levels: call clear() and lose()") fun score(n: Double) {}
+    @Deprecated("Levels: call clear() and lose()") fun score(n: Int) {}
+    @Deprecated("Levels: call lose()") fun end(raw: Double) = lose()
+    @Deprecated("Levels") val bests: MutableMap<String, Double> = mutableMapOf()
 }
 
-fun best(s: Stage, k: String): Double = s.bests[k] ?: 0.0
-fun setBest(s: Stage, k: String, n: Double) { if (n > best(s, k)) s.bests[k] = n }
-/** The run is over: keeps the best and tells the shell. */
-fun finish(s: Stage, k: String, n: Double) { setBest(s, k, n); s.end(n) }
-fun finish(s: Stage, k: String, n: Int) = finish(s, k, n.toDouble())
+@Deprecated("Levels") fun best(s: Stage, k: String): Double = 0.0
+@Deprecated("Levels") fun setBest(s: Stage, k: String, n: Double) {}
+@Deprecated("Levels: call lose()") fun finish(s: Stage, k: String, n: Double) = s.lose()
+@Deprecated("Levels: call lose()") fun finish(s: Stage, k: String, n: Int) = s.lose()
 
 /** How far `p` is outside the court's edge (negative inside), and the way out there. */
 fun edge(s: Stage, p: Pt): Triple<Double, Double, Double> {
@@ -290,19 +329,23 @@ fun polar(s: Stage, a: Double, r: Double) = Pt(s.c.x + cos(a) * r, s.c.y + sin(a
 
 open class Mover(var x: Double, var y: Double, var vx: Double = 0.0, var vy: Double = 0.0)
 
-/** Lives left, as small dots across the top of the court. */
+/** Lives left, as small dots along the bottom of the rim, to the left of the level counter (the
+ *  top is the menu's). */
 fun lives(s: Stage, pen: Pen, left: Int, of: Int = 3) {
     for (i in 0 until of) {
-        val x = s.c.x + (i - (of - 1) / 2.0) * 14
-        val y = s.c.y - s.R + 12
+        val a = PI / 2 + (20 + i * 9) * PI / 180
+        val x = s.c.x + cos(a) * (s.R - 6)
+        val y = s.c.y + sin(a) * (s.R - 6)
         if (i < left) pen.dot(x, y, 4.0, Ink.WHITE, 0.85) else pen.ring(x, y, 4.0, Ink.K500, 2.0, 0.8)
     }
 }
 
 /**
  * One of Nu's games. The shell makes a fresh one for each run, calls `enter`, then `step` and
- * `draw` every frame, and passes on touches and the crown. A game never restarts itself: when the
- * run is over it calls `finish` (or `s.end`) and the shell shows the score and Again.
+ * `draw` every frame, and passes on touches and the crown. A game plays in levels: it calls
+ * `s.clear()` at the end of each and `s.lose()` when the player fails, reads `s.heat` for how hard
+ * to play, and sets `s.part` to show how far into the level the player is. It never restarts
+ * itself; the shell shows the card at the end, and Again makes a fresh game.
  */
 interface Toy {
     fun enter(s: Stage)
@@ -313,6 +356,4 @@ interface Toy {
     fun up(s: Stage, p: Pt) {}
     /** The crown (or a turning bezel) turned by `by` radians, clockwise positive. */
     fun crown(s: Stage, by: Double) {}
-    /** Its count so far, when that isn't what it shows. */
-    fun raw(): Double? = null
 }

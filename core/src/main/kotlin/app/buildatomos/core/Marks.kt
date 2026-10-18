@@ -1,5 +1,5 @@
-// Small drawings the app shares: the ATOMOS mark (a lithium ion), a score as a tiny atom, and the
-// games' icons, all drawn with a Pen in flat circles, rings and lines like the phone's.
+// Small drawings the app shares: the ATOMOS mark (a lithium ion), a run's levels as a tiny atom,
+// a difficulty's pips, and the games' icons, all drawn with a Pen in flat circles, rings and lines like the phone's.
 
 package app.buildatomos.core
 
@@ -42,36 +42,47 @@ fun Pen.mark(cx: Double, cy: Double, size: Double, color: Int = Ink.WHITE, nu: I
     }
 }
 
-/** A score as a tiny atom (the phone's score-atom.ts): each whole point an electron, filling
- *  shells 2, 8, 8, 18..., the tenths as the next electron, faint. */
-fun Pen.scoreAtom(cx: Double, cy: Double, size: Double, points: Double, color: Int = Ink.WHITE, ring: Int? = null) {
-    val shells = intArrayOf(2, 8, 8, 18, 18, 32, 32)
-    val whole = max(0, floor(points + 1e-6).toInt())
-    val frac = max(0.0, points - whole)
-    var left = whole + if (frac > 0.05) 1 else 0
-    val counts = mutableListOf<Int>()
-    var used = 0
-    while (left > 0 && used < shells.size) { val n = min(shells[used], left); counts += n; left -= n; used++ }
-    if (counts.isEmpty()) counts += 0
+/**
+ * The levels of a run, as a tiny atom: a nucleus and one shell of electron slots.
+ *
+ * A run for an atom has a goal (at most 8): the shell has that many slots, and each level cleared
+ * fills one, the next filling as the level goes (`part`, 0..1). Free play has no goal: the shell
+ * has 8 slots and counts in binary, slot 1 at the top for 1, the next clockwise for 2, then 4 and
+ * so on, so the count can reach 255 and no further.
+ */
+fun Pen.levels(cx: Double, cy: Double, size: Double, level: Int, goal: Int?, part: Double = 0.0, color: Int = Ink.CYAN) {
     val k = size / 44
-    val R = 20.0
-    val nuc = 3.6
-    val step = (R - nuc - 2.5) / max(1, counts.size)
-    dot(cx, cy, nuc * k, color)
-    var e = 0
-    counts.forEachIndexed { i, c ->
-        val r = nuc + 2.5 + step * (i + 1) - 0.4
-        ring(cx, cy, r * k, color, 1.2 * k, 0.28)
-        val full = shells[i]
-        val d = max(0.9, min(2.1, PI * r / full * 0.55))
-        for (j in 0 until c) {
-            val a = -PI / 2 + j * 2 * PI / full + i * 0.4
-            val last = e == whole
-            dot(cx + cos(a) * r * k, cy + sin(a) * r * k, d * k, color, if (last) max(0.2, frac) else 1.0)
-            e++
+    val r = 15.0 * k
+    val e = 3.2 * k
+    dot(cx, cy, 4.2 * k, Ink.WHITE)
+    ring(cx, cy, r, Ink.K700, 1.6 * k)
+    val slots = if (goal != null) goal.coerceIn(1, 8) else 8
+    for (i in 0 until slots) {
+        val a = -PI / 2 + i * TAU / slots
+        val x = cx + cos(a) * r
+        val y = cy + sin(a) * r
+        val on = if (goal != null) i < level else (level.coerceIn(0, MAX_LEVEL) shr i) and 1 == 1
+        when {
+            on -> dot(x, y, e, color)
+            goal != null && i == level && part > 0.02 -> {
+                dot(x, y, e, Ink.BLACK)
+                ring(x, y, e - 0.7 * k, Ink.K500, 1.4 * k)
+                arc(x, y, e - 0.7 * k, -PI / 2, TAU * part.coerceIn(0.0, 1.0), color, 1.4 * k)
+            }
+            else -> { dot(x, y, e, Ink.BLACK); ring(x, y, e - 0.7 * k, Ink.K500, 1.4 * k) }
         }
     }
-    if (ring != null) ring(cx, cy, 21.2 * k, ring, 1.6 * k)
+}
+
+/** The five pips of a difficulty: as many lit as its level, all in that level's color. */
+fun Pen.pips(cx: Double, cy: Double, size: Double, dial: Int) {
+    val n = Difficulty.level(dial) + 1
+    val color = Difficulty.color(dial)
+    val r = size / 12
+    for (i in 0 until Difficulty.LEVELS) {
+        val x = cx + (i - 2) * size / 5
+        if (i < n) dot(x, cy, r, color) else dot(x, cy, r, Ink.K700)
+    }
 }
 
 /** A game's icon (the phone's 24x24 icons in src/nu/games.ts), round (cx, cy), `size` across. */

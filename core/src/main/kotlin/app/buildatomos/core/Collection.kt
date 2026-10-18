@@ -1,57 +1,78 @@
 // The watch's own collection: the atoms built on the watch, from hydrogen up, one at a time.
-// Every point a run scores is one electron for the atom being built; an atom is built when it
-// has all its electrons (1 for hydrogen, 26 for iron, 118 for oganesson). Nothing here is shared
-// with the phone.
+// An atom is built shell by shell: every run won for it builds its next electron shell, so
+// hydrogen takes one win, carbon two, iron four and oganesson seven (620 for the whole table).
+// Each shell is played at the atom's dial (Difficulty.buildDial). Nothing here is shared with the
+// phone.
 
 package app.buildatomos.core
 
-import kotlin.math.max
-import kotlin.math.roundToInt
+import kotlin.math.floor
 
 const val ATOMS = 118
+
+/** The period an atom sits in, which is the number of its electron shells. */
+fun periodOf(z: Int): Int = when {
+    z <= 2 -> 1
+    z <= 10 -> 2
+    z <= 18 -> 3
+    z <= 36 -> 4
+    z <= 54 -> 5
+    z <= 86 -> 6
+    else -> 7
+}
+
+/** Electrons in each shell of atom `z` (the Bohr picture the phone's Shells view draws). */
+fun shellCounts(z: Int, subs: List<String>): IntArray {
+    val out = IntArray(periodOf(z))
+    for (s in subs) {
+        val n = s.takeWhile { it.isDigit() }.toIntOrNull() ?: continue
+        val count = s.dropWhile { it.isDigit() }.drop(1).toIntOrNull() ?: continue
+        if (n in 1..out.size) out[n - 1] += count
+    }
+    return out
+}
 
 class Collection(
     /** The atom being built (1..118), or 119 once the table is done. */
     var building: Int = 1,
-    /** Electrons already in it. */
-    var electrons: Int = 0,
+    /** Shells of it already built. */
+    var shells: Int = 0,
     /** Each built atom and the day it was built (days since 1970). */
     val built: MutableMap<Int, Long> = mutableMapOf(),
 ) {
     val done get() = building > ATOMS
 
-    /** How far the atom being built is, 0..1. */
-    val progress get() = if (done) 1.0 else electrons.toDouble() / building
+    /** Shells the atom being built has. */
+    val need get() = if (done) 1 else periodOf(building)
 
-    /** Adds electrons; returns the atoms that were built on the way. */
-    fun add(n: Int, day: Long): List<Int> {
-        var left = n
-        val out = mutableListOf<Int>()
-        while (left > 0 && !done) {
-            val need = building - electrons
-            if (left >= need) {
-                left -= need
-                built[building] = day
-                out += building
-                building++
-                electrons = 0
-            } else {
-                electrons += left
-                left = 0
-            }
-        }
-        return out
+    /** How far the atom being built is, 0..1. */
+    val progress get() = if (done) 1.0 else shells.toDouble() / need
+
+    /** The dial and the goal of the next run for it. */
+    val dial get() = Difficulty.buildDial(minOf(building, ATOMS), shells)
+    val goal get() = Difficulty.goal(dial)
+
+    /** A run for the atom was won: builds its next shell. Returns the atom if that finished it. */
+    fun win(day: Long): Int? {
+        if (done) return null
+        shells++
+        if (shells < need) return null
+        val z = building
+        built[z] = day
+        building++
+        shells = 0
+        return z
     }
 
     fun isBuilt(z: Int) = z in built
 
     companion object {
-        /** A run's electrons: one per point (10 for a par run), at least one for any score,
-         *  twice as many for a new best. */
-        fun electronsFor(points: Double, newBest: Boolean): Int {
-            if (points <= 0) return 0
-            val n = max(1, points.roundToInt())
-            return if (newBest) n * 2 else n
+        /** The first collections counted electrons (z of them for atom z); each becomes the shells
+         *  it had come to, rounded down. */
+        fun fromElectrons(building: Int, electrons: Int, built: MutableMap<Int, Long>): Collection {
+            val z = building.coerceIn(1, ATOMS + 1)
+            val shells = if (z > ATOMS) 0 else floor(electrons.toDouble() / z * periodOf(z)).toInt().coerceIn(0, periodOf(z) - 1)
+            return Collection(z, shells, built)
         }
     }
 }

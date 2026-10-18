@@ -19,7 +19,7 @@ class RenderTest {
             t.enter(st)
             var now = 1000.0
             val r = seeded(3)
-            while (now < at && st.ended == null) {
+            while (now < at && !st.over) {
                 now += 16.0; st.now = now
                 if (r() < 0.03) { val p = Pt(st.c.x + (r() * 2 - 1) * 100, st.c.y + (r() * 2 - 1) * 100); t.down(st, p); t.up(st, p) }
                 if (r() < 0.05) t.crown(st, (r() * 2 - 1) * 0.5)
@@ -29,7 +29,6 @@ class RenderTest {
             t.draw(st, pen, now)
             st.fx.draw(pen, now, 16.0)
             pen.save(File(out, "game-${g.id}-${at.toInt()}.svg"))
-            check(s.shown.isFinite())
         }
     }
 
@@ -46,7 +45,9 @@ class RenderTest {
         }
         val pen = SvgPen()
         pen.mark(150.0, 110.0, 110.0, nu = 3)
-        pen.scoreAtom(110.0, 220.0, 44.0, 12.4)
+        pen.levels(90.0, 220.0, 44.0, 2, 5, 0.4)
+        pen.levels(150.0, 220.0, 44.0, 37, null)
+        pen.pips(210.0, 220.0, 40.0, 55)
         var x = 40.0
         for (g in listOf("halo", "orbit", "pulse", "dive", "flash", "echo", "stick", "ready", "tune")) { pen.dot(x, 270.0, 14.0, Ink.WHITE); pen.gameIcon(g, x, 270.0, 18.0, Ink.BLACK); x += 28 }
         pen.save(File(out, "marks.svg"))
