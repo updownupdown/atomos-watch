@@ -1,5 +1,5 @@
 // The watch's games, A to Z. Most are Nu's park games from the phone, fitted to the watch; Core,
-// Dial and Lanes are the watch's own. All are played on the round court in levels; `crown` marks
+// Dial, Fill, Fit and Lanes are the watch's own. All are played on the round court in levels; `crown` marks
 // the ones the crown steers.
 
 package app.buildatomos.core
@@ -47,6 +47,12 @@ object Games {
         Game("spot", "Spot") { Spot() },
         Game("stick", "Stick") { Stick() },
         Game("tune", "Tune", crown = true) { Tune() },
+        Game("bank", "Bank", crown = true) { Bank() },
+        Game("cross", "Cross") { Cross() },
+        Game("fill", "Fill") { Fill() },
+        Game("fit", "Fit", crown = true) { Fit() },
+        Game("herd", "Herd", crown = true) { Herd() },
+        Game("poise", "Poise") { Poise() },
     ).sortedBy { it.label }
 
     fun byId(id: String): Game? = all.firstOrNull { it.id == id }
