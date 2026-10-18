@@ -6,11 +6,19 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
 
+/** The calm between levels: no drops start for this long. */
+private const val CALM_MS = 900.0
+
 /**
- * Rain (the phone's src/nu/field.ts). Nu runs along the bottom; photons rain down: each caught
- * counts. Red ones rain too: each caught costs a life. Red from the start, and faster, thicker
- * and redder with every catch; some drops fall faster than the rest, soon some drift sideways
- * and reds come in pairs, and later in rows with one gap to slip through.
+ * Rain (the phone's src/nu/field.ts). Nu runs along the bottom; photons rain down: catch them.
+ * Red ones rain too: each caught costs one of three lives, and the last one loses the run. Some
+ * drops fall faster than the rest.
+ * A level is a set of photons caught (12, and one more every other level); then a short calm
+ * with no new drops, and the rain comes back harder. The lives carry on from level to level, and
+ * one comes back every third level. Heat makes the rain faster, thicker and redder, and brings in
+ * what the phone brought with the catches: from a little past Very easy some drops drift
+ * sideways and reds come in pairs, and toward Expert in threes and in rows with one gap to slip
+ * through. Past Expert it keeps thickening, up to a drop every ~120 ms and two reds in three.
  * On the watch Nu runs along a level line across the lower part of the round court, as far as
  * keeps it whole on the screen, and the crown moves it: a radian of crown is a third of the run.
  * A finger slid anywhere still moves it too, as on the phone. Each drop starts just above the rim
@@ -25,7 +33,8 @@ class Rain : Toy {
     private var want: Double? = null
     /** Moving by the crown: `want` is where it sent Nu, dropped once Nu gets there. */
     private var turning = false
-    private var count = 0
+    /** Photons caught in this level. */
+    private var caught = 0
     private var left = 3
     private var next = 600.0
     /** Drops fall about a third as far here as on the phone, so they fall slower, to leave the
@@ -49,8 +58,14 @@ class Rain : Toy {
         wall = sqrt((s.R - s.nu.r - 4) * (s.R - s.nu.r - 4) - dy * dy) + s.nu.r + 6
         x = s.c.x
         s.nu.at(Pt(x, row(s)))
-        s.score(0)
     }
+
+    /** Photons to catch to clear the level. */
+    private fun need(s: Stage) = 12 + s.level / 2
+
+    /** How far into the phone's run the rain is: the phone's count of catches, which made it
+     *  harder there, about 30 at Expert, and climbing with each catch toward the next level. */
+    private fun depth(s: Stage) = (s.heat + HEAT_PER_LEVEL * s.part) * 30
 
     override fun step(s: Stage, dt: Double, now: Double) {
         val nu = s.nu
@@ -63,26 +78,26 @@ class Rain : Toy {
         if (over) return
         next -= dt
         if (next <= 0) {
-            // Drops come quicker as it goes, from the first catch.
-            next = max(150.0, 580.0 - count * 15) * (0.6 + rnd() * 0.8) / 1.2
-            val n = count
+            val n = depth(s)
+            // Drops come quicker with the heat.
+            next = max(120.0, 580.0 - n * 13) * (0.6 + rnd() * 0.8) / 1.2
             val lo = s.c.x - wall + 24
             val hi = s.c.x + wall - 24
-            // Red from the first drop: from two in five to near two in three.
-            val red = rnd() < min(0.62, 0.4 + n * 0.01)
+            // Red from the first drop: from one in three to two in three.
+            val red = rnd() < min(0.66, 0.32 + n * 0.01)
             // Nearly half fall faster, up to 60% faster.
             val fast = if (rnd() < 0.45) 1 + rnd() * 0.6 else 1.0
             // Soon some drift sideways (bouncing off the walls).
             val vx = if (n > 4 && rnd() < min(0.6, (n - 4) * 0.04)) (rnd() - 0.5) * 0.16 * FALL else 0.0
             val at = lo + rnd() * (hi - lo)
-            val v = (0.17 + min(0.26, n * 0.008) + rnd() * 0.06) * fast * FALL
+            val v = (0.17 + min(0.4, n * 0.008) + rnd() * 0.06) * fast * FALL
             // Later, now and then a row of reds across, with one gap wide enough for Nu: a
             // moment's calm after it, so the row can be read. A row comes in level, from above
             // the top of the circle.
-            if (n > 14 && rnd() < min(0.22, (n - 14) * 0.02)) {
+            if (n > 14 && rnd() < min(0.28, (n - 14) * 0.02)) {
                 val gap = max(76.0, nu.r * 2 + 50)
                 val g0 = lo + rnd() * (hi - lo - gap)
-                val sv = (0.17 + min(0.2, n * 0.006)) * FALL
+                val sv = (0.17 + min(0.3, n * 0.006)) * FALL
                 val y = s.c.y - s.R - 10
                 var gx = lo
                 while (gx <= hi) {
@@ -119,15 +134,21 @@ class Rain : Toy {
                     if (left <= 0) {
                         over = true
                         drops.clear()
-                        s.score(count)
-                        finish(s, "rain", count)
+                        s.lose()
                         return
                     }
                 } else {
-                    count++
+                    caught++
                     s.fx.burst(Pt(d.x, d.y), 6, Ink.CYAN, 0.1)
                     s.out.capture()
-                    s.score(count)
+                    s.part = caught.toDouble() / need(s)
+                    if (caught >= need(s)) {
+                        caught = 0
+                        s.clear()
+                        if (s.over) { over = true; drops.clear(); return }
+                        if (s.level % 3 == 0 && left < 3) left++
+                        next = max(next, CALM_MS)
+                    }
                 }
                 continue
             }

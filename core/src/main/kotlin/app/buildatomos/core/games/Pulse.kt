@@ -11,27 +11,44 @@ import kotlin.math.sin
 /** How long Nu takes to drop back to the new wave after a catch. */
 private const val BACK_MS = 260.0
 
+/** The calm beat between levels: the next wave waits this long before it spreads. */
+private const val CALM_MS = 700.0
+
 /**
  * Pulse (the phone's src/nu/court.ts). A wave spreads out from the nucleus, Nu riding it at the
- * top. Tap as it crosses the marked band. Each catch moves the band, narrows it and quickens the
- * wave; a miss, or letting the wave go by, ends the run. Nu bounces on a catch as far as the tap
- * was off: dead on, it hardly moves.
+ * top. Tap as it crosses the marked band. Each catch moves the band; a miss, or letting the wave
+ * go by, loses the run. Nu bounces on a catch as far as the tap was off: dead on, it hardly moves.
+ * A level is a set of catches (14, and one more every third level); then a short calm and the
+ * next wave. Heat quickens the wave and narrows the band, a little with every catch too, so the
+ * window to tap in shrinks from about 750 ms at Very easy to under 100 ms in late free play.
  * On the phone the court is drawn bigger than the screen, its sides cropped; on the watch it is
- * just the round court. A tap anywhere counts, as on the phone.
+ * just the round court. A tap anywhere counts, as on the phone. The band's outer edge stays
+ * within 0.8 of the court, so Nu is never under the shell's menu at the top when the tap counts.
  */
 class Pulse : Toy {
     private var r = 0.0
     private var speed = 0.09
     private var bandR = 0.0
     private var bandW = 0.0
-    private var streak = 0
+    /** Catches in this level. */
+    private var caught = 0
     private var over = false
     private var hitAt = 0.0
+    /** The last catch, for the band's green flash. */
+    private var caughtAt = -1e9
     /** The clock isn't known until the first step: Nu's first glide onto the wave starts there. */
     private var begun = false
+    /** The wave holds still until then: the calm between levels. */
+    private var calm = 0.0
     /** The last catch: where Nu was, and how far off the tap was (0 dead on .. 1 the band's edge). */
     private var from = Pt(0.0, 0.0)
     private var off = 0.0
+
+    /** Catches to clear the level. */
+    private fun need(s: Stage) = 14 + s.level / 3
+
+    /** The heat, climbing a little with each catch toward the next level's. */
+    private fun h(s: Stage) = s.heat + HEAT_PER_LEVEL * s.part
 
     override fun enter(s: Stage) {
         s.nu.r = 8.0
@@ -40,13 +57,13 @@ class Pulse : Toy {
         r = s.R * 0.1
         // From wherever Nu is onto the wave, smoothly.
         from = s.nu.p
-        hitAt = s.now
-        s.score(0)
     }
 
     private fun place(s: Stage) {
-        bandW = max(10.0, 34 - streak * 1.5)
-        bandR = s.R * (0.32 + rnd() * 0.52)
+        val h = h(s)
+        speed = min(0.28, 0.085 + 0.09 * h)
+        bandW = max(8.0, 32 / (1 + 1.1 * h))
+        bandR = s.R * 0.3 + rnd() * max(0.0, s.R * 0.5 - bandW)
     }
 
     override fun step(s: Stage, dt: Double, now: Double) {
@@ -56,7 +73,7 @@ class Pulse : Toy {
             nu.seek(Pt(s.c.x, s.c.y - s.R * 0.1), dt, 0.4, 0.02)
             return
         }
-        r += speed * dt
+        if (now >= calm) r += speed * dt
         if (r > s.R) {
             // Let it go by: that's a miss too.
             end(s)
@@ -91,34 +108,39 @@ class Pulse : Toy {
         s.fx.ring(s.c, Ink.RED, r * 0.9, r + 10, 500.0)
         s.out.miss()
         s.out.buzz(25)
-        s.score(streak)
-        finish(s, "pulse", streak)
+        s.lose()
     }
 
     override fun draw(s: Stage, pen: Pen, now: Double) {
-        val glow = if (streak > 0) clamp(1 - (now - hitAt) / 400, 0.0, 1.0) else 0.0
+        val glow = clamp(1 - (now - caughtAt) / 400, 0.0, 1.0)
         // The band: a wide soft ring, green just after a catch.
         pen.ring(s.c, bandR, if (glow > 0) Ink.GREEN else Ink.CYAN, bandW * 2, 0.18 + glow * 0.3)
         pen.ring(s.c, bandR, Ink.CYAN, 2.0, 0.6)
         pen.dot(s.c, 8.0, Ink.K300, 0.85)
-        if (!over) pen.ring(s.c, r, Ink.WHITE, 3.0, 0.85)
+        if (!over && now >= calm) pen.ring(s.c, r, Ink.WHITE, 3.0, 0.85)
         s.nu.draw(pen, now)
     }
 
     override fun down(s: Stage, p: Pt) {
-        if (over) return
+        if (over || s.now < calm) return
         if (abs(r - bandR) <= bandW) {
-            streak++
+            caught++
             hitAt = s.now
+            caughtAt = s.now
             off = abs(r - bandR) / bandW
             from = s.nu.p
             s.fx.ring(s.c, Ink.GREEN, r, r + 16, 450.0)
             s.out.capture()
-            if (streak % 10 == 0) { s.out.complete(); s.out.buzz(14) }
-            speed = min(0.26, speed + 0.006)
+            s.part = caught.toDouble() / need(s)
+            if (caught >= need(s)) {
+                caught = 0
+                s.clear()
+                s.out.buzz(14)
+                if (s.over) { over = true; return }
+                calm = s.now + CALM_MS
+            }
             place(s)
             r = s.R * 0.1
-            s.score(streak)
             return
         }
         end(s)

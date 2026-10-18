@@ -1,14 +1,19 @@
 package app.buildatomos.core.games
 
 import app.buildatomos.core.*
-import kotlin.math.max
+import kotlin.math.exp
 import kotlin.math.min
 
 /**
  * Ready (the phone's src/nu/grove.ts). Nu waits, dim, in the middle. Then it glows green: tap,
  * quick, before the ring closes on it. Too soon, too slow, or a tap when it glows red instead,
- * costs one of three lives. Each catch the ring closes a little faster, and the reds come more
- * often. A tap shows at once where it landed, and the closing ring stops where it was then.
+ * costs one of three lives; the last one loses the run. A tap shows at once where it landed, and
+ * the closing ring stops where it was then.
+ * A level is a set of greens caught (5, and one more every third level), and the game flows
+ * straight on into the next: the wait before each green is the calm. The lives carry on from
+ * level to level, and one comes back every third level. Heat closes the ring faster, from 650 ms
+ * at Very easy to about 320 ms at Expert, never under 220 ms however far free play goes, and
+ * brings the reds more often, from one in seven to nearly one in two.
  * It was already a round-court game on the phone; on the watch the lives are the kit's (a little
  * higher and smaller), and the first wait starts on the first frame, when the clock is known.
  */
@@ -16,8 +21,10 @@ class Ready : Toy {
     private enum class State { WAIT, GO, RED, AFTER }
     private var state = State.WAIT
     private var at = 0.0
-    private var limit = 470.0
+    private var limit = 650.0
     private var left = 3
+    /** Greens caught in this level, and in the run. */
+    private var caught = 0
     private var count = 0
     private var over = false
     private var begun = false
@@ -33,8 +40,13 @@ class Ready : Toy {
 
     override fun enter(s: Stage) {
         s.nu.r = 14.0
-        s.score(0)
     }
+
+    /** Greens to catch to clear the level. */
+    private fun need(s: Stage) = 5 + s.level / 3
+
+    /** The heat, climbing a little with each catch toward the next level's. */
+    private fun h(s: Stage) = s.heat + HEAT_PER_LEVEL * s.part
 
     private fun wait(now: Double) {
         state = State.WAIT
@@ -48,8 +60,10 @@ class Ready : Toy {
         nu.glow = if (state == State.GO) 2.0 else 0.5
         if (over) return
         if (state == State.WAIT && now >= at) {
-            // After the first one, now and then a red one instead; more often as it goes.
-            state = if (count >= 1 && rnd() < min(0.4, 0.22 + count * 0.015)) State.RED else State.GO
+            // After the first one, now and then a red one instead; more often with the heat.
+            val h = h(s)
+            state = if (count >= 1 && rnd() < min(0.45, 0.15 + 0.2 * h)) State.RED else State.GO
+            limit = 220 + 430 * exp(-1.5 * h)
             at = now
         } else if (state == State.GO && now - at > limit) {
             mark = Mark(nu.p, now, false, nu.r + 12)
@@ -69,8 +83,7 @@ class Ready : Toy {
         at = now
         if (left <= 0) {
             over = true
-            s.score(count)
-            finish(s, "ready", count)
+            s.lose()
         }
     }
 
@@ -86,7 +99,8 @@ class Ready : Toy {
                 pen.dot(nu.x, nu.y, nu.r + 10, Ink.RED, 0.35)
                 pen.ring(nu.x, nu.y, nu.r + 12, Ink.RED, 4.0, 0.9)
             }
-            m == null || now - m.t > 260 -> pen.dashed(nu.p, s.R * 0.6, Ink.K500, 0.6)
+            // Where the ring will close from, faint and still.
+            m == null || now - m.t > 260 -> pen.ring(nu.p, s.R * 0.6, Ink.K700, 2.0, 0.8)
         }
         // The last press, brief: a ring where the finger came down, and the closing ring held
         // still where it was then (green caught, red not).
@@ -106,12 +120,18 @@ class Ready : Toy {
         val now = s.now
         if (state == State.GO) {
             mark = Mark(p.copy(), now, true, ringR(s, now))
+            caught++
             count++
-            limit = max(210.0, limit - 26)
             s.out.capture()
-            s.score(count)
+            s.part = caught.toDouble() / need(s)
             state = State.AFTER
             at = now
+            if (caught >= need(s)) {
+                caught = 0
+                s.clear()
+                if (s.over) { over = true; return }
+                if (s.level % 3 == 0 && left < 3) left++
+            }
             return
         }
         if (state == State.WAIT || state == State.RED) {
