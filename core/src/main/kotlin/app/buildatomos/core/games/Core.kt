@@ -41,17 +41,21 @@ private const val SAFE_MS = 900.0
  * half of the screen nudges the ring that way (anticlockwise, clockwise), and a finger held there
  * keeps it turning.
  * Heat brings more rings (3, up to 5), narrower gaps, more and longer reds (and two on a ring),
- * faster drift, a second gap on some rings, and less time.
+ * faster drift, a second gap on some rings, and less time. Core feels the heat half as much
+ * again as the dial gives it (see `pace`): Medium plays as Expert first did, and Expert well past
+ * that, with the narrowest gaps, the most reds and the least time only reached there.
  */
 class Core : Toy {
-    private class Arc(val c: Double, val half: Double)
-    private class Ring(val r: Double, val gaps: List<Arc>, val reds: MutableList<Arc>, val drift: Double) {
+    internal class Arc(val c: Double, val half: Double)
+    internal class Ring(val r: Double, val gaps: List<Arc>, val reds: MutableList<Arc>, val drift: Double) {
         var rot = 0.0
         var want = 0.0
     }
-    private var rings = listOf<Ring>()
+    internal var rings = listOf<Ring>()
+        private set
     /** The ring Nu is on (rings.size: in the nucleus). */
-    private var k = 0
+    internal var k = 0
+        private set
     /** Falling: from radius, to radius, started at. */
     private var fall: Triple<Double, Double, Double>? = null
     private var nuR = 0.0
@@ -66,6 +70,9 @@ class Core : Toy {
     private var dealtAt = 0.0
     private var over = false
 
+    /** Nu can be steered now: on a ring, not dropping or resting in the nucleus. For the tests. */
+    internal val steering get() = !over && rest <= 0 && fall == null && k < rings.size
+
     private fun outer(s: Stage) = s.R * 0.8
     private fun inner(s: Stage) = s.R * 0.25
     private fun core(s: Stage) = 11.0
@@ -77,31 +84,31 @@ class Core : Toy {
     }
 
     private fun deal(s: Stage) {
-        val h = s.heat
+        val h = pace(s.heat)
         val n = min(5, 3 + floor(h * 1.6).toInt())
         val list = mutableListOf<Ring>()
         for (i in 0 until n) {
             val r = if (n == 1) outer(s) else outer(s) + (inner(s) - outer(s)) * i / (n - 1)
-            // The gap: Nu's width and some room, less with heat; never under Nu's width plus 5.
-            val len = max(2 * s.nu.r + 5, 2 * s.nu.r + 16 - 7 * h)
+            // The gap: Nu's width and some room, less with heat; never under Nu's width plus 4.
+            val len = max(2 * s.nu.r + 4, 2 * s.nu.r + 16 - 6.5 * h)
             val half = len / 2 / r
             val g0 = rnd() * TAU
             val gaps = mutableListOf(Arc(g0, half))
-            if (i > 0 && h > 0.8 && rnd() < min(0.5, (h - 0.8) * 0.8)) gaps += Arc(g0 + PI, half)
+            if (i > 0 && h > 0.8 && rnd() < min(0.25, (h - 0.8) * 0.8)) gaps += Arc(g0 + PI, half)
             val reds = mutableListOf<Arc>()
             // The outermost has reds only from a little heat on, and never where Nu starts.
             val p = if (i == 0) clamp(h - 0.4, 0.0, 0.6) else min(0.85, 0.3 + 0.4 * h)
-            val count = if (rnd() < p) (if (h > 1.0 && rnd() < 0.5) 2 else 1) else 0
+            val count = if (rnd() < p) (if (rnd() < clamp((h - 1.0) * 0.8, 0.0, 0.6)) 2 else 1) else 0
             repeat(count) {
                 // Reds keep well clear of the gaps, so a drop is never forced onto one.
                 for (tries in 0 until 12) {
-                    val rh = (0.22 + rnd() * 0.18 + 0.1 * min(h, 1.5)) * 110 / r * 0.6
+                    val rh = (0.22 + rnd() * 0.18 + 0.1 * min(h, 2.0)) * 110 / r * 0.6
                     val c = rnd() * TAU
                     val clear = gaps.all { abs(turn(it.c, c)) > it.half + rh + 0.25 } && reds.all { abs(turn(it.c, c)) > it.half + rh + 0.2 }
                     if (clear) { reds += Arc(c, rh); break }
                 }
             }
-            val drift = if (i == 0) 0.0 else (0.00025 + 0.00035 * min(h, 2.0)) * (0.7 + rnd() * 0.6) * (if (rnd() < 0.5) -1 else 1)
+            val drift = if (i == 0) 0.0 else (0.00025 + 0.00035 * min(h, 2.5)) * (0.7 + rnd() * 0.6) * (if (rnd() < 0.5) -1 else 1)
             list += Ring(r, gaps, reds, drift)
         }
         // Start the outermost with its gap well round from Nu, and no red under it.
@@ -114,7 +121,7 @@ class Core : Toy {
         k = 0
         fall = null
         nuR = first.r
-        time = n * max(2400.0, 5200.0 - 1800 * h)
+        time = n * max(2100.0, 5200.0 - 1600 * h)
         clock = time
         s.rim = 1.0
         s.part = 0.0
@@ -124,7 +131,7 @@ class Core : Toy {
     /** Nu's angle on ring `g`'s own frame. */
     private fun local(g: Ring) = NU_A - g.rot
 
-    private fun nuHalf(s: Stage, g: Ring) = s.nu.r / g.r
+    internal fun nuHalf(s: Stage, g: Ring) = s.nu.r / g.r
 
     private fun inGap(s: Stage, g: Ring): Boolean {
         val a = local(g)
@@ -271,4 +278,14 @@ class Core : Toy {
     }
 
     override fun up(s: Stage, p: Pt) { held = 0 }
+
+    internal companion object {
+        /** Where Nu's angle is fixed on the court (nine o'clock), for the tests. */
+        const val NU = NU_A
+
+        /** How hot a set of rings is dealt for the stage's heat: 0.15 at Very easy's start, 0.9
+         *  in the middle of Medium (where the middle of Expert used to be), 1.5 at Expert's, and
+         *  on with every level cleared. */
+        fun pace(heat: Double) = 0.15 + 1.5 * heat
+    }
 }
