@@ -48,6 +48,8 @@ class AppModel(private val context: Context) {
     /** Bumps whenever something the screens show changes. */
     var version by mutableIntStateOf(0)
         private set
+    /** The Atlas page's sections left open, kept while stepping from atom to atom. */
+    var atlasOpen by mutableStateOf(setOf("Facts"))
     /** The last won run's payout, until Home has shown it. */
     var payout by mutableStateOf<Payout?>(null)
 

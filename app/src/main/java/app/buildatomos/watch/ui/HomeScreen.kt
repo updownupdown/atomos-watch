@@ -1,7 +1,7 @@
 // Home, a compact take on the phone's "Today": a list the crown scrolls, in sections, each named
 // in small caps. Build: the atom being built and the way into the whole collection. Atlas: the
-// atom of the day (the phone's) and the way into every atom. Games: the game Nu picked for today
-// and Nu's three questions. Nu's park: Nu to play with, and every game. Settings last.
+// atom of the day (the phone's) and the way into every atom. Games: the game Nu picked for today,
+// Nu's three questions and the way into every game. Settings last.
 
 package app.buildatomos.watch.ui
 
@@ -29,6 +29,7 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import app.buildatomos.core.ATOMS
 import app.buildatomos.core.Difficulty
+import app.buildatomos.core.Games
 import app.buildatomos.core.Icon
 import app.buildatomos.core.Ink
 import app.buildatomos.core.atomOfDay
@@ -59,7 +60,8 @@ fun HomeScreen(
         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        item { Canvas(Modifier.size(32.dp)) { ComposePen(this, 32.0).mark(16.0, 16.0, 28.0, Ink.WHITE) } }
+        // The mark, with Nu resting on one of its nucleons as on the phone's header.
+        item { Canvas(Modifier.size(32.dp)) { ComposePen(this, 32.0).mark(16.0, 16.0, 28.0, Ink.WHITE, nu = 2) } }
 
         item { SectionLabel("Build") }
         item { BuildCard(model, frame, onRun, onBuildAtom) }
@@ -72,9 +74,7 @@ fun HomeScreen(
         item { SectionLabel("Games") }
         item { TodayGameCard(model, onGame) }
         item { QuizCard(model, onAtom) }
-
-        item { SectionLabel("Nu's park") }
-        item { NuPark(model, frame, onGames) }
+        item { MinorRow("Play all games", "${Games.all.size}", null, onGames) }
 
         item { Pill("Settings", Icon.GEAR, onSettings, Modifier.padding(top = 8.dp)) }
     }

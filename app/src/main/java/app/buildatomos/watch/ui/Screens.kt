@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -121,41 +122,44 @@ fun FreePlayScreen(model: AppModel, game: Game, onPlay: (Int) -> Unit) {
             .focusRequester(fr)
             .focusable(),
     ) {
-        Column(
-            Modifier.fillMaxSize().padding(top = 30.dp, bottom = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Row(
+            Modifier.align(Alignment.TopCenter).padding(top = 26.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GameIcon(game.id, 30)
-                Label(game.label, size = 18.sp, weight = FontWeight.SemiBold, lines = 1)
-            }
-            Spacer(Modifier.height(10.dp))
+            GameIcon(game.id, 30)
+            Label(game.label, size = 18.sp, weight = FontWeight.SemiBold, lines = 1)
+        }
+        // Across the middle, where the round screen is widest: the level's name and five big
+        // dots to pick from, each in its own color; the picked one is filled and holds a check.
+        // Each dot's whole cell takes the tap.
+        Column(Modifier.align(Alignment.Center).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Label(Difficulty.WORDS[level], size = 15.sp, color = Color(Difficulty.COLORS[level]), weight = FontWeight.SemiBold)
-            // The five levels as dots to pick from, each in its own color; the picked one is
-            // filled and holds a check.
-            Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp)) {
                 for (i in 0 until Difficulty.LEVELS) {
-                    Canvas(Modifier.size(30.dp).clickable { set(i) }) {
-                        val pen = ComposePen(this, 30.0)
+                    Canvas(Modifier.weight(1f).aspectRatio(1f).clickable { set(i) }) {
+                        val pen = ComposePen(this, 36.0)
                         val c = Difficulty.COLORS[i]
                         if (i == level) {
-                            pen.dot(15.0, 15.0, 14.0, c)
-                            pen.icon(Icon.CHECK, 15.0, 15.0, 18.0, Ink.BLACK)
+                            pen.dot(18.0, 18.0, 16.5, c)
+                            pen.icon(Icon.CHECK, 18.0, 18.0, 20.0, Ink.BLACK)
                         } else {
-                            pen.dot(15.0, 15.0, 11.0, Ink.K800)
-                            pen.ring(15.0, 15.0, 10.0, c, 2.4)
+                            pen.dot(18.0, 18.0, 13.5, Ink.K800)
+                            pen.ring(18.0, 18.0, 12.5, c, 2.8)
                         }
                     }
                 }
             }
             val best = model.bestLevel(game, level)
-            Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (best > 0) Canvas(Modifier.size(20.dp)) { ComposePen(this, 20.0).levels(10.0, 10.0, 20.0, best, null) }
                 Label(if (best > 0) "Best: $best" else "No best yet", size = 13.sp, color = Tone.text2)
             }
-            Spacer(Modifier.weight(1f))
-            IconMark(Icon.PLAY, 52, Ink.BLACK, disc = Ink.WHITE, modifier = Modifier.clickable { onPlay(level) })
         }
+        IconMark(
+            Icon.PLAY, 50, Ink.BLACK, disc = Ink.WHITE,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp).clickable { onPlay(level) },
+        )
     }
 }
 

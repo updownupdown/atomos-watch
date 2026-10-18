@@ -249,10 +249,10 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
         }
         item { Locator(model, z) { onTable(z) } }
         if (info.headline.isNotBlank()) item { Para(info.headline) }
-        if (info.facts.isNotEmpty()) item { Section(null) { for (f in info.facts) Bullet(f) } }
-        info.origin?.let { o -> item { Section("The name") { Para(o, inside = true) } } }
+        if (info.facts.isNotEmpty()) item { Section(model, "Facts", "${info.facts.size}") { for (f in info.facts) Bullet(f) } }
+        info.origin?.let { o -> item { Section(model, "The name", null) { Para(o, inside = true) } } }
         item {
-            Section("Discovered") {
+            Section(model, "Discovered", info.year?.toString() ?: "Ancient") {
                 val ancient = info.year == null || info.who?.contains("ancient", true) == true
                 Label(info.year?.toString() ?: "In antiquity", size = 22.sp, weight = FontWeight.SemiBold, color = color, align = TextAlign.Start)
                 val by = listOfNotNull(info.who?.takeIf { !(ancient && it.contains("ancient", true)) }, info.where).joinToString(" · ")
@@ -260,7 +260,7 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
             }
         }
         item {
-            Section("Structure") {
+            Section(model, "Structure", counts.joinToString(" ")) {
                 Canvas(Modifier.size(104.dp).align(Alignment.CenterHorizontally)) { shells(ComposePen(this, 96.0), counts, atom.color) }
                 // The shells as K 2, L 8, M 4.
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)) {
@@ -275,7 +275,7 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
             }
         }
         item {
-            Section("Properties") {
+            Section(model, "Properties", info.phase) {
                 val rows = listOfNotNull(
                     info.melt?.let { "Melts" to celsius(it) },
                     info.boil?.let { "Boils" to celsius(it) },
@@ -289,7 +289,7 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
             }
         }
         item {
-            Section("Isotopes") {
+            Section(model, "Isotopes", "${info.stableIsotopes} lasting") {
                 KeyValue("Lasting", if (info.stableIsotopes == 0) "None" else "${info.stableIsotopes}")
                 if (info.knownIsotopes > 0) KeyValue("Known", "${info.knownIsotopes}")
                 if (info.knownIsotopes > 0) {
@@ -303,8 +303,8 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
                 }
             }
         }
-        if (info.origins.isNotEmpty()) item { Section("Made in") { for (f in info.origins.take(3)) Bullet(f) } }
-        if (info.uses.isNotEmpty()) item { Section("Used for") { for (f in info.uses.take(3)) Bullet(f) } }
+        if (info.origins.isNotEmpty()) item { Section(model, "Made in", null) { for (f in info.origins.take(3)) Bullet(f) } }
+        if (info.uses.isNotEmpty()) item { Section(model, "Used for", null) { for (f in info.uses.take(3)) Bullet(f) } }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (z > 1) Step("${z - 1} ${model.atlas.atom(z - 1).symbol}", Modifier.weight(1f)) { onAtom(z - 1) }
@@ -379,14 +379,39 @@ private fun FlowPills(pills: List<Pair<String, Int>>) {
     }
 }
 
+/** A section of the page that folds: its name (and a word of what is inside) on a row with a
+ *  chevron; tapped, it opens or closes. Which sections are open is kept while stepping from atom
+ *  to atom. */
 @Composable
-private fun Section(title: String?, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+private fun Section(model: AppModel, title: String, summary: String?, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    val open = title in model.atlasOpen
     Column(
-        Modifier.fillMaxWidth().background(Tone.plate, RoundedCornerShape(20.dp)).padding(horizontal = 12.dp, vertical = 10.dp),
+        Modifier.fillMaxWidth().background(Tone.plate, RoundedCornerShape(20.dp)),
         verticalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        if (title != null) Label(title.uppercase(), size = 13.sp, color = Tone.text2, align = TextAlign.Start, weight = FontWeight.SemiBold)
-        content()
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable { model.atlasOpen = if (open) model.atlasOpen - title else model.atlasOpen + title }
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Label(title, Modifier.weight(1f), size = 15.sp, weight = FontWeight.SemiBold, align = TextAlign.Start, lines = 1)
+            if (!open && summary != null) Label(summary, size = 13.sp, color = Tone.text2, lines = 1)
+            Canvas(Modifier.size(14.dp)) {
+                val pen = ComposePen(this, 14.0)
+                // Down when closed, up when open.
+                val y0 = if (open) 9.0 else 5.0
+                val y1 = if (open) 5.0 else 9.0
+                pen.poly(doubleArrayOf(3.0, 7.0, 11.0), doubleArrayOf(y0, y1, y0), 3, Ink.K300, 1.8)
+            }
+        }
+        if (open) Column(
+            Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp),
+            content = content,
+        )
     }
 }
 
