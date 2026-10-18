@@ -39,6 +39,8 @@ private class Nu {
     var petAt = -1e9
     var tapX = 0.0; var tapY = 0.0; var tapAt = -1e9
     var arrived = true
+    /** The flight was the player's call: only those end with a tap on the wrist. */
+    var byTap = false
 
     fun at(now: Double): Pair<Double, Double> {
         val t = ((now - flewAt) / FLY_MS).coerceIn(0.0, 1.0)
@@ -50,7 +52,8 @@ private class Nu {
         return Pair(fromX + dx * e - dy / d * bow, fromY + dy * e + dx / d * bow)
     }
 
-    fun fly(now: Double, x: Double, y: Double) {
+    fun fly(now: Double, x: Double, y: Double, byTap: Boolean = false) {
+        this.byTap = byTap
         val (px, py) = at(now)
         fromX = px; fromY = py; toX = x; toY = y; flewAt = now; arrived = false
     }
@@ -80,7 +83,7 @@ fun NuPark(model: AppModel, frame: () -> Long, onGames: () -> Unit) {
                             val d = hypot(dx, dy)
                             val s = if (d > ROOM) ROOM / d else 1.0
                             nu.tapX = HOME + dx * s; nu.tapY = HOME + dy * s; nu.tapAt = now
-                            nu.fly(now, nu.tapX, nu.tapY)
+                            nu.fly(now, nu.tapX, nu.tapY, byTap = true)
                         }
                     },
             ) {
@@ -94,7 +97,7 @@ fun NuPark(model: AppModel, frame: () -> Long, onGames: () -> Unit) {
                     val t = since / 700
                     pen.ring(nu.tapX, nu.tapY, 4 + 18 * t, Ink.CYAN, 2.0, 0.8 * (1 - t))
                 }
-                if (!nu.arrived && now - nu.flewAt >= FLY_MS) { nu.arrived = true; model.feel.buzz(15) }
+                if (!nu.arrived && now - nu.flewAt >= FLY_MS) { nu.arrived = true; if (nu.byTap) model.feel.buzz(15) }
                 // Left alone, home to rest.
                 if (nu.arrived && (nu.toX != HOME || nu.toY != HOME) && now - nu.flewAt > REST_MS) nu.fly(now, HOME, HOME)
                 val (x, y0) = nu.at(now)

@@ -157,20 +157,19 @@ fun BuildCard(model: AppModel, frame: () -> Long, onBuild: () -> Unit, onAtom: (
     var finished by remember { mutableIntStateOf(0) }
     val share = remember { Animatable(c.progress.toFloat()) }
     LaunchedEffect(payout) {
-        if (payout != null) {
-            model.payout = null
-            val need = periodOf(payout.z)
-            share.snapTo(payout.shell / need.toFloat())
-            delay(250)
-            share.animateTo((payout.shell + 1) / need.toFloat(), tween(900))
-            if (payout.finished) {
-                finished = payout.z
-                model.feel.complete()
-                delay(2200)
-                finished = 0
-            }
+        if (payout == null) { share.snapTo(c.progress.toFloat()); return@LaunchedEffect }
+        val need = periodOf(payout.z)
+        share.snapTo(payout.shell / need.toFloat())
+        delay(250)
+        share.animateTo((payout.shell + 1) / need.toFloat(), tween(900))
+        if (payout.finished) {
+            finished = payout.z
+            model.feel.complete()
+            delay(2200)
+            finished = 0
         }
-        share.snapTo(c.progress.toFloat())
+        // Last: clearing it restarts this with no payout, which settles on the collection's share.
+        model.payout = null
     }
     if (c.done && finished == 0) {
         Plate { Label("Every atom built", size = 15.sp, color = Tone.green) }
