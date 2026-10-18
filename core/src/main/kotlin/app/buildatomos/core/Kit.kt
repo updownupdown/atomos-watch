@@ -87,6 +87,9 @@ interface Pen {
     fun dashed(x: Double, y: Double, r: Double, color: Int, width: Double = 3.0, alpha: Double = 1.0, n: Int = 0)
     fun rect(x: Double, y: Double, w: Double, h: Double, radius: Double, color: Int, alpha: Double = 1.0)
     fun rectRing(x: Double, y: Double, w: Double, h: Double, radius: Double, color: Int, width: Double = 2.0, alpha: Double = 1.0)
+    /** A filled shape through the first `n` points, for the app's icons (a play mark, an
+     *  arrowhead). The games keep to dots, rings and lines. */
+    fun fill(xs: DoubleArray, ys: DoubleArray, n: Int, color: Int, alpha: Double = 1.0) = poly(xs, ys, n, color, 1.0, alpha)
 }
 
 fun Pen.dot(p: Pt, r: Double, color: Int, alpha: Double = 1.0) = dot(p.x, p.y, r, color, alpha)

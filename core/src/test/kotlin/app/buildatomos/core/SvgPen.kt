@@ -40,6 +40,10 @@ class SvgPen(private val size: Double = SCREEN) : Pen {
     override fun rectRing(x: Double, y: Double, w: Double, h: Double, radius: Double, color: Int, width: Double, alpha: Double) {
         sb.append("<rect x='${f(x)}' y='${f(y)}' width='${f(w)}' height='${f(h)}' rx='${f(radius)}' fill='none' stroke='${c(color)}' stroke-width='${f(width)}' stroke-opacity='${f(alpha)}'/>")
     }
+    override fun fill(xs: DoubleArray, ys: DoubleArray, n: Int, color: Int, alpha: Double) {
+        val pts = (0 until n).joinToString(" ") { "${f(xs[it])},${f(ys[it])}" }
+        sb.append("<polygon points='$pts' fill='${c(color)}' fill-opacity='${f(alpha)}'/>")
+    }
     /** Text centered on (x, y), for mockups (the games draw none). */
     fun text(s: String, x: Double, y: Double, size: Double, color: Int, weight: Int = 500) {
         sb.append("<text x='${f(x)}' y='${f(y + size * 0.35)}' font-family='Outfit, sans-serif' font-size='${f(size)}' font-weight='$weight' text-anchor='middle' fill='${c(color)}'>$s</text>")

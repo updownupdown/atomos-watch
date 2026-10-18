@@ -105,6 +105,15 @@ class ComposePen(private val scope: DrawScope, units: Double = SCREEN, wide: Boo
         scope.drawRoundRect(col(color, alpha), Offset(X(x), Y(y)), Size(L(w), L(h)), CornerRadius(L(radius)), style = Stroke(L(width)))
     }
 
+    override fun fill(xs: DoubleArray, ys: DoubleArray, n: Int, color: Int, alpha: Double) {
+        if (n < 3 || alpha <= 0) return
+        val path = Path()
+        path.moveTo(X(xs[0]), Y(ys[0]))
+        for (i in 1 until n) path.lineTo(X(xs[i]), Y(ys[i]))
+        path.close()
+        scope.drawPath(path, col(color, alpha))
+    }
+
     /** Text centered on (x, y), `size` tall in court units, in Outfit. Not part of the core's Pen:
      *  games draw no text. */
     fun text(measurer: TextMeasurer, s: String, x: Double, y: Double, size: Double, color: Int, weight: FontWeight = FontWeight.Medium, alpha: Double = 1.0) {
@@ -112,5 +121,12 @@ class ComposePen(private val scope: DrawScope, units: Double = SCREEN, wide: Boo
         val sp = (L(size) / (scope.density * scope.fontScale)).sp
         val laid = measurer.measure(s, TextStyle(color = col(color, alpha), fontSize = sp, fontFamily = Outfit, fontWeight = weight))
         scope.drawText(laid, topLeft = Offset(X(x) - laid.size.width / 2f, Y(y) - laid.size.height / 2f))
+    }
+
+    /** How wide `text` would draw, in court units. */
+    fun textWidth(measurer: TextMeasurer, s: String, size: Double, weight: FontWeight = FontWeight.Medium): Double {
+        if (s.isEmpty()) return 0.0
+        val sp = (L(size) / (scope.density * scope.fontScale)).sp
+        return measurer.measure(s, TextStyle(fontSize = sp, fontFamily = Outfit, fontWeight = weight)).size.width / k.toDouble()
     }
 }

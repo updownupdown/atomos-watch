@@ -60,6 +60,10 @@ data class QuizQuestion(
     val atoms: List<Int> get() = options.filterIsInstance<QuizOption.Card>().map { it.z } + listOfNotNull(about)
 }
 
+/** The atom of the day, as the phone's Home has it (daily.ts atomOfDay): every atom once in 118
+ *  days, in a scattered order. `day` is days since 1970. */
+fun atomOfDay(day: Long): Int = (((day * 47) % ATOMS + ATOMS) % ATOMS).toInt() + 1
+
 /**
  * Deals the day's questions from the atoms' names (`names[z - 1]`, as atoms.json has them) and
  * the Atlas data (`info`, as AtomInfo.readAll reads it).

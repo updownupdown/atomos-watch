@@ -1,5 +1,6 @@
-// The screens and the way between them. Home first; from it the next shell's run (Build), the
-// Atlas and each atom's page, every game for free play, and Settings. Swipe right goes back
+// The screens and the way between them. Home first; from it the next shell's run, the Build
+// screen and each atom's Build page, the Atlas and each atom's Atlas page (each page links to the
+// other), every game for free play, and Settings. Swipe right goes back
 // everywhere but in a run, where the game owns the screen and the mark at the top (or the back
 // button) opens the run's menu.
 
@@ -22,8 +23,12 @@ object Routes {
     const val HOME = "home"
     const val GAMES = "games"
     const val SETTINGS = "settings"
-    const val BUILD = "build"
-    fun atlas(z: Int) = "atlas/$z"
+    /** The run for the next shell of the atom being built. */
+    const val RUN = "run"
+    /** The Build screen: the whole collection. */
+    const val COLLECTION = "collection"
+    fun build(z: Int) = "build/$z"
+    fun atlas(z: Int, table: Boolean = false) = "atlas/$z/${if (table) "table" else "wheel"}"
     fun atom(z: Int) = "atom/$z"
     fun game(id: String) = "game/$id"
     fun free(id: String, level: Int) = "free/$id/$level"
@@ -34,13 +39,14 @@ fun App(model: AppModel, launchBuild: Boolean, onLaunched: () -> Unit, onExit: (
     val nav = rememberSwipeDismissableNavController()
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route ?: ""
-    val inRun = route == Routes.BUILD || route.startsWith("free/")
+    val inRun = route == Routes.RUN || route.startsWith("free/")
+    val run = { if (model.buildRun() != null) nav.go(Routes.RUN) }
 
     // The tile's and the complication's Play open straight into the next run for the atom.
     LaunchedEffect(launchBuild) {
         if (launchBuild) {
             nav.popBackStack(Routes.HOME, inclusive = false)
-            if (model.buildRun() != null) nav.navigate(Routes.BUILD)
+            if (model.buildRun() != null) nav.navigate(Routes.RUN)
             onLaunched()
         }
     }
@@ -52,20 +58,23 @@ fun App(model: AppModel, launchBuild: Boolean, onLaunched: () -> Unit, onExit: (
                 SwipeToDismissBox(onDismissed = onExit) { background ->
                     if (!background) HomeScreen(
                         model,
-                        onBuild = { if (model.buildRun() != null) nav.go(Routes.BUILD) },
+                        onRun = run,
+                        onCollection = { nav.go(Routes.COLLECTION) },
+                        onBuildAtom = { nav.go(Routes.build(it)) },
                         onAtlas = { nav.go(Routes.atlas(model.buildingZ)) },
+                        onAtom = { nav.go(Routes.atom(it)) },
+                        onGame = { nav.go(Routes.game(it)) },
                         onGames = { nav.go(Routes.GAMES) },
                         onSettings = { nav.go(Routes.SETTINGS) },
-                        onAtom = { nav.go(Routes.atom(it)) },
                     )
                 }
             }
-            composable(Routes.BUILD) {
+            composable(Routes.RUN) {
                 val spec = remember { model.buildRun() }
                 if (spec == null) LaunchedEffect(Unit) { nav.popBackStack() }
                 else GameScreen(model, spec, onLeave = { nav.popBackStack() }, onNextRun = {
                     nav.popBackStack()
-                    if (model.buildRun() != null) nav.go(Routes.BUILD)
+                    run()
                 })
             }
             composable("free/{id}/{level}") { e ->
@@ -74,20 +83,32 @@ fun App(model: AppModel, launchBuild: Boolean, onLaunched: () -> Unit, onExit: (
                 val spec = remember { model.freeRun(game, level) }
                 GameScreen(model, spec, onLeave = { nav.popBackStack() }, onNextRun = { nav.popBackStack() })
             }
+            composable(Routes.COLLECTION) {
+                CollectionScreen(model, onBuild = run, onAtom = { nav.go(Routes.build(it)) })
+            }
+            composable("build/{z}") { e ->
+                AtomBuildScreen(
+                    model, e.arguments?.getString("z")?.toIntOrNull() ?: 1,
+                    onBuild = run,
+                    onAtlas = { nav.across("atom/{z}", it) },
+                    onAtom = { z -> nav.swap(Routes.build(z)) },
+                )
+            }
             composable(Routes.GAMES) { GamesScreen(model) { id -> nav.go(Routes.game(id)) } }
             composable("game/{id}") { e ->
                 val game = e.arguments?.getString("id")?.let(Games::byId) ?: Games.all.first()
                 FreePlayScreen(model, game) { level -> nav.go(Routes.free(game.id, level)) }
             }
-            composable("atlas/{z}") { e ->
-                AtlasScreen(model, e.arguments?.getString("z")?.toIntOrNull() ?: 1) { nav.go(Routes.atom(it)) }
+            composable("atlas/{z}/{view}") { e ->
+                AtlasScreen(model, e.arguments?.getString("z")?.toIntOrNull() ?: 1, e.arguments?.getString("view") == "table") { nav.go(Routes.atom(it)) }
             }
             composable("atom/{z}") { e ->
-                AtomScreen(model, e.arguments?.getString("z")?.toIntOrNull() ?: 1) { z ->
-                    // Stepping to a neighbor replaces this page rather than stacking another.
-                    nav.popBackStack()
-                    nav.go(Routes.atom(z))
-                }
+                AtomScreen(
+                    model, e.arguments?.getString("z")?.toIntOrNull() ?: 1,
+                    onBuild = { nav.across("build/{z}", it) },
+                    onTable = { nav.go(Routes.atlas(it, table = true)) },
+                    onAtom = { z -> nav.swap(Routes.atom(z)) },
+                )
             }
             composable(Routes.SETTINGS) { SettingsScreen(model) }
         }
@@ -95,3 +116,17 @@ fun App(model: AppModel, launchBuild: Boolean, onLaunched: () -> Unit, onExit: (
 }
 
 private fun NavHostController.go(route: String) = navigate(route) { launchSingleTop = true }
+
+/** Stepping to a neighbor replaces this page rather than stacking another. */
+private fun NavHostController.swap(route: String) {
+    popBackStack()
+    go(route)
+}
+
+/** From an atom's Build page to its Atlas page or back: if the page under this one is already
+ *  that atom's other page, goes back to it, so the two don't pile up. */
+private fun NavHostController.across(pattern: String, z: Int) {
+    val under = previousBackStackEntry
+    if (under?.destination?.route == pattern && under.arguments?.getString("z")?.toIntOrNull() == z) popBackStack()
+    else go(pattern.replace("{z}", "$z"))
+}

@@ -139,3 +139,63 @@ fun Pen.gameIcon(id: String, cx: Double, cy: Double, size: Double, color: Int) {
         else -> { o(12.0, 12.0, 8.0); f(12.0, 12.0, 3.0) }
     }
 }
+
+/** The app's own icons, drawn on a 24 grid like the phone's: flat strokes and fills, round caps. */
+enum class Icon { PLAY, RESTART, EXIT, NEXT, CHECK, GEAR, LOCK, CHEVRON, GAMES, TABLE, WHEEL }
+
+/** Icon `icon` round (cx, cy), `size` across. */
+fun Pen.icon(icon: Icon, cx: Double, cy: Double, size: Double, color: Int) {
+    val k = size / 24
+    val ox = cx - 12 * k
+    val oy = cy - 12 * k
+    fun X(x: Double) = ox + x * k
+    fun Y(y: Double) = oy + y * k
+    fun l(x1: Double, y1: Double, x2: Double, y2: Double, w: Double = 2.6) = line(X(x1), Y(y1), X(x2), Y(y2), color, w * k)
+    /** A filled shape with its corners softened by a thin stroke round it. */
+    fun shape(vararg p: Double) {
+        val n = p.size / 2
+        val xs = DoubleArray(n + 1) { X(p[(it % n) * 2]) }
+        val ys = DoubleArray(n + 1) { Y(p[(it % n) * 2 + 1]) }
+        fill(xs, ys, n, color)
+        poly(xs, ys, n + 1, color, 1.6 * k)
+    }
+    when (icon) {
+        Icon.PLAY -> shape(8.5, 5.5, 19.0, 12.0, 8.5, 18.5)
+        Icon.NEXT -> { shape(5.5, 6.0, 14.5, 12.0, 5.5, 18.0); l(18.0, 6.0, 18.0, 18.0) }
+        Icon.EXIT -> { l(6.5, 6.5, 17.5, 17.5); l(17.5, 6.5, 6.5, 17.5) }
+        Icon.CHECK -> poly(doubleArrayOf(X(5.5), X(10.0), X(18.5)), doubleArrayOf(Y(12.5), Y(17.0), Y(7.5)), 3, color, 2.8 * k)
+        Icon.CHEVRON -> poly(doubleArrayOf(X(9.5), X(15.5), X(9.5)), doubleArrayOf(Y(6.0), Y(12.0), Y(18.0)), 3, color, 2.6 * k)
+        Icon.RESTART -> {
+            // A ring turning clockwise, open at the top right, the arrowhead at its end.
+            val r = 7.5
+            val start = -PI * 0.22
+            val sweep = PI * 1.55
+            arc(X(12.0), Y(12.0), r * k, start, sweep, color, 2.6 * k)
+            val e = start + sweep
+            val px = 12 + cos(e) * r
+            val py = 12 + sin(e) * r
+            val tx = -sin(e); val ty = cos(e)
+            val nx = cos(e); val ny = sin(e)
+            shape(
+                px + tx * 4.4, py + ty * 4.4,
+                px + nx * 3.6 - tx * 0.4, py + ny * 3.6 - ty * 0.4,
+                px - nx * 3.6 - tx * 0.4, py - ny * 3.6 - ty * 0.4,
+            )
+        }
+        Icon.GEAR -> {
+            for (i in 0 until 8) {
+                val a = i * PI / 4 + PI / 8
+                l(12 + cos(a) * 6.8, 12 + sin(a) * 6.8, 12 + cos(a) * 9.0, 12 + sin(a) * 9.0, 3.6)
+            }
+            ring(X(12.0), Y(12.0), 5.4 * k, color, 3.4 * k)
+        }
+        Icon.LOCK -> {
+            arc(X(12.0), Y(10.0), 4.0 * k, PI, PI, color, 2.4 * k)
+            l(8.0, 10.0, 8.0, 11.5, 2.4); l(16.0, 10.0, 16.0, 11.5, 2.4)
+            rect(X(5.5), Y(11.0), 13.0 * k, 9.5 * k, 2.2 * k, color)
+        }
+        Icon.GAMES -> for (r in 0..1) for (c in 0..1) rect(X(4.5 + c * 8.5), Y(4.5 + r * 8.5), 6.5 * k, 6.5 * k, 2.0 * k, color)
+        Icon.TABLE -> for (i in 0..5) rect(X(4.0 + (i % 3) * 6), Y(7.0 + (i / 3) * 6), 4.4 * k, 4.4 * k, 1.0 * k, color)
+        Icon.WHEEL -> { ring(X(12.0), Y(12.0), 7.5 * k, color, 2.4 * k); dot(X(12.0), Y(4.5), 2.6 * k, color) }
+    }
+}

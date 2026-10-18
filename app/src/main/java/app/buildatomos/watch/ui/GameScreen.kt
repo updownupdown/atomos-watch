@@ -1,6 +1,6 @@
 // A run of one game. It opens on a card with the game's name, its difficulty and the levels to
 // reach, then the court fills the screen: the rim, the levels as a tiny atom at the bottom, and
-// the ATOMOS mark at the top, which pauses the run and opens its menu (Resume, Restart, Exit; the
+// the ATOMOS mark at the top, which pauses the run and opens its menu (Exit, Resume, Restart; the
 // back button does the same). The run ends on a card: what it built or reached, and what next.
 
 package app.buildatomos.watch.ui
@@ -29,11 +29,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntSize
 import app.buildatomos.core.COURT_R
 import app.buildatomos.core.Difficulty
+import app.buildatomos.core.Icon
 import app.buildatomos.core.Ink
 import app.buildatomos.core.MAX_LEVEL
 import app.buildatomos.core.Pt
@@ -43,6 +45,7 @@ import app.buildatomos.core.Stage
 import app.buildatomos.core.TAU
 import app.buildatomos.core.Toy
 import app.buildatomos.core.gameIcon
+import app.buildatomos.core.icon
 import app.buildatomos.core.levels
 import app.buildatomos.core.mark
 import app.buildatomos.core.pips
@@ -204,7 +207,7 @@ fun GameScreen(model: AppModel, spec: RunSpec, onLeave: () -> Unit, onNextRun: (
             val since = (System.currentTimeMillis() - phaseAt).toDouble()
             when (phase) {
                 Phase.INTRO -> intro(pen, measurer, spec, since)
-                Phase.PAUSED -> menu(pen, measurer, spec, s)
+                Phase.PAUSED -> menu(pen, measurer, model, spec, s)
                 Phase.OVER -> over(pen, measurer, model, spec, run, since)
                 Phase.PLAY -> {}
             }
@@ -216,18 +219,14 @@ private const val NEXT_Y = 232.0
 
 /** The rose Next button, between levels of a round-based game: a skip-forward mark. */
 private fun nextButton(pen: ComposePen) {
-    val x = MID
-    val y = NEXT_Y
-    pen.dot(x, y, 22.0, Ink.ROSE)
-    pen.line(x - 7, y - 8, x + 3, y, Ink.BLACK, 4.0)
-    pen.line(x + 3, y, x - 7, y + 8, Ink.BLACK, 4.0)
-    pen.line(x + 8, y - 8, x + 8, y + 8, Ink.BLACK, 4.0)
+    pen.dot(MID, NEXT_Y, 22.0, Ink.ROSE)
+    pen.icon(Icon.NEXT, MID, NEXT_Y, 24.0, Ink.BLACK)
 }
 
 private fun veil(pen: ComposePen, alpha: Double) = pen.dot(MID, MID, SCREEN, Ink.BLACK, alpha)
 
 /** The opening card: the game, its difficulty, and the levels to reach. */
-private fun intro(pen: ComposePen, m: androidx.compose.ui.text.TextMeasurer, spec: RunSpec, since: Double) {
+private fun intro(pen: ComposePen, m: TextMeasurer, spec: RunSpec, since: Double) {
     val fade = if (since > INTRO_MS - 300) (INTRO_MS - since) / 300 else 1.0
     veil(pen, 0.92 * fade)
     if (fade <= 0) return
@@ -245,50 +244,54 @@ private fun intro(pen: ComposePen, m: androidx.compose.ui.text.TextMeasurer, spe
     }
 }
 
+/** The menu's row of buttons, across the middle. */
+private const val MENU_Y = MID
+private const val SIDE_X = 80.0
+
 /** Which of the menu's buttons is at `p`: 0 Restart, 1 Resume, 2 Exit, or -1. */
 private fun menuButton(p: Pt): Int = when {
-    hypot(p.x - MID, p.y - 168) < 38 -> 1
-    hypot(p.x - (MID - 78), p.y - 168) < 30 -> 0
-    hypot(p.x - (MID + 78), p.y - 168) < 30 -> 2
+    hypot(p.x - MID, p.y - MENU_Y) < 40 -> 1
+    hypot(p.x - (MID - SIDE_X), p.y - MENU_Y) < 32 -> 2
+    hypot(p.x - (MID + SIDE_X), p.y - MENU_Y) < 32 -> 0
     else -> -1
 }
 
-/** The menu: what is being played, then Restart, Resume (the big one) and Exit. */
-private fun menu(pen: ComposePen, m: androidx.compose.ui.text.TextMeasurer, spec: RunSpec, s: Stage) {
+/** A game's name with its icon in front, the two centered together as one row. */
+private fun titleRow(pen: ComposePen, m: TextMeasurer, id: String, label: String, y: Double, size: Double) {
+    val r = size * 0.62
+    val gap = size * 0.4
+    val w = pen.textWidth(m, label, size, FontWeight.SemiBold)
+    val left = MID - (r * 2 + gap + w) / 2
+    pen.dot(left + r, y, r, Ink.WHITE)
+    pen.gameIcon(id, left + r, y, r * 1.2, Ink.BLACK)
+    pen.text(m, label, left + r * 2 + gap + w / 2, y, size, Ink.WHITE, FontWeight.SemiBold)
+}
+
+/** The menu: the game and its difficulty at the top; Exit, Resume (the big one) and Restart
+ *  across the middle, known by their icons; how far the run has come, and the best, at the foot. */
+private fun menu(pen: ComposePen, m: TextMeasurer, model: AppModel, spec: RunSpec, s: Stage) {
     veil(pen, 0.9)
-    pen.text(m, spec.game.label, MID, 70.0, 20.0, Ink.WHITE, FontWeight.SemiBold)
-    pen.text(m, Difficulty.word(spec.dial), MID, 95.0, 13.0, Difficulty.color(spec.dial))
-    pen.levels(MID, 118.0, 26.0, s.level, s.goal, s.part)
-    // Resume: a white disc with a play mark.
-    pen.dot(MID, 168.0, 32.0, Ink.WHITE)
-    pen.line(MID - 7, 156.0, MID - 7, 180.0, Ink.BLACK, 4.0)
-    pen.line(MID - 7, 156.0, MID + 12, 168.0, Ink.BLACK, 4.0)
-    pen.line(MID + 12, 168.0, MID - 7, 180.0, Ink.BLACK, 4.0)
-    // Restart: a turning arrow.
-    roundButton(pen, MID - 78, 168.0) { x, y -> again(pen, x, y, Ink.WHITE) }
-    // Exit: a cross.
-    roundButton(pen, MID + 78, 168.0) { x, y -> cross(pen, x, y, Ink.WHITE) }
-    pen.text(m, "Restart", MID - 78, 206.0, 13.0, Ink.K300)
-    pen.text(m, "Resume", MID, 214.0, 13.0, Ink.K300)
-    pen.text(m, "Exit", MID + 78, 206.0, 13.0, Ink.K300)
+    titleRow(pen, m, spec.game.id, spec.game.label, 66.0, 22.0)
+    pen.text(m, Difficulty.word(spec.dial), MID, 94.0, 14.0, Difficulty.color(spec.dial))
+    pen.dot(MID - SIDE_X, MENU_Y, 26.0, Ink.K800)
+    pen.icon(Icon.EXIT, MID - SIDE_X, MENU_Y, 26.0, Ink.WHITE)
+    pen.dot(MID, MENU_Y, 36.0, Ink.WHITE)
+    pen.icon(Icon.PLAY, MID, MENU_Y, 34.0, Ink.BLACK)
+    pen.dot(MID + SIDE_X, MENU_Y, 26.0, Ink.K800)
+    pen.icon(Icon.RESTART, MID + SIDE_X, MENU_Y, 28.0, Ink.WHITE)
+    pen.levels(MID, 214.0, 34.0, s.level, s.goal, s.part)
+    val goal = s.goal
+    val foot = if (goal != null) "Level ${s.level} of $goal"
+    else {
+        val best = model.bestLevel(spec.game, Difficulty.level(spec.dial))
+        if (best > 0) "Level ${s.level} · Best: $best" else "Level ${s.level}"
+    }
+    pen.text(m, foot, MID, 246.0, 14.0, Ink.K300)
 }
 
 private fun roundButton(pen: ComposePen, x: Double, y: Double, mark: (Double, Double) -> Unit) {
     pen.dot(x, y, 24.0, Ink.K800)
     mark(x, y)
-}
-
-private fun again(pen: ComposePen, x: Double, y: Double, color: Int) {
-    pen.arc(x, y, 10.0, -PI * 0.35, PI * 1.6, color, 3.5)
-    val ax = x + 10 * cos(-PI * 0.35)
-    val ay = y + 10 * sin(-PI * 0.35)
-    pen.line(ax, ay, ax - 6, ay - 2, color, 3.5)
-    pen.line(ax, ay, ax + 1, ay - 7, color, 3.5)
-}
-
-private fun cross(pen: ComposePen, x: Double, y: Double, color: Int) {
-    pen.line(x - 7, y - 7, x + 7, y + 7, color, 3.5)
-    pen.line(x + 7, y - 7, x - 7, y + 7, color, 3.5)
 }
 
 /** Which of the end card's buttons is at `p`: 0 Exit, 1 Again (or Next), or -1. */
@@ -300,7 +303,7 @@ private fun overButton(p: Pt): Int = when {
 
 /** The end card. For an atom: the shell built (or the atom), and Next; or how far the run got,
  *  and Again. For free play: the level reached and the best. */
-private fun over(pen: ComposePen, m: androidx.compose.ui.text.TextMeasurer, model: AppModel, spec: RunSpec, run: Run, since: Double) {
+private fun over(pen: ComposePen, m: TextMeasurer, model: AppModel, spec: RunSpec, run: Run, since: Double) {
     val s = run.stage
     veil(pen, 0.9 * min(1.0, since / 250))
     val won = s.result == Result.WON
@@ -325,16 +328,12 @@ private fun over(pen: ComposePen, m: androidx.compose.ui.text.TextMeasurer, mode
         if (won && s.level >= MAX_LEVEL) pen.text(m, "of $MAX_LEVEL", MID, 186.0, 13.0, Ink.K300)
     }
     // Exit, and Again (white, a turning arrow) or, after a shell is built, Next (rose).
-    roundButton(pen, MID - 44, 226.0) { x, y -> cross(pen, x, y, Ink.WHITE) }
+    roundButton(pen, MID - 44, 226.0) { x, y -> pen.icon(Icon.EXIT, x, y, 24.0, Ink.WHITE) }
     if (z != null && won) {
-        val x = MID + 34
-        val y = 226.0
-        pen.dot(x, y, 28.0, Ink.ROSE)
-        pen.line(x - 8, y - 9, x + 3, y, Ink.BLACK, 4.0)
-        pen.line(x + 3, y, x - 8, y + 9, Ink.BLACK, 4.0)
-        pen.line(x + 9, y - 9, x + 9, y + 9, Ink.BLACK, 4.0)
+        pen.dot(MID + 34, 226.0, 28.0, Ink.ROSE)
+        pen.icon(Icon.NEXT, MID + 34, 226.0, 28.0, Ink.BLACK)
     } else {
         pen.dot(MID + 34, 226.0, 28.0, Ink.WHITE)
-        again(pen, MID + 34, 226.0, Ink.BLACK)
+        pen.icon(Icon.RESTART, MID + 34, 226.0, 30.0, Ink.BLACK)
     }
 }

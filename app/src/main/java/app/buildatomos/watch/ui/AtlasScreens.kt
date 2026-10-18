@@ -1,8 +1,9 @@
 // The Atlas: every atom, two ways. The wheel shows one atom large, with the whole table as ticks
 // round the rim (built ones in their own color); the crown steps through them. The table shows
 // all 118 in their standard places, the crown moving a highlight. Tapping the atom opens its
-// page: what it is, its shells, its numbers and properties, its isotopes, who found it, and its
-// facts and stories.
+// Atlas page, a watch-sized take on the phone's: its plate and where it sits, Build, the atom
+// itself, the headline and facts, its name and discovery, its structure, properties and
+// isotopes, and where it comes from and what it is for.
 
 package app.buildatomos.watch.ui
 
@@ -15,8 +16,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,16 +48,16 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.buildatomos.core.ATOMS
+import app.buildatomos.core.Icon
 import app.buildatomos.core.Ink
 import app.buildatomos.core.Nebula
 import app.buildatomos.core.Pt
 import app.buildatomos.core.SCREEN
 import app.buildatomos.core.TAU
+import app.buildatomos.core.icon
 import app.buildatomos.core.shellCounts
 import app.buildatomos.watch.AppModel
 import java.text.NumberFormat
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.abs
@@ -76,11 +79,11 @@ private fun place(z: Int, group: Int?, period: Int): Pair<Int, Int> = when (z) {
 }
 
 @Composable
-fun AtlasScreen(model: AppModel, start: Int, onAtom: (Int) -> Unit) {
+fun AtlasScreen(model: AppModel, start: Int, startTable: Boolean, onAtom: (Int) -> Unit) {
     model.version
     val c = model.collection
     var z by remember { mutableIntStateOf(start.coerceIn(1, ATOMS)) }
-    var table by remember { mutableStateOf(false) }
+    var table by remember { mutableStateOf(startTable) }
     var spun by remember { mutableFloatStateOf(0f) }
     var frame by remember { mutableLongStateOf(0L) }
     val fr = remember { FocusRequester() }
@@ -166,106 +169,142 @@ fun AtlasScreen(model: AppModel, start: Int, onAtom: (Int) -> Unit) {
                 }
             }
             // The switch between the wheel and the table: a small table mark, or a ring.
-            pen.dot(MID, 262.0, 15.0, Ink.K900)
-            if (table) pen.ring(MID, 262.0, 7.0, Ink.WHITE, 2.0)
-            else for (i in 0..5) pen.rect(MID - 8 + (i % 3) * 6, 257.0 + (i / 3) * 6, 4.0, 4.0, 1.0, Ink.WHITE)
+            pen.dot(MID, 262.0, 16.0, Ink.K800)
+            pen.icon(if (table) Icon.WHEEL else Icon.TABLE, MID, 262.0, 20.0, Ink.WHITE)
         }
     }
 }
 
-private val DAY = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US)
 private val NUM = NumberFormat.getNumberInstance(Locale.US)
 private const val SUP = "⁰¹²³⁴⁵⁶⁷⁸⁹"
+private val NOBLE = intArrayOf(2, 10, 18, 36, 54, 86)
 
 private fun celsius(k: Double) = "${NUM.format((k - 273.15).roundToInt())} °C"
 private fun sup(n: String) = n.map { SUP[it - '0'] }.joinToString("")
-/** "1s2" → "1s²". */
-private fun config(subs: List<String>) = subs.joinToString(" ") { s ->
+/** "2p2" → "2p²". */
+private fun subLabel(s: String): String {
     val head = s.takeWhile { !it.isLetter() } + s.first { it.isLetter() }
-    head + sup(s.substring(head.length))
+    return head + sup(s.substring(head.length))
 }
+private fun blockColor(s: String) = when (s.firstOrNull { it.isLetter() }) { 's' -> Ink.S; 'p' -> Ink.P; 'd' -> Ink.D; else -> Ink.F }
+private fun ppm(v: Double): String = when {
+    v >= 10_000 -> "${trim(round1(v / 10_000))}%"
+    v >= 1 -> "${NUM.format(v.roundToInt())} ppm"
+    v >= 0.001 -> "${trim(round3(v * 1000))} ppb"
+    else -> "Traces"
+}
+private fun round1(v: Double) = (v * 10).roundToInt() / 10.0
+private fun round3(v: Double) = if (v >= 100) v.roundToInt().toDouble() else (v * 10).roundToInt() / 10.0
 
-/** One atom's page. */
+/** One atom's Atlas page. */
 @Composable
-fun AtomScreen(model: AppModel, z: Int, onAtom: (Int) -> Unit) {
+fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -> Unit, onAtom: (Int) -> Unit) {
     model.version
     val atom = model.atlas.atom(z)
     val info = model.atlas.info(z)
     val subs = model.atlas.subs(z)
+    val counts = shellCounts(z, subs)
     val nebula = remember(z) { Nebula(atom, model.atlas.cloud(z)) }
     val c = model.collection
-    val builtOn = c.built[z]
-    var frame by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(Unit) { while (true) withFrameNanos { frame = it } }
+    val frame = rememberFrame()
     val color = Color(atom.color)
-    WatchList {
-        item {
-            Canvas(Modifier.size(100.dp)) {
-                frame
-                val share = if (builtOn != null) 1.0 else if (z == c.building) c.progress else 0.0
-                nebula.draw(ComposePen(this, 100.0), 50.0, 50.0, 46.0, frame / 1e6, share, still = share <= 0)
-            }
-        }
+    // Its noble-gas core, and the subshells past it: "[He] 2s² 2p²".
+    val core = NOBLE.lastOrNull { it < z }
+    val coreSubs = core?.let { model.atlas.subs(it).toSet() } ?: emptySet()
+    val outer = subs.filter { it !in coreSubs }
+    WatchList(start = 1) {
+        item { IdPlate(atom, 60) }
         item {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Label("${atom.z}", size = 14.sp, color = Tone.text2)
-                    Label(atom.name, size = 19.sp, weight = FontWeight.SemiBold)
-                    Label(atom.symbol, size = 14.sp, color = color)
-                }
-                Label(info.kind.replaceFirstChar { it.uppercase() }, size = 13.sp, color = color)
-                when {
-                    builtOn != null -> Label("Built: ${LocalDate.ofEpochDay(builtOn).format(DAY)}", size = 13.sp, color = Tone.green)
-                    z == c.building -> Label("Building: ${c.shells} of ${c.need} shells", size = 13.sp, color = Tone.cyan)
-                    else -> Label("Not built yet", size = 13.sp, color = Tone.text2)
-                }
+                Label(atom.name, size = 20.sp, weight = FontWeight.SemiBold)
+                Label(info.series.ifBlank { info.kind }, size = 14.sp, color = color)
+                val where = listOfNotNull(
+                    if (z in 57..71) "Lanthanide" else if (z in 89..103) "Actinide" else atom.group?.let { "Group $it" },
+                    "Period ${atom.period}",
+                ).joinToString(" · ")
+                Label(where, size = 13.sp, color = Tone.text2)
             }
         }
+        item {
+            when {
+                c.isBuilt(z) -> Pill("Built", Icon.CHECK, { onBuild(z) }, ink = Tone.green)
+                z == c.building -> Pill("Build", Icon.PLAY, { onBuild(z) }, fill = Tone.rose, ink = Color.Black)
+                else -> Pill("Build", Icon.LOCK, { onBuild(z) }, ink = Tone.text2)
+            }
+        }
+        item {
+            Canvas(Modifier.size(110.dp)) {
+                val share = model.share(z)
+                // The Atlas shows every atom in full; a built one turns.
+                nebula.draw(ComposePen(this, 110.0), 55.0, 55.0, 50.0, frame() / 1e6, 1.0, still = share < 1)
+            }
+        }
+        item {
+            Tiles(
+                "Weight" to (if (info.mass > 0) trim(info.mass) else "[${info.massNumber}]"),
+                "Block" to atom.block,
+                "At room temperature" to (info.phase ?: "Unknown"),
+                "Electrons" to "$z",
+            )
+        }
+        item { Locator(model, z) { onTable(z) } }
         if (info.headline.isNotBlank()) item { Para(info.headline) }
+        if (info.facts.isNotEmpty()) item { Section(null) { for (f in info.facts) Bullet(f) } }
+        info.origin?.let { o -> item { Section("The name") { Para(o, inside = true) } } }
+        item {
+            Section("Discovered") {
+                val ancient = info.year == null || info.who?.contains("ancient", true) == true
+                Label(info.year?.toString() ?: "In antiquity", size = 22.sp, weight = FontWeight.SemiBold, color = color, align = TextAlign.Start)
+                val by = listOfNotNull(info.who?.takeIf { !(ancient && it.contains("ancient", true)) }, info.where).joinToString(" · ")
+                if (by.isNotBlank()) Para(by, inside = true)
+            }
+        }
         item {
             Section("Structure") {
-                Canvas(Modifier.size(96.dp).align(Alignment.CenterHorizontally)) { shells(ComposePen(this, 96.0), shellCounts(z, subs), atom.color) }
-                Row1("Shells", shellCounts(z, subs).joinToString(", "))
-                Row1("Configuration", config(subs))
-            }
-        }
-        item {
-            Section("Numbers") {
-                Row1("Protons", "${atom.z}")
-                if (info.massNumber > 0) Row1("Neutrons", "${info.massNumber - atom.z}", "in its commonest isotope")
-                Row1("Electrons", "${atom.z}")
-                if (info.mass > 0) Row1("Atomic mass", info.mass.toString())
-                Row1("Period", "${atom.period}")
-                atom.group?.let { if (z !in 57..71 && z !in 89..103) Row1("Group", "$it") }
-                Row1("Block", atom.block)
+                Canvas(Modifier.size(104.dp).align(Alignment.CenterHorizontally)) { shells(ComposePen(this, 96.0), counts, atom.color) }
+                // The shells as K 2, L 8, M 4.
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)) {
+                    for ((i, n) in counts.withIndex()) Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.background(Tone.chip, RoundedCornerShape(8.dp)).padding(horizontal = 5.dp, vertical = 2.dp)) {
+                        Label("$n", size = 14.sp, weight = FontWeight.SemiBold)
+                        Label("KLMNOPQ"[i].toString(), size = 13.sp, color = Tone.text2)
+                    }
+                }
+                // The configuration as colored pills: the noble-gas core, then the outer subshells.
+                FlowPills(listOfNotNull(core?.let { "[${model.atlas.atom(it).symbol}]" to Ink.K700 }) + outer.map { subLabel(it) to blockColor(it) })
+                if (z >= 104) Label("Predicted, not measured: only a few atoms have ever been made.", size = 13.sp, color = Tone.text2, align = TextAlign.Start)
             }
         }
         item {
             Section("Properties") {
-                Row1("At room temperature", info.phase ?: "Unknown")
-                info.melt?.let { Row1("Melts", celsius(it)) }
-                info.boil?.let { Row1("Boils", celsius(it)) }
-                info.density?.let { Row1("Density", "${trim(it)} g/cm³") }
-                info.electronegativity?.let { Row1("Electronegativity", trim(it)) }
+                val rows = listOfNotNull(
+                    info.melt?.let { "Melts" to celsius(it) },
+                    info.boil?.let { "Boils" to celsius(it) },
+                    info.density?.let { "Density" to "${trim(it)} g/cm³" },
+                    info.electronegativity?.let { "Electronegativity" to trim(it) },
+                    info.crust?.let { "In Earth's crust" to ppm(it) },
+                    info.sea?.let { "In seawater" to ppm(it) },
+                )
+                if (rows.isEmpty()) Label("Not measured yet.", size = 14.sp, color = Tone.text2, align = TextAlign.Start)
+                for ((k, v) in rows) KeyValue(k, v)
             }
         }
         item {
             Section("Isotopes") {
-                Row1("Stable", if (info.stableIsotopes == 0) "None" else "${info.stableIsotopes}")
-                if (info.knownIsotopes > 0) Row1("Known", "${info.knownIsotopes}")
+                KeyValue("Lasting", if (info.stableIsotopes == 0) "None" else "${info.stableIsotopes}")
+                if (info.knownIsotopes > 0) KeyValue("Known", "${info.knownIsotopes}")
+                if (info.knownIsotopes > 0) {
+                    // Lasting against all known, as a bar.
+                    Bar(info.stableIsotopes / info.knownIsotopes.toDouble(), Modifier.padding(top = 2.dp).fillMaxWidth().height(5.dp), Ink.GREEN)
+                    Label(
+                        if (info.stableIsotopes == 0) "Every one of its isotopes decays."
+                        else "${info.stableIsotopes} of ${info.knownIsotopes} never decay.",
+                        size = 13.sp, color = Tone.text2, align = TextAlign.Start,
+                    )
+                }
             }
         }
-        item {
-            Section("Discovery") {
-                Row1("Found", info.year?.toString() ?: if (info.who?.contains("ancient", true) == true) "In ancient times" else "Unknown")
-                info.who?.takeIf { !it.contains("ancient", true) }?.let { Row1("By", it) }
-                info.where?.let { Row1("Where", it) }
-                info.origin?.let { Row1("Name", it) }
-            }
-        }
-        if (info.facts.isNotEmpty()) item { Section("Facts") { for (f in info.facts) Para(f, inside = true) } }
-        if (info.origins.isNotEmpty()) item { Section("Where it comes from") { for (f in info.origins.take(2)) Para(f, inside = true) } }
-        if (info.uses.isNotEmpty()) item { Section("Uses") { for (f in info.uses.take(3)) Para(f, inside = true) } }
+        if (info.origins.isNotEmpty()) item { Section("Made in") { for (f in info.origins.take(3)) Bullet(f) } }
+        if (info.uses.isNotEmpty()) item { Section("Used for") { for (f in info.uses.take(3)) Bullet(f) } }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (z > 1) Step("${z - 1} ${model.atlas.atom(z - 1).symbol}", Modifier.weight(1f)) { onAtom(z - 1) }
@@ -292,34 +331,79 @@ private fun shells(pen: ComposePen, counts: IntArray, color: Int) {
     }
 }
 
+/** Four facts at a glance, two by two. */
 @Composable
-private fun Section(title: String, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+private fun Tiles(vararg kv: Pair<String, String>) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        for (row in kv.toList().chunked(2)) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            for ((k, v) in row) Column(
+                Modifier.weight(1f).background(Tone.plate, RoundedCornerShape(16.dp)).padding(horizontal = 8.dp, vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Label(v, size = 15.sp, weight = FontWeight.SemiBold, lines = 1)
+                Label(k, size = 13.sp, color = Tone.text2, lines = 2)
+            }
+        }
+    }
+}
+
+/** The little table with this atom lit and its period picked out; tapping it opens the Atlas's
+ *  table there. */
+@Composable
+private fun Locator(model: AppModel, z: Int, onClick: () -> Unit) {
+    val me = model.atlas.atom(z)
+    Canvas(Modifier.fillMaxWidth(0.86f).aspectRatio(18f / 9.5f).clickable(onClick = onClick)) {
+        val pen = ComposePen(this, 18.0, wide = true)
+        for (a in model.atlas.atoms) {
+            val (col, row) = place(a.z, a.group, a.period)
+            val y = if (row >= 9) row - 1.5 else row - 1.0
+            val lit = a.period == me.period && row < 9
+            pen.rect(col - 1 + 0.08, y + 0.08, 0.84, 0.84, 0.16, if (lit) Ink.K500 else Ink.K700)
+        }
+        val (col, row) = place(z, me.group, me.period)
+        val y = if (row >= 9) row - 1.5 else row - 1.0
+        pen.rect(col - 1 - 0.15, y - 0.15, 1.3, 1.3, 0.3, Ink.WHITE)
+        pen.rect(col - 1 + 0.02, y + 0.02, 0.96, 0.96, 0.2, me.color)
+    }
+}
+
+/** Pills in rows, wrapping, three to a row. */
+@Composable
+private fun FlowPills(pills: List<Pair<String, Int>>) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        for (row in pills.chunked(3)) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)) {
+            for ((label, fill) in row) Box(Modifier.background(Color(fill), RoundedCornerShape(10.dp)).padding(horizontal = 7.dp, vertical = 2.dp)) {
+                Label(label, size = 14.sp, weight = FontWeight.SemiBold, color = inkOn(fill), lines = 1)
+            }
+        }
+    }
+}
+
+@Composable
+private fun Section(title: String?, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
     Column(
         Modifier.fillMaxWidth().background(Tone.plate, RoundedCornerShape(20.dp)).padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        Label(title, size = 13.sp, color = Tone.text2, align = TextAlign.Start)
+        if (title != null) Label(title.uppercase(), size = 13.sp, color = Tone.text2, align = TextAlign.Start, weight = FontWeight.SemiBold)
         content()
     }
 }
 
-/** A labeled value: "Melts: 3,527 °C". */
+/** A label and its value on one row: "Melts" on the left, "3,527 °C" on the right. */
 @Composable
-private fun Row1(label: String, value: String, note: String? = null) {
-    Column {
-        Label("$label: $value", size = 14.sp, weight = FontWeight.Normal, align = TextAlign.Start)
-        if (note != null) Label(note, size = 13.sp, color = Tone.text2, align = TextAlign.Start)
+private fun KeyValue(label: String, value: String) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Label(label, Modifier.weight(1f), size = 14.sp, weight = FontWeight.Normal, align = TextAlign.Start, color = Tone.text2)
+        Label(value, size = 14.sp, weight = FontWeight.SemiBold, align = TextAlign.End)
     }
 }
 
+/** A line in a list, with a small dot in front. */
 @Composable
-private fun Para(text: String, inside: Boolean = false) {
-    Label(text, Modifier.fillMaxWidth().padding(horizontal = if (inside) 0.dp else 6.dp), size = 14.sp, weight = FontWeight.Normal, align = if (inside) TextAlign.Start else TextAlign.Center)
-}
-
-@Composable
-private fun Step(label: String, modifier: Modifier, onClick: () -> Unit) {
-    Box(modifier.background(Tone.plate, RoundedCornerShape(18.dp)).clickable(onClick = onClick).padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
-        Label(label, size = 14.sp)
+private fun Bullet(text: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Canvas(Modifier.padding(top = 7.dp).size(5.dp)) { ComposePen(this, 5.0).dot(2.5, 2.5, 2.5, Ink.K400) }
+        Label(text, size = 14.sp, weight = FontWeight.Normal, align = TextAlign.Start)
     }
 }

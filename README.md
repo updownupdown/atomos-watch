@@ -3,20 +3,30 @@
 The watch companion to ATOMOS: Nu's games on the wrist, and a collection of atoms you build by
 playing them. It works on its own, with no phone and no sync, and it is free.
 
-- **Home** is a short list the crown scrolls. At the top is the atom you are building: its
-  cloud fills with color shell by shell, and under it are the game and difficulty of the next
-  shell and the rose Build button. Then come Nu's three questions of the day, the same ones the
-  phone asks. At the bottom are rows for all the atoms (the Atlas), all the games (free play)
-  and Settings.
+- **Home** is a short list the crown scrolls, in sections:
+  - **Build**: the atom you are building (its cloud fills with color shell by shell, the game
+    and difficulty of the next shell, and the rose Build button), and your collection.
+  - **Atlas**: the atom of the day (the same one the phone shows) and every atom.
+  - **Games**: the game Nu picked for today, and Nu's three questions of the day (the same ones
+    the phone asks).
+  - **Nu's park**: Nu to play with (tap the arena and Nu flies there; tap Nu and it hops), and
+    every game.
+  - The Settings button.
+- **Build** shows the atom being built and every period's atoms, built ones in their own color.
+  Each atom's Build page has its cloud, View in Atlas, and its shells as a track: built ones
+  checked, the next with its game, difficulty and Play.
+- **The Atlas** shows every atom on a wheel (the crown steps through them) or in the table. Each
+  atom's Atlas page has its plate, Build, the atom itself, the headline and facts, its name and
+  discovery, its structure, properties and isotopes, and where it comes from and what it is for.
 - **A run** opens on a card with the game's name, its difficulty and the levels to reach. The
-  ATOMOS mark at the top of the screen (or the back button) pauses it and opens a menu: Resume,
-  Restart, Exit. The levels show as a tiny atom at the bottom of the screen.
+  ATOMOS mark at the top of the screen (or the back button) pauses it: Exit on the left, Resume
+  in the middle, Restart on the right, with the level reached and the best at the foot. The
+  levels show as a tiny atom at the bottom of the screen.
   - A run for an atom has a goal: 3 levels at Very easy up to 7 at Expert. Each level cleared
     fills one electron slot. Win, and the atom's next shell is built.
   - Free play has no goal. The tiny atom counts levels in binary across 8 slots, up to 255, and
-    every level is harder than the last.
-- **The Atlas** shows every atom on a wheel (the crown steps through them) or in the table. Each
-  atom's page has its structure, numbers, properties, isotopes, discovery, facts and uses.
+    every level is harder than the last. A game's page picks the difficulty: tap a dot or turn
+    the crown.
 - **Settings** has Sound (off to start), Haptics (on to start, and soft), and starting the
   collection over.
 - **The tile** and **the Play with Nu complication** open straight into the next run for the
