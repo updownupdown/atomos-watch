@@ -19,6 +19,8 @@ object Games {
         Game("dive", "Dive") { Dive() },
         Game("echo", "Echo") { Echo() },
         Game("flash", "Flash") { Flash() },
+        Game("gate", "Gate", crown = true) { Gate() },
+        Game("grow", "Grow") { Grow() },
         Game("halo", "Halo", crown = true) { Halo() },
         Game("juggle", "Juggle") { Juggle() },
         Game("more", "More") { More() },
