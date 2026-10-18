@@ -13,15 +13,19 @@ import kotlin.math.sin
  * Orbit (the phone's src/nu/park.ts). Nu runs round two rings like an electron with two shells
  * to choose from. Tap a ring: the one Nu is on turns it round (the ring flashes white), the other
  * hops it across (the ring flashes cyan). Catch the photons; an antiparticle (red) meeting Nu on
- * its ring ends the run, so when two close in from both sides, hop rings. Faster as it goes;
- * antiparticles fade away after a while.
+ * its ring ends the run, so when two close in from both sides, hop rings. Antiparticles fade
+ * away after a while.
+ * A level is a set of photons: six at first and one more every other level, up to twelve. A
+ * level cleared sweeps the antiparticles away, and the next come after a breath. Heat makes Nu
+ * run faster (and a little faster with each photon in a level), and the antiparticles come
+ * sooner, more of them at once and quicker on their rings.
  * On the watch the crown can turn Nu round too: turn it the way you want Nu to run. Hops are
- * still a tap.
+ * still a tap. The rings sit in far enough that Nu stays off the menu at the top and the level
+ * counter at the bottom.
  */
 class Orbit : Toy {
     private var a = -PI / 2
     private var dir = 1
-    private var speed = 0.0011
     /** The ring Nu is on (0 outer, 1 inner), and how far through a hop (0 outer .. 1 inner). */
     private var lane = 0
     private var hop = 0.0
@@ -29,6 +33,7 @@ class Orbit : Toy {
     private class Anti(var a: Double, val lane: Int, val dir: Int, val born: Double)
     private val photons = mutableListOf<Photon>()
     private val anti = mutableListOf<Anti>()
+    /** Photons caught this level. */
     private var count = 0
     private var over = false
     private var overAt = 0.0
@@ -39,7 +44,13 @@ class Orbit : Toy {
     /** How far the crown has turned one way since Nu last turned round. */
     private var wound = 0.0
 
-    private fun rad(s: Stage, lane: Int) = s.R * (0.8 - lane * 0.32)
+    private fun rad(s: Stage, lane: Int) = s.R * (0.72 - lane * 0.3)
+    private fun need(s: Stage) = 6 + min(s.level, 12) / 2
+    /** Nu's speed round the rings (rad/ms): a lap in about six seconds at the easiest, three at
+     *  Expert, never faster than a lap in two. */
+    private fun speed(s: Stage) = min(0.0031, 0.001 + s.heat * 0.0011 + count * 0.00003)
+    /** The most antiparticles out at once. */
+    private fun most(s: Stage) = 1 + min(3, floor(s.heat * 2.2).toInt())
     private fun pos(s: Stage, a: Double, lane: Int) = polar(s, a, rad(s, lane))
 
     override fun enter(s: Stage) {
@@ -47,12 +58,12 @@ class Orbit : Toy {
         s.nu.at(s.c)
         photons += Photon(a + 1.6, 0)
         photons += Photon(a + 3.2, 1)
-        s.score(0)
     }
 
     override fun step(s: Stage, dt: Double, now: Double) {
         val nu = s.nu
         if (over) { nu.seek(s.c, dt, 0.4, 0.01); return }
+        val speed = speed(s)
         a += dir * speed * dt
         hop += clamp(lane - hop, -dt / 220, dt / 220)
         val r = rad(s, 0) + (rad(s, 1) - rad(s, 0)) * hop
@@ -70,26 +81,35 @@ class Orbit : Toy {
             if (!near(q.a, q.lane)) continue
             photons.removeAt(i)
             count++
-            speed = min(0.0028, speed + 0.00005)
             s.fx.burst(at, 5, Ink.CYAN, 0.08)
             s.out.tick(count % 5)
-            s.score(count)
             // A new photon somewhere ahead, on either ring.
             photons += Photon(a + dir * (1.2 + rnd() * 3.5), if (rnd() < 0.5) 0 else 1)
+            if (count >= need(s)) {
+                count = 0
+                s.clear()
+                if (s.over) { over = true; overAt = now; return }
+                // The level's antiparticles go, and the next wait a moment.
+                for (q in anti) s.fx.burst(pos(s, q.a, q.lane), 6, Ink.RED, 0.06)
+                anti.clear()
+                spawn = 1600.0
+            }
+            s.part = count.toDouble() / need(s)
         }
         spawn -= dt
-        if (spawn <= 0 && anti.size < 1 + floor(count / 6.0).toInt()) {
+        if (spawn <= 0 && anti.size < most(s)) {
             anti += Anti(a + PI, if (rnd() < 0.5) 0 else 1, if (rnd() < 0.5) 1 else -1, now)
-            spawn = 3500 + rnd() * 3000
+            spawn = (3500 + rnd() * 3000) / (1 + s.heat * 0.8)
         }
+        val drift = min(0.8, 0.45 + s.heat * 0.15)
         anti.removeAll { now - it.born >= LIFE }
         for (q in anti) {
-            q.a += q.dir * speed * 0.55 * dt
+            q.a += q.dir * speed * drift * dt
             // Harmless while it fades in.
             if (now - q.born > 700 && near(q.a, q.lane)) {
                 over = true
                 overAt = now
-                finish(s, "orbit", count)
+                s.lose()
                 s.fx.ring(at, Ink.RED, 8.0, 32.0, 700.0)
                 s.out.miss()
                 return
