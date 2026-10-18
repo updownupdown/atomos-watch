@@ -38,6 +38,9 @@ From a terminal: `gradlew :app:installDebug` builds and installs to the connecte
 - `app/src/main/assets/atoms.json` and `atoms.bin` are the 118 atoms and their clouds, baked from
   the phone app's own orbital sampler. To bake them again, from a checkout of the phone app:
   `npx -y tsx ../atomos-watch/tools/gen-atoms.mts . ../atomos-watch/app/src/main/assets`.
+- `core/.../Quiz.kt` deals Nu's daily questions as the phone does. `QuizTest` checks it against
+  the phone's own deal in `core/src/test/resources/quiz-phone.json`, made with
+  `npx -y tsx ../atomos-watch/tools/gen-quiz.mts . <out file> [from day] [to day]`.
 
 ## Players' saved data
 
