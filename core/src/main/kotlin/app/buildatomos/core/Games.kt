@@ -22,11 +22,15 @@ object Games {
         Game("echo", "Echo", 6.0) { Echo() },
         Game("flash", "Flash", 20.0) { Flash() },
         Game("halo", "Halo", 18.0, crown = true) { Halo() },
+        Game("more", "More", 10.0) { More() },
         Game("orbit", "Orbit", 12.0, crown = true) { Orbit() },
         Game("pulse", "Pulse", 8.0) { Pulse() },
+        Game("rain", "Rain", 12.0, crown = true) { Rain() },
         Game("ready", "Ready", 10.0) { Ready() },
         Game("recall", "Recall", 5.0) { Recall() },
         Game("shells", "Shells", 4.0) { Shells() },
+        Game("spot", "Spot", 8.0) { Spot() },
+        Game("stick", "Stick", 8.0) { Stick() },
     ).sortedBy { it.label }
 
     fun byId(id: String): Game? = all.firstOrNull { it.id == id }

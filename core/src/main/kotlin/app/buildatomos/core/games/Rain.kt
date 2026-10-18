@@ -28,6 +28,9 @@ class Rain : Toy {
     private var count = 0
     private var left = 3
     private var next = 600.0
+    /** Drops fall about a third as far here as on the phone, so they fall slower, to leave the
+     *  phone's time to get under them. */
+    private val FALL = 0.55
     private var over = false
     /** Half the room across, from the middle to the walls (the phone's s.hw). */
     private var wall = 0.0
@@ -70,16 +73,16 @@ class Rain : Toy {
             // Nearly half fall faster, up to 60% faster.
             val fast = if (rnd() < 0.45) 1 + rnd() * 0.6 else 1.0
             // Soon some drift sideways (bouncing off the walls).
-            val vx = if (n > 4 && rnd() < min(0.6, (n - 4) * 0.04)) (rnd() - 0.5) * 0.16 else 0.0
+            val vx = if (n > 4 && rnd() < min(0.6, (n - 4) * 0.04)) (rnd() - 0.5) * 0.16 * FALL else 0.0
             val at = lo + rnd() * (hi - lo)
-            val v = (0.17 + min(0.26, n * 0.008) + rnd() * 0.06) * fast
+            val v = (0.17 + min(0.26, n * 0.008) + rnd() * 0.06) * fast * FALL
             // Later, now and then a row of reds across, with one gap wide enough for Nu: a
             // moment's calm after it, so the row can be read. A row comes in level, from above
             // the top of the circle.
             if (n > 14 && rnd() < min(0.22, (n - 14) * 0.02)) {
                 val gap = max(76.0, nu.r * 2 + 50)
                 val g0 = lo + rnd() * (hi - lo - gap)
-                val sv = 0.17 + min(0.2, n * 0.006)
+                val sv = (0.17 + min(0.2, n * 0.006)) * FALL
                 val y = s.c.y - s.R - 10
                 var gx = lo
                 while (gx <= hi) {
