@@ -15,13 +15,11 @@ private const val LO = 1.2
 private const val HI = 8.0
 private const val T_LO = 1.4
 private const val T_HI = 7.0
-/** How long a stretch lasts at the start and at its shortest (ms). */
-private const val LONG = 5400.0
-private const val SHORT = 3000.0
-/** From this stretch on, a new stretch's wave also jumps along (its phase), more as it goes. */
+/** How long a stretch lasts at the gentlest and at its shortest (ms). */
+private const val LONG = 5600.0
+private const val SHORT = 2600.0
+/** From this stretch of a run on, a new stretch's wave also jumps along (its phase), more as it heats. */
 private const val JUMP_AT = 2
-/** The share of a stretch's passing that must match to score. */
-private const val GOAL = 0.25
 /** How close Nu's wave is, by its colour: matched, near, nearer than far, and far (red). How
  *  near is how many times the match's tolerance it's off by. */
 private const val BLUE = 0xFF5F8AE0.toInt()
@@ -45,15 +43,21 @@ private fun wrap(x: Double) = ((((x + PI) % TAU) + TAU) % TAU) - PI
  * along from where the last left off. Nu rides its own wave, drawn thin over the incoming one
  * ahead of it and left behind as a trace. Nu's wave shows how close it is: red far off, amber,
  * blue near, and green when it matches the stretch going past, which turns green too. Match a
- * stretch for a quarter of its passing and it scores; less and one of three lives empties. The
- * stretches come quicker and the match must be closer as it goes.
+ * stretch for long enough as it passes and it counts; less and one of three lives empties, and
+ * the last one lost loses the run.
+ * Levels: a level is a few stretches matched (three, one more every three levels, up to five).
+ * Lives carry from level to level, and every third level cleared gives one back. Heat makes the
+ * stretches shorter (5.6 s at the gentlest, 3.9 s at Expert, never under 2.6 s), the match closer
+ * (in frequency and in phase), the share of a stretch that must match larger (22% at the
+ * gentlest, 30% at Expert, at most 40%), and each stretch's wave jump along further from where
+ * the last left off.
  * On the watch there is one control instead of the phone's two sliders: the crown tunes the
  * frequency (clockwise quicker, one whole turn across the range; a drag across the screen does
  * the same), and the phase matches itself, Nu's wave sliding along onto the stretch going past
  * within about a quarter of a second. The waves run across the circle's middle, and a short
  * gauge on the rim by the crown shows the frequency. The phone counts nothing until the first
  * touch; the watch also starts counting on its own once two stretches have gone by, so a run
- * nobody plays still ends.
+ * nobody plays is still lost.
  */
 class Tune : Toy {
     /** A stretch of the target wave: where it starts (world units), how long it is, its frequency,
@@ -78,8 +82,9 @@ class Tune : Toy {
     private var matched = false
     private var near = Double.POSITIVE_INFINITY
     private var left = 3
-    private var count = 0
-    private var over = false
+    /** Stretches matched in this level, and stretches made in all (for the first jump). */
+    private var found = 0
+    private var made = 0
 
     private fun W(s: Stage) = 2 * s.R
     private fun X0(s: Stage) = s.c.x - s.R * 0.3
@@ -88,9 +93,9 @@ class Tune : Toy {
     private fun amp(s: Stage) = s.R * 0.34
     /** The scroll speed (units/ms). */
     private fun v(s: Stage) = W(s) / 5200
-    /** How close a match must be: in frequency (as a log ratio) and in phase (radians). */
-    private fun tolF() = max(0.08, 0.16 - count * 0.004)
-    private fun tolP() = max(0.4, 0.75 - count * 0.015)
+    /** The frequency of the stretch going past, and Nu's: for the tests' player. */
+    internal val going: Double? get() = at(scroll)?.c
+    internal val tuned: Double get() = c
 
     override fun enter(s: Stage) {
         s.rim = null
@@ -98,27 +103,26 @@ class Tune : Toy {
         // The first stretch matches Nu as it is, to show what green means.
         val u0 = -(s.c.x + s.R - X0(s))
         segs += Seg(u0, W(s) * 0.8, c, TAU * (c / W(s)) * u0)
+        made = 1
         grow(s)
         place(s)
         s.nu.at(s.nu.p)
-        s.score(0)
     }
 
     /** More target ahead, as far as the court shows. */
     private fun grow(s: Stage) {
         val ahead = scroll + (s.c.x + s.R - X0(s)) + 40
         var last = segs.last()
+        val h = s.heat
         while (last.u0 + last.len < ahead) {
-            val n = count + segs.count { it.u0 > scroll }
             var nc = last.c
             for (i in 0 until 20) {
                 if (abs(ln(nc / last.c)) >= 0.3) break
                 nc = exp(ln(T_LO) + rnd() * ln(T_HI / T_LO))
             }
-            val jump = if (n >= JUMP_AT) (rnd() - 0.5) * TAU * min(1.0, 0.35 + (n - JUMP_AT) * 0.08) else 0.0
-            val ms = max(SHORT, LONG - n * 100)
+            val jump = if (made++ >= JUMP_AT) (rnd() - 0.5) * TAU * jumps(h) else 0.0
             val end = last.u0 + last.len
-            val seg = Seg(end, v(s) * ms, nc, phase(s, last, end) + jump)
+            val seg = Seg(end, v(s) * stretchMs(h), nc, phase(s, last, end) + jump)
             segs += seg
             last = seg
         }
@@ -150,13 +154,15 @@ class Tune : Toy {
     }
 
     /** Nu's wave's colour: white before it counts, then by how close it is. */
-    private fun hue(): Int {
-        if (!started || over) return Ink.WHITE
+    private fun hue(s: Stage): Int {
+        if (!started || s.over) return Ink.WHITE
         return if (matched) Ink.GREEN else if (near < NEAR) BLUE else if (near < MID) AMBER else Ink.RED
     }
 
     override fun step(s: Stage, dt: Double, now: Double) {
-        if (over) return
+        if (s.over) return
+        s.part = clamp(found.toDouble() / need(s.level), 0.0, 1.0)
+        val h = s.heat
         val v = v(s)
         scroll += v * dt
         ph = (ph + TAU * (c / W(s)) * v * dt) % TAU
@@ -166,36 +172,40 @@ class Tune : Toy {
         place(s)
         // How far off Nu's wave is (in tolerances, frequency and phase together), and whether it
         // matches.
-        val offF = if (g != null) abs(ln(c / g.c)) / tolF() else Double.POSITIVE_INFINITY
-        val offP = if (g != null) abs(wrap(ph + off - phase(s, g, scroll))) / tolP() else Double.POSITIVE_INFINITY
+        val offF = if (g != null) abs(ln(c / g.c)) / tolF(h) else Double.POSITIVE_INFINITY
+        val offP = if (g != null) abs(wrap(ph + off - phase(s, g, scroll))) / tolP(h) else Double.POSITIVE_INFINITY
         near = hypot(offF, offP)
         val ok = near < 1
         if (ok && !matched && started) s.out.tick(2)
         matched = ok
         if (g != null && started) { g.all += dt; if (ok) g.on += dt }
-        trail += Mark(scroll, s.nu.y, hue())
+        trail += Mark(scroll, s.nu.y, hue(s))
         val keep = scroll - (X0(s) - (s.c.x - s.R)) - 10
         while (trail.size > 2 && trail.first().u < keep) trail.removeFirst()
-        // Stretches that have gone by: scored, or a life.
+        // Stretches that have gone by: matched, or a life.
         while (segs.size > 1 && segs.first().u0 + segs.first().len <= scroll) {
             val d = segs.removeFirst()
             if (!started) { if (++gone >= GRACE) started = true; continue }
             if (d.all < 300) continue
-            if (d.on / d.all >= GOAL) {
-                count++
+            if (d.on / d.all >= share(h)) {
                 s.out.capture()
                 s.fx.ring(s.nu.p, Ink.GREEN, s.nu.r, s.nu.r + 30, 500.0)
-                s.score(count)
+                if (++found >= need(s.level)) {
+                    found = 0
+                    s.clear()
+                    // Every third level cleared gives a life back.
+                    if (s.level % 3 == 0 && left < 3) left++
+                    if (s.over) { grabX = null; return }
+                }
+                s.part = clamp(found.toDouble() / need(s.level), 0.0, 1.0)
             } else {
                 left--
                 s.out.miss()
                 s.out.buzz(20)
                 s.fx.ring(s.nu.p, Ink.RED, s.nu.r, s.nu.r + 30, 600.0)
                 if (left <= 0) {
-                    over = true
                     grabX = null
-                    finish(s, "tune", count)
-                    s.score(count)
+                    s.lose()
                     return
                 }
             }
@@ -227,7 +237,7 @@ class Tune : Toy {
         val x1 = s.c.x + s.R + 4
         val cy = cy(s)
         val amp = amp(s)
-        val live = matched && started && !over
+        val live = matched && started && !s.over
         // Where Nu is: a faint upright line through the waves.
         pen.line(x0, cy - amp - 22, x0, cy + amp + 22, Ink.K800, 2.0, 0.9)
         // The target, thick and translucent: grey, and green along the stretch going past while
@@ -244,7 +254,7 @@ class Tune : Toy {
         }
         // Nu's wave, thin and solid: its trace to the left in the colour of how close it was at
         // each point, and ahead of it as it is set now, over the incoming wave.
-        val hue = hue()
+        val hue = hue(s)
         for (i in 1 until trail.size) {
             val a = trail[i - 1]
             val b = trail[i]
@@ -274,14 +284,14 @@ class Tune : Toy {
     private fun tuneTo(nc: Double) { c = clamp(nc, LO, HI) }
 
     override fun crown(s: Stage, by: Double) {
-        if (over) return
+        if (s.over) return
         started = true
         // One whole turn of the crown runs the whole range.
         tuneTo(c * exp(by / TAU * ln(HI / LO)))
     }
 
     override fun down(s: Stage, p: Pt) {
-        if (over) return
+        if (s.over) return
         started = true
         grabX = p.x
         grabC = c
@@ -294,4 +304,18 @@ class Tune : Toy {
     }
 
     override fun up(s: Stage, p: Pt) { grabX = null }
+
+    internal companion object {
+        /** Stretches matched to clear a level: three, one more every three levels, at most five. */
+        fun need(level: Int) = 3 + min(2, level / 3)
+        /** How long a stretch lasts at this heat (ms). */
+        fun stretchMs(heat: Double) = max(SHORT, LONG - heat * 1700)
+        /** How close a match must be: in frequency (as a log ratio) and in phase (radians). */
+        fun tolF(heat: Double) = max(0.07, 0.17 - heat * 0.07)
+        fun tolP(heat: Double) = max(0.38, 0.8 - heat * 0.28)
+        /** The share of a stretch's passing that must match for it to count. */
+        fun share(heat: Double) = min(0.4, 0.22 + heat * 0.08)
+        /** How far a new stretch's wave may jump along, as a share of a whole turn either way. */
+        fun jumps(heat: Double) = min(1.0, 0.3 + heat * 0.7)
+    }
 }
