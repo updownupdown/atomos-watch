@@ -3,16 +3,26 @@
 The watch companion to ATOMOS: Nu's games on the wrist, and a collection of atoms you build by
 playing them. It works on its own, with no phone and no sync, and it is free.
 
-- **Home** is a short list the crown scrolls, in sections:
-  - **Build**: the atom you are building (its cloud fills with color shell by shell, the game
-    and difficulty of the next shell, and the rose Build button), and your collection.
+- **Home** is a short list the crown scrolls, under the mark and ATOMOS, in sections:
+  - **Build**: the atom you are building (its cloud fills with color shell by shell, the rose
+    Build button, and under it the game and difficulty of the next shell), and your collection.
   - **Atlas**: the atom of the day (the same one the phone shows) and every atom.
   - **Games**: the game Nu picked for today, Nu's three questions of the day (the same ones the
-    phone asks), and Play all games.
+    phone asks), and Play all games, each on its own card.
   - The Settings button.
-- **Build** shows the atom being built and every period's atoms, built ones in their own color.
-  Each atom's Build page has its cloud, View in Atlas, and its shells as a track: built ones
-  checked, the next with its game, difficulty and Play.
+- **Build** shows every atom three ways; the button at the foot switches between them (the
+  choice lasts until the app closes):
+  - the grid: the atom being built, then every period's atoms, built ones in their own color;
+  - the dial: the atoms as plates round the rim, the crown turning them past the top, and the
+    picked atom's cloud, name and state in the middle;
+  - the shells: the whole table as one atom, a shell of dots for each period, the picked atom's
+    plate in the middle; the crown steps through them.
+
+  In the dial and the shells, a tap on an atom picks it and a tap on the picked one opens it.
+  Each atom's Build page has its cloud, its shells as a ring round the bezel (built ones lit),
+  its plate and name, its shells as a track (built ones checked, the next with its game,
+  difficulty and Play), its neighbors, and View in Atlas at the foot; back is at the middle of
+  the left edge.
 - **The Atlas** shows every atom on a wheel (the crown steps through them) or in the table. Each
   atom's Atlas page has its plate, Build, the atom itself, the headline and facts, its name and
   discovery, its structure, properties and isotopes, and where it comes from and what it is for,

@@ -53,7 +53,8 @@ class CollectionTest {
         assertTrue(info.all { it.headline.isNotBlank() })
     }
 
-    /** The baked clouds read back whole: 118 atoms, every point inside the frame's box. */
+    /** The baked clouds read back whole: 118 atoms, every point inside the frame's sphere (none
+     *  piled on the faces of a box, which turned the clouds' edges into a cube). */
     @Test fun bakedCloudsRead() {
         val f = File("../app/src/main/assets/atoms.bin").takeIf { it.exists() } ?: File("app/src/main/assets/atoms.bin")
         val clouds = Cloud.readAll(f.readBytes())
@@ -61,6 +62,7 @@ class CollectionTest {
         for (c in clouds) {
             assertTrue(c.size in 100..2000, "points: ${c.size}")
             assertTrue(c.walk.isNotEmpty())
+            assertTrue(c.reach.all { it <= 1.01f }, "a point outside the frame")
         }
     }
 

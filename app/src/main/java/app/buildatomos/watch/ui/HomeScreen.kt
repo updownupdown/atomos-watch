@@ -1,7 +1,7 @@
-// Home, a compact take on the phone's "Today": a list the crown scrolls, in sections, each named
-// in small caps. Build: the atom being built and the way into the whole collection. Atlas: the
-// atom of the day (the phone's) and the way into every atom. Games: the game Nu picked for today,
-// Nu's three questions and the way into every game. Settings last.
+// Home, a compact take on the phone's "Today": a list the crown scrolls, under the mark and
+// ATOMOS, in sections, each named in small caps. Build: the atom being built and the way into the
+// whole collection. Atlas: the atom of the day (the phone's) and the way into every atom. Games:
+// the game Nu picked for today, Nu's three questions and the way into every game. Settings last.
 
 package app.buildatomos.watch.ui
 
@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.wear.compose.material.Text
 import app.buildatomos.core.ATOMS
 import app.buildatomos.core.Difficulty
 import app.buildatomos.core.Games
@@ -60,8 +61,7 @@ fun HomeScreen(
         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        // The mark, with Nu resting on one of its nucleons as on the phone's header.
-        item { Canvas(Modifier.size(32.dp)) { ComposePen(this, 32.0).mark(16.0, 16.0, 28.0, Ink.WHITE, nu = 2) } }
+        item { Wordmark() }
 
         item { SectionLabel("Build") }
         item { BuildCard(model, frame, onRun, onBuildAtom) }
@@ -74,9 +74,43 @@ fun HomeScreen(
         item { SectionLabel("Games") }
         item { TodayGameCard(model, onGame) }
         item { QuizCard(model, onAtom) }
-        item { MinorRow("Play all games", "${Games.all.size}", null, onGames) }
+        item { AllGamesCard(onGames) }
 
         item { Pill("Settings", Icon.GEAR, onSettings, Modifier.padding(top = 8.dp)) }
+    }
+}
+
+/** The mark, with Nu resting on one of its nucleons as on the phone's header, and ATOMOS beside
+ *  it, spaced wide like the phone's titles. */
+@Composable
+private fun Wordmark() {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Canvas(Modifier.size(44.dp)) { ComposePen(this, 44.0).mark(22.0, 22.0, 40.0, Ink.WHITE, nu = 2) }
+        Text(
+            "ATOMOS", color = Tone.text, fontSize = 20.sp, fontFamily = Outfit, fontWeight = FontWeight.SemiBold,
+            letterSpacing = 3.sp, maxLines = 1,
+        )
+    }
+}
+
+/** The way into every game, a major card like today's game: the games' mark, and how many. */
+@Composable
+private fun AllGamesCard(onGames: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(Tone.plate, RoundedCornerShape(26.dp))
+            .clickable(onClick = onGames)
+            .padding(horizontal = 10.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        IconMark(Icon.GAMES, 38, Ink.BLACK, disc = Ink.WHITE)
+        Column(Modifier.weight(1f)) {
+            Label("Play all games", size = 15.sp, weight = FontWeight.SemiBold, align = TextAlign.Start, lines = 2)
+            Label("${Games.all.size} games", size = 13.sp, color = Tone.text2, align = TextAlign.Start, lines = 1)
+        }
+        IconMark(Icon.CHEVRON, 16, Ink.K400)
     }
 }
 

@@ -50,6 +50,11 @@ class AppModel(private val context: Context) {
         private set
     /** The Atlas page's sections left open, kept while stepping from atom to atom. */
     var atlasOpen by mutableStateOf(setOf("Facts"))
+    /** How the Build screen shows the atoms (the grid, the dial or the shells), kept for the session. */
+    var buildView by mutableIntStateOf(0)
+    /** The atom the crown has picked on the Build screen's dial and shells, 0 for the one being
+     *  built. Kept for the session. */
+    var buildFocus by mutableIntStateOf(0)
     /** The last won run's payout, until Home has shown it. */
     var payout by mutableStateOf<Payout?>(null)
 

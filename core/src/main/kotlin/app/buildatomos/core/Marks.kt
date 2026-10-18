@@ -174,7 +174,7 @@ fun Pen.gameIcon(id: String, cx: Double, cy: Double, size: Double, color: Int) {
 }
 
 /** The app's own icons, drawn on a 24 grid like the phone's: flat strokes and fills, round caps. */
-enum class Icon { PLAY, RESTART, EXIT, NEXT, CHECK, GEAR, LOCK, CHEVRON, BACK, GAMES, TABLE, WHEEL, ATLAS }
+enum class Icon { PLAY, RESTART, EXIT, NEXT, CHECK, GEAR, LOCK, CHEVRON, BACK, GAMES, TABLE, WHEEL, ATLAS, SHELLS }
 
 /** Icon `icon` round (cx, cy), `size` across. */
 fun Pen.icon(icon: Icon, cx: Double, cy: Double, size: Double, color: Int) {
@@ -231,6 +231,11 @@ fun Pen.icon(icon: Icon, cx: Double, cy: Double, size: Double, color: Int) {
         Icon.GAMES -> for (r in 0..1) for (c in 0..1) rect(X(4.5 + c * 8.5), Y(4.5 + r * 8.5), 6.5 * k, 6.5 * k, 2.0 * k, color)
         Icon.TABLE -> for (i in 0..5) rect(X(4.0 + (i % 3) * 6), Y(7.0 + (i / 3) * 6), 4.4 * k, 4.4 * k, 1.0 * k, color)
         Icon.WHEEL -> { ring(X(12.0), Y(12.0), 7.5 * k, color, 2.4 * k); dot(X(12.0), Y(4.5), 2.6 * k, color) }
+        Icon.SHELLS -> {
+            // A nucleus and two shells, open at the foot like the Build screen's shells.
+            dot(X(12.0), Y(12.0), 2.6 * k, color)
+            for (r in listOf(5.6, 9.4)) arc(X(12.0), Y(12.0), r * k, PI * 2 / 3, PI * 5 / 3, color, 2.2 * k)
+        }
         Icon.ATLAS -> {
             // The phone's Atlas: an open book, lines of text on the left page, a little table on the
             // right (one cell left open), drawn a touch bolder for the watch.

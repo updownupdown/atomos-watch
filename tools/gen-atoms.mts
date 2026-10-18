@@ -34,12 +34,19 @@ for (const e of data.ELEMENTS) {
   });
   const rs = pts.map((p) => Math.hypot(p.x, p.y, p.z)).sort((a, b) => a - b);
   const frame = (rs[Math.floor(rs.length * 0.85)] ?? 1) * 1.25;
-  const q = (v: number) => Math.max(-127, Math.min(127, Math.round((v / frame) * 127)));
+  // Points reaching past the frame are drawn in toward it along their own direction, more the
+  // further out they are, so the cloud's edge is a soft sphere. (Clamping each axis on its own
+  // would pile them on the faces of a cube, and the cloud would turn as a box.)
+  const knee = 0.7;
+  const inward = (s: number) => (s <= knee ? s : knee + (1 - knee) * Math.tanh((s - knee) / (1 - knee)));
+  const q = (v: number) => Math.max(-127, Math.min(127, Math.round(v * 127)));
   const buf = Buffer.alloc(2 + pts.length * 5);
   buf.writeUInt16LE(pts.length, 0);
   pts.forEach((p, i) => {
     const o = 2 + i * 5;
-    buf.writeInt8(q(p.x), o); buf.writeInt8(q(p.y), o + 1); buf.writeInt8(q(p.z), o + 2);
+    const s = Math.hypot(p.x, p.y, p.z) / frame;
+    const k = s > 0 ? inward(s) / s / frame : 0;
+    buf.writeInt8(q(p.x * k), o); buf.writeInt8(q(p.y * k), o + 1); buf.writeInt8(q(p.z * k), o + 2);
     buf.writeUInt8(p.sub, o + 3); buf.writeUInt8(p.oi, o + 4);
   });
   chunks.push(buf);
