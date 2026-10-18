@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -47,15 +48,20 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.buildatomos.core.ATOMS
+import app.buildatomos.core.Atom
+import app.buildatomos.core.Crowd
 import app.buildatomos.core.Icon
 import app.buildatomos.core.Ink
 import app.buildatomos.core.Nebula
+import app.buildatomos.core.Property
 import app.buildatomos.core.Pt
 import app.buildatomos.core.SCREEN
 import app.buildatomos.core.TAU
 import app.buildatomos.core.icon
 import app.buildatomos.core.shellCounts
 import app.buildatomos.watch.AppModel
+import java.math.BigDecimal
+import java.math.MathContext
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.PI
@@ -259,7 +265,7 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
             }
         }
         item {
-            Section(model, "Structure", counts.joinToString(" ")) {
+            Section(model, "Structure", "${counts.size} shell${if (counts.size == 1) "" else "s"}") {
                 Canvas(Modifier.size(104.dp).align(Alignment.CenterHorizontally)) { shells(ComposePen(this, 96.0), counts, atom.color) }
                 // The shells as K 2, L 8, M 4.
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)) {
@@ -275,16 +281,14 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
         }
         item {
             Section(model, "Properties", info.phase) {
-                val rows = listOfNotNull(
-                    info.melt?.let { "Melts" to celsius(it) },
-                    info.boil?.let { "Boils" to celsius(it) },
-                    info.density?.let { "Density" to "${trim(it)} g/cm³" },
-                    info.electronegativity?.let { "Electronegativity" to trim(it) },
-                    info.crust?.let { "In Earth's crust" to ppm(it) },
-                    info.sea?.let { "In seawater" to ppm(it) },
-                )
-                if (rows.isEmpty()) Label("Not measured yet.", size = 14.sp, color = Tone.text2, align = TextAlign.Start)
-                for ((k, v) in rows) KeyValue(k, v)
+                val crowds = remember(z) { Property.ALL.map { Crowd(it, model.atlas.infos, z) }.filter { it.value != null } }
+                if (crowds.isEmpty()) Label("Not measured yet.", size = 14.sp, color = Tone.text2, align = TextAlign.Start)
+                else {
+                    Label("Each dot is an atom, in its block's color. ${atom.name} is the white one.", size = 13.sp, color = Tone.text2, align = TextAlign.Start)
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        for (crowd in crowds) PropertyStrip(model, crowd)
+                    }
+                }
             }
         }
         item {
@@ -304,12 +308,82 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
         }
         if (info.origins.isNotEmpty()) item { Section(model, "Made in", null) { for (f in info.origins.take(3)) Bullet(f) } }
         if (info.uses.isNotEmpty()) item { Section(model, "Used for", null) { for (f in info.uses.take(3)) Bullet(f) } }
+        // The atoms either side, as their plates, each behind a chevron pointing its way.
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (z > 1) Step("${z - 1} ${model.atlas.atom(z - 1).symbol}", Modifier.weight(1f)) { onAtom(z - 1) }
-                if (z < ATOMS) Step("${z + 1} ${model.atlas.atom(z + 1).symbol}", Modifier.weight(1f)) { onAtom(z + 1) }
+            Row(
+                Modifier.fillMaxWidth().padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (z > 1) Neighbor(model.atlas.atom(z - 1), before = true) { onAtom(z - 1) }
+                if (z < ATOMS) Neighbor(model.atlas.atom(z + 1), before = false) { onAtom(z + 1) }
             }
         }
+    }
+}
+
+/** A property's value as the page writes it: temperatures in °C, amounts in ppm or ppb. The
+ *  strip's ends leave off the density's unit (`short`), to fit both on one row. */
+private fun show(p: Property, v: Double, short: Boolean = false): String = when (p) {
+    Property.MELT, Property.BOIL -> celsius(v)
+    Property.DENSITY -> if (short) sig3(v) else "${sig3(v)} g/cm³"
+    Property.CRUST, Property.SEA -> ppm(v)
+    else -> trim(v)
+}
+
+/** Three significant figures, written out in full: 0.0000899, 22.6, 7870. */
+private fun sig3(v: Double): String = BigDecimal(v).round(MathContext(3)).stripTrailingZeros().toPlainString()
+
+/** The blocks' lanes in a property's strip, top to bottom. */
+private const val LANES = "spdf"
+
+/** One property, as on the phone: its name and this atom's value, its rank in words, then every
+ *  measured atom as a dot along the scale in its block's lane and color, this one larger and
+ *  white with a guide through the lanes, and the atoms at the two ends named under it. */
+@Composable
+private fun PropertyStrip(model: AppModel, crowd: Crowd) {
+    val p = crowd.property
+    val v = crowd.value ?: return
+    val me = model.atlas.atom(crowd.z)
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        KeyValue(p.label, show(p, v))
+        crowd.rank?.let { Label(it.replaceFirstChar { c -> c.uppercase() }, size = 13.sp, align = TextAlign.Start) }
+        Canvas(Modifier.fillMaxWidth().height(26.dp)) {
+            val w = size.width.toDouble() / density
+            val h = size.height.toDouble() / density
+            val pen = ComposePen(this, w, wide = true)
+            val pad = 5.0
+            val lane = (h - 4) / LANES.length
+            fun x(at: Double) = pad + at * (w - pad * 2)
+            fun y(block: String) = 2 + lane * (LANES.indexOf(block.firstOrNull() ?: 'f').coerceAtLeast(0) + 0.5)
+            for ((oz, ov) in crowd.all) if (oz != crowd.z) {
+                val a = model.atlas.atom(oz)
+                pen.dot(x(crowd.place(ov)), y(a.block), 1.8, blockColor(a.block))
+            }
+            val mx = x(crowd.place(v))
+            pen.line(mx, 1.0, mx, h - 1, Ink.K500, 2.0)
+            pen.dot(mx, y(me.block), 4.4, Ink.WHITE)
+        }
+        Row(Modifier.fillMaxWidth()) {
+            val (lz, lv) = crowd.lowest
+            val (hz, hv) = crowd.highest
+            Label("${model.atlas.atom(lz).symbol} ${show(p, lv, short = true)}", Modifier.weight(1f), size = 13.sp, color = Tone.text2, align = TextAlign.Start, lines = 1)
+            Label("${model.atlas.atom(hz).symbol} ${show(p, hv, short = true)}", size = 13.sp, color = Tone.text2, align = TextAlign.End, lines = 1)
+        }
+    }
+}
+
+/** A neighbor on the table: its plate, with a chevron on the side it lies. */
+@Composable
+private fun Neighbor(atom: Atom, before: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        if (before) IconMark(Icon.BACK, 18, Ink.K300)
+        IdPlate(atom, 52)
+        if (!before) IconMark(Icon.CHEVRON, 18, Ink.K300)
     }
 }
 
