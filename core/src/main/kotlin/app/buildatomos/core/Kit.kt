@@ -275,18 +275,7 @@ class Stage(val out: Out = object : Out {}) {
     fun lose() { if (!over) result = Result.LOST }
 
     fun prompt(go: () -> Unit) { waiting = go }
-
-    // ---- Until every game plays in levels: the old score calls, kept so the rest compile. ----
-    @Deprecated("Levels: call clear() and lose()") fun score(n: Double) {}
-    @Deprecated("Levels: call clear() and lose()") fun score(n: Int) {}
-    @Deprecated("Levels: call lose()") fun end(raw: Double) = lose()
-    @Deprecated("Levels") val bests: MutableMap<String, Double> = mutableMapOf()
 }
-
-@Deprecated("Levels") fun best(s: Stage, k: String): Double = 0.0
-@Deprecated("Levels") fun setBest(s: Stage, k: String, n: Double) {}
-@Deprecated("Levels: call lose()") fun finish(s: Stage, k: String, n: Double) = s.lose()
-@Deprecated("Levels: call lose()") fun finish(s: Stage, k: String, n: Int) = s.lose()
 
 /** How far `p` is outside the court's edge (negative inside), and the way out there. */
 fun edge(s: Stage, p: Pt): Triple<Double, Double, Double> {
