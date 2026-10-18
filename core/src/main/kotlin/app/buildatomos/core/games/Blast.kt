@@ -21,6 +21,8 @@ import kotlin.math.sin
  * from wave to wave, and every third wave cleared gives one back. Heat brings the reds faster,
  * thicker and less straight at Nu. They never come from under the menu at the top or the counter
  * at the bottom.
+ * On the watch the crown aims as well, so no finger covers Nu: turning it swings a short sight
+ * round Nu, and when the crown comes to rest the photon goes that way.
  */
 class Blast : Toy {
     internal val reds = mutableListOf<Mover>()
@@ -32,6 +34,11 @@ class Blast : Toy {
     private var need = 0
     /** The breath between waves: when the next one starts. */
     private var calmUntil = 0.0
+    /** The crown's sight round Nu (radians), and whether a photon waits to go that way once the
+     *  crown rests, as of when it last turned. */
+    private var sight = -PI / 2
+    private var aiming = false
+    private var turnedAt = 0.0
 
     override fun enter(s: Stage) {
         s.nu.r = 11.0
@@ -53,6 +60,8 @@ class Blast : Toy {
     override fun step(s: Stage, dt: Double, now: Double) {
         s.nu.seek(s.c, dt, 0.5, 0.02)
         if (s.over) return
+        // The crown at rest: the photon goes along the sight (or as soon as one may).
+        if (aiming && now - turnedAt >= REST && fire(s, cos(sight), sin(sight))) aiming = false
         val h = s.heat
         if (now >= nextAt && now >= calmUntil) {
             nextAt = now + every(h) * (0.7 + rnd() * 0.6)
@@ -115,6 +124,11 @@ class Blast : Toy {
     override fun draw(s: Stage, pen: Pen, now: Double) {
         for (r in reds) { pen.dot(r.x, r.y, 9.0, Ink.RED, 0.25); pen.ring(r.x, r.y, 7.5, Ink.RED, 3.0, 0.9) }
         for (q in shots) pen.dot(q.x, q.y, 4.5, Ink.CYAN)
+        if (aiming && !s.over) {
+            val from = s.nu.r + 6
+            pen.line(s.nu.x + cos(sight) * from, s.nu.y + sin(sight) * from,
+                s.nu.x + cos(sight) * (from + 14), s.nu.y + sin(sight) * (from + 14), Ink.CYAN, 3.0, 0.8)
+        }
         lives(s, pen, left, LIVES)
         s.nu.draw(pen, now)
     }
@@ -124,14 +138,31 @@ class Blast : Toy {
         val dx = p.x - s.nu.x
         val dy = p.y - s.nu.y
         val d = hypot(dx, dy)
-        if (d < 4 || shots.size >= 4) return
-        shots += Mover(s.nu.x, s.nu.y, dx / d * 0.6, dy / d * 0.6)
+        if (d < 4) return
+        fire(s, dx / d, dy / d)
+    }
+
+    /** The crown swings the sight round Nu, a turn of the crown a turn round. */
+    override fun crown(s: Stage, by: Double) {
+        if (s.over || by == 0.0) return
+        sight = ((sight + by) % TAU + TAU) % TAU
+        aiming = true
+        turnedAt = s.now
+    }
+
+    /** A photon from Nu along (ux, uy), a unit vector, unless four are out already. */
+    private fun fire(s: Stage, ux: Double, uy: Double): Boolean {
+        if (shots.size >= 4) return false
+        shots += Mover(s.nu.x, s.nu.y, ux * 0.6, uy * 0.6)
         s.out.tick(2)
+        return true
     }
 
     private companion object {
         const val LIVES = 3
         /** The breath between waves, ms. */
         const val CALM = 800.0
+        /** How long the crown rests before the sighted photon goes, ms. */
+        const val REST = 160.0
     }
 }

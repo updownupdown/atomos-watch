@@ -1,6 +1,7 @@
 package app.buildatomos.core.games
 
 import app.buildatomos.core.*
+import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
@@ -16,7 +17,8 @@ import kotlin.math.roundToInt
  * On the watch each field is half the round court (off the line down the middle, in from the
  * edge, under the menu and over the level counter), not the phone's two rectangles; Nu waits at
  * the top, just under the menu. Every atom a side should have is always placed: if the field is
- * crowded the atoms may sit a little closer.
+ * crowded the atoms may sit a little closer. The crown answers too, so no finger hides the
+ * fields: a little turn anticlockwise picks the left side, clockwise the right.
  */
 class More : Toy {
     private class Atom(val x: Double, val y: Double, val r: Double)
@@ -31,6 +33,8 @@ class More : Toy {
     /** Right answers this level. */
     private var count = 0
     private var over = false
+    /** How far the crown has turned one way during this ask. */
+    private var wound = 0.0
     /** The rim's time for one ask: 4.5 s at the easiest, 2.5 s at Expert, never under 1.1 s. */
     private fun ms(s: Stage) = max(1100.0, 4500.0 / (1 + s.heat * 0.8))
     private fun need(s: Stage) = 6 + min(s.level, 10) / 2
@@ -74,6 +78,7 @@ class More : Toy {
         }
         askAt = null
         answered = null
+        wound = 0.0
         s.rim = 1.0
     }
 
@@ -137,5 +142,13 @@ class More : Toy {
     override fun down(s: Stage, p: Pt) {
         if (over || answered != null) return
         answer(s, s.now, if (p.x < s.c.x) 0 else 1)
+    }
+
+    /** The crown: a little turn one way picks a side, anticlockwise the left, clockwise the right. */
+    override fun crown(s: Stage, by: Double) {
+        if (over || answered != null || by == 0.0) return
+        if (by * wound < 0) wound = 0.0
+        wound += by
+        if (abs(wound) >= 0.15) answer(s, s.now, if (wound > 0) 1 else 0)
     }
 }

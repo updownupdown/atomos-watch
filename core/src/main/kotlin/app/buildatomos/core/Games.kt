@@ -15,13 +15,13 @@ class Game(
 
 object Games {
     val all: List<Game> = listOf(
-        Game("blast", "Blast") { Blast() },
+        Game("blast", "Blast", crown = true) { Blast() },
         Game("dive", "Dive") { Dive() },
         Game("echo", "Echo") { Echo() },
         Game("flash", "Flash") { Flash() },
         Game("halo", "Halo", crown = true) { Halo() },
         Game("juggle", "Juggle") { Juggle() },
-        Game("more", "More") { More() },
+        Game("more", "More", crown = true) { More() },
         Game("orbit", "Orbit", crown = true) { Orbit() },
         Game("pulse", "Pulse") { Pulse() },
         Game("rain", "Rain", crown = true) { Rain() },
