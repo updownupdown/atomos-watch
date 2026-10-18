@@ -114,7 +114,9 @@ fun FreePlayScreen(model: AppModel, game: Game, onPlay: (Int) -> Unit) {
             .onRotaryScrollEvent { e ->
                 spun += e.verticalScrollPixels
                 val steps = (spun / PICK_PX).toInt()
-                if (steps != 0) { spun -= steps * PICK_PX; set(level + steps) }
+                // A turn that would scroll a list down steps toward Very easy; one that would
+                // scroll it up, toward Expert.
+                if (steps != 0) { spun -= steps * PICK_PX; set(level - steps) }
                 true
             }
             .focusRequester(fr)
@@ -149,8 +151,10 @@ fun FreePlayScreen(model: AppModel, game: Game, onPlay: (Int) -> Unit) {
                 }
             }
             val best = model.bestLevel(game, level)
+            // The tiny atom shows even with no best yet (empty), so the row keeps its height and
+            // the dots above don't jump as the level changes.
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (best > 0) Canvas(Modifier.size(20.dp)) { ComposePen(this, 20.0).levels(10.0, 10.0, 20.0, best, null) }
+                Canvas(Modifier.size(20.dp)) { ComposePen(this, 20.0).levels(10.0, 10.0, 20.0, best.coerceAtLeast(0), null) }
                 Label(if (best > 0) "Best: $best" else "No best yet", size = 13.sp, color = Tone.text2)
             }
         }

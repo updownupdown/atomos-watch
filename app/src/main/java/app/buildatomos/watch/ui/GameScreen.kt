@@ -232,9 +232,10 @@ private fun intro(pen: ComposePen, m: TextMeasurer, spec: RunSpec, since: Double
     if (fade <= 0) return
     pen.dot(MID, 84.0, 30.0, Ink.WHITE, fade)
     pen.gameIcon(spec.game.id, MID, 84.0, 34.0, Ink.BLACK)
-    // Round the icon, the time left before play starts, filling clockwise from the top.
+    // Round the icon, the time left before play starts, filling clockwise from the top in the
+    // difficulty's color.
     pen.ring(MID, 84.0, 38.0, Ink.K800, 3.0, fade)
-    pen.arc(MID, 84.0, 38.0, -PI / 2, TAU * (since / (INTRO_MS - 300)).coerceIn(0.0, 1.0), Ink.CYAN, 3.0, fade)
+    pen.arc(MID, 84.0, 38.0, -PI / 2, TAU * (since / (INTRO_MS - 300)).coerceIn(0.0, 1.0), Difficulty.color(spec.dial), 3.0, fade)
     pen.text(m, spec.game.label, MID, 140.0, 24.0, Ink.WHITE, FontWeight.SemiBold, fade)
     pen.text(m, Difficulty.word(spec.dial), MID, 168.0, 15.0, Difficulty.color(spec.dial), alpha = fade)
     pen.pips(MID, 188.0, 46.0, spec.dial)

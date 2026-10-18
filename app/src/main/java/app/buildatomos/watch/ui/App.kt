@@ -81,7 +81,7 @@ fun App(model: AppModel, launchBuild: Boolean, onLaunched: () -> Unit, onExit: (
                 val game = e.arguments?.getString("id")?.let(Games::byId) ?: Games.all.first()
                 val level = e.arguments?.getString("level")?.toIntOrNull() ?: 1
                 val spec = remember { model.freeRun(game, level) }
-                GameScreen(model, spec, onLeave = { nav.popBackStack() }, onNextRun = { nav.popBackStack() })
+                GameScreen(model, spec, onLeave = { nav.leaveFreeRun() }, onNextRun = { nav.leaveFreeRun() })
             }
             composable(Routes.COLLECTION) {
                 CollectionScreen(model, onBuild = run, onAtom = { nav.go(Routes.build(it)) })
@@ -116,6 +116,15 @@ fun App(model: AppModel, launchBuild: Boolean, onLaunched: () -> Unit, onExit: (
 }
 
 private fun NavHostController.go(route: String) = navigate(route) { launchSingleTop = true }
+
+/** Leaving a free run goes past the game's page (where its difficulty was picked) to wherever the
+ *  game was chosen: the games list, or Home for Nu's pick. Does nothing once the run has gone, so
+ *  a second tap on Exit can't pop further. */
+private fun NavHostController.leaveFreeRun() {
+    if (currentBackStackEntry?.destination?.route != "free/{id}/{level}") return
+    popBackStack()
+    if (currentBackStackEntry?.destination?.route == "game/{id}") popBackStack()
+}
 
 /** Stepping to a neighbor replaces this page rather than stacking another. */
 private fun NavHostController.swap(route: String) {
