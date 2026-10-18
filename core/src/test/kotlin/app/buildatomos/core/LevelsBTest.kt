@@ -1,6 +1,5 @@
 package app.buildatomos.core
 
-import app.buildatomos.core.games.Halo
 import app.buildatomos.core.games.Juggle
 import app.buildatomos.core.games.More
 import app.buildatomos.core.games.Orbit
@@ -11,7 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Halo, Juggle, More and Orbit in levels: small bots that play by what they see (the dots each
+ * Juggle, More and Orbit in levels: small bots that play by what they see (the dots each
  * game draws, and Nu) clear levels, and heat makes each game harder.
  */
 class LevelsBTest {
@@ -56,29 +55,6 @@ class LevelsBTest {
     /** How far ahead of `from` angle `to` is, going round the way `dir` says (0..2π). */
     private fun ahead(from: Double, to: Double, dir: Int) = (((to - from) * dir) % TAU + TAU) % TAU
 
-    // ---- Halo: runs round to the photon that will cross the ring next. ----
-
-    private fun halo(dial: Int, goal: Int?, ms: Double): Stage {
-        val g = Halo()
-        val track = COURT_R * 0.72
-        return run(g, dial, goal, ms) { s, seen ->
-            val next = seen.of(Ink.CYAN, 4.5).filter { it.alpha == 1.0 && dist(s, it) < track + 1 }.maxByOrNull { dist(s, it) }
-            if (next != null) g.move(s, polar(s, angle(s, next.x, next.y), track))
-        }
-    }
-
-    @Test fun haloClearsLevels() {
-        val s = halo(1, 3, 180_000.0)
-        assertEquals(Result.WON, s.result, "Very easy: ${s.level} levels")
-        assertTrue(halo(100, 7, 180_000.0).level >= 1, "Expert clears a level")
-    }
-
-    @Test fun haloHeatThrowsHarder() {
-        val easy = run(Halo(), 1, null, 600_000.0).now
-        val hard = run(Halo(), 100, null, 600_000.0).now
-        assertTrue(hard < easy * 0.8, "left alone, lost at $easy (dial 1) and $hard (dial 100)")
-    }
-
     // ---- Juggle: kicks Nu up as it falls, nudging it back toward the middle. ----
 
     private fun juggle(dial: Int, goal: Int?, ms: Double): Stage {
@@ -115,17 +91,19 @@ class LevelsBTest {
         assertTrue(kick(100) > kick(1) * 1.2, "the kick up: ${kick(1)} at dial 1, ${kick(100)} at dial 100")
     }
 
-    // ---- More: counts the atoms each side and taps the side with more. ----
+    // ---- More: counts the atoms each side, whatever their colours, and taps the side with more. ----
 
-    private fun more(dial: Int, goal: Int?, ms: Double): Stage {
+    private fun atoms(seen: Seen) = seen.dots.filter { it.color in More.INKS }
+
+    private fun more(dial: Int, goal: Int?, ms: Double, look: (Stage, List<Seen.Dot>) -> Unit = { _, _ -> }): Stage {
         val g = More()
         var field = ""
         var since = 0
         return run(g, dial, goal, ms) { s, seen ->
-            val atoms = seen.of(Ink.CYAN)
+            val atoms = atoms(seen)
             if (atoms.isEmpty() || seen.of(Ink.GREEN).isNotEmpty()) return@run
             val key = "${atoms[0].x.toInt()},${atoms[0].y.toInt()}"
-            if (key != field) { field = key; since = 0 }
+            if (key != field) { field = key; since = 0; look(s, atoms) }
             // A look of half a second, then the tap.
             if (++since == 30) {
                 val left = atoms.count { it.x < s.c.x }
@@ -137,6 +115,23 @@ class LevelsBTest {
     @Test fun moreClearsLevels() {
         assertEquals(Result.WON, more(1, 3, 180_000.0).result)
         assertEquals(Result.WON, more(100, 7, 300_000.0).result)
+    }
+
+    /** Each ask deals its colours afresh: many colours over a run, the two sides sometimes alike
+     *  and sometimes not. */
+    @Test fun moreVariesItsColours() {
+        val seen = mutableSetOf<Int>()
+        var alike = 0
+        var unlike = 0
+        more(50, null, 120_000.0) { s, atoms ->
+            val l = atoms.filter { it.x < s.c.x }.map { it.color }.toSet()
+            val r = atoms.filter { it.x >= s.c.x }.map { it.color }.toSet()
+            assertTrue(l.size == 1 && r.size == 1, "one colour a side: $l, $r")
+            seen += l + r
+            if (l == r) alike++ else unlike++
+        }
+        assertTrue(seen.size >= 4, "colours seen: ${seen.size}")
+        assertTrue(alike >= 3 && unlike >= 3, "alike $alike, unlike $unlike")
     }
 
     @Test fun moreHeatHurries() {

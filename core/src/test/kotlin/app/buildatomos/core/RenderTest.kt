@@ -49,7 +49,7 @@ class RenderTest {
         pen.levels(150.0, 220.0, 44.0, 37, null)
         pen.pips(210.0, 220.0, 40.0, 55)
         var x = 40.0
-        for (g in listOf("halo", "orbit", "pulse", "dive", "flash", "echo", "stick", "ready", "tune")) { pen.dot(x, 270.0, 14.0, Ink.WHITE); pen.gameIcon(g, x, 270.0, 18.0, Ink.BLACK); x += 28 }
+        for (g in listOf("rain", "orbit", "pulse", "dive", "flash", "echo", "stick", "ready", "tune")) { pen.dot(x, 270.0, 14.0, Ink.WHITE); pen.gameIcon(g, x, 270.0, 18.0, Ink.BLACK); x += 28 }
         pen.save(File(out, "marks.svg"))
     }
 }

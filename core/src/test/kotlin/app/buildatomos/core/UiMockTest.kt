@@ -30,7 +30,7 @@ class UiMockTest {
     @Test fun menu() {
         if (System.getenv("MOCK") != "1") return
         for (free in listOf(false, true)) {
-            val g = Games.byId("halo")!!
+            val g = Games.byId("orbit")!!
             val st = Stage(); st.dial = 30; st.goal = if (free) null else 5
             val t = g.make(); t.enter(st)
             var now = 1000.0
@@ -39,8 +39,8 @@ class UiMockTest {
             t.draw(st, pen, now)
             pen.dot(150.0, 150.0, 150.0, Ink.BLACK, 0.9)
             // Title row: icon and name.
-            pen.dot(104.0, 66.0, 15.0, Ink.WHITE); pen.gameIcon("halo", 104.0, 66.0, 18.0, Ink.BLACK)
-            pen.text("Halo", 150.0 + 12, 66.0, 22.0, Ink.WHITE, 600)
+            pen.dot(104.0, 66.0, 15.0, Ink.WHITE); pen.gameIcon("orbit", 104.0, 66.0, 18.0, Ink.BLACK)
+            pen.text("Orbit", 150.0 + 12, 66.0, 22.0, Ink.WHITE, 600)
             pen.text(Difficulty.word(30), 150.0, 92.0, 14.0, Difficulty.color(30))
             // Exit, Resume, Restart across the middle.
             pen.dot(70.0, 150.0, 26.0, Ink.K800); pen.icon(Icon.EXIT, 70.0, 150.0, 26.0, Ink.WHITE)

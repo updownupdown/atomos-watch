@@ -24,6 +24,11 @@ private const val SPEED = 0.55
 private const val SUB = 4.0
 /** How far the aim swings either side of straight up (rad). */
 private const val SWING = 1.25
+/** The share of the shot clock left when its small ring round the next atom shows. */
+private const val CUE = 0.4
+/** The atoms' four colours: blue, green, yellow and violet, far apart so none is taken for
+ *  another on the small screen. */
+private val COLOURS = intArrayOf(0xFF4F8FF0.toInt(), 0xFF3FCF86.toInt(), 0xFFF2CC48.toInt(), 0xFFC266EC.toInt())
 
 /**
  * Pop (the phone's src/nu/grove.ts). A cluster of atoms in four colours hangs from the top; Nu
@@ -38,8 +43,10 @@ private const val SWING = 1.25
  * On the watch the crown aims: turn it to swing the short aim guide from Nu, and tap anywhere to
  * fire. A finger dragged on the screen aims at itself too, and fires when it lets go. The
  * cluster is a honeycomb clipped to the round court, a dome under the menu, and shots glance off
- * the rim. A shot clock runs round the rim: if it runs out, Nu fires by itself where it aims, so
- * a run nobody plays fills up and ends.
+ * the rim. A shot clock runs, quietly: for its last part a small ring round the next atom, by Nu,
+ * empties, and if it runs out Nu fires by itself where it aims, so a run nobody plays fills up
+ * and ends. The colours are the watch's own (blue, green, yellow, violet), further apart than
+ * the phone's orbital ones.
  */
 class Pop : Toy {
     /** The colour in each slot, -1 for none. */
@@ -66,7 +73,7 @@ class Pop : Toy {
     private fun need(s: Stage) = 40 + min(s.level, 10) * 4
     private fun every(s: Stage) = clamp(9 - s.heat * 3, 4.0, 9.0).roundToInt()
     private fun limit(s: Stage) = clamp(6500 - s.heat * 2500, 3000.0, 6500.0)
-    private fun colour(c: Int) = Ink.NOTES[c]
+    private fun colour(c: Int) = COLOURS[c]
 
     private fun off(j: Int) = if ((j + shift) % 2 == 1) AR else 0.0
     private fun x(s: Stage, j: Int, i: Int) = s.c.x + (i - (COLS - 1) / 2.0) * 2 * AR + off(j) - AR / 2
@@ -112,11 +119,10 @@ class Pop : Toy {
         nu.seek(home(s), dt, 0.6, 0.04)
         for (d in drops) { d.vy += 0.0012 * dt; d.y += d.vy * dt }
         drops.removeAll { it.y > s.c.y + s.R + 20 }
-        if (over) { s.rim = null; return }
+        if (over) return
         val q = shot
         if (q == null) {
             wait += dt
-            s.rim = clamp(1 - wait / limit(s), 0.0, 1.0)
             if (wait >= limit(s)) fire(s)
             spare = 0.0
             return
@@ -149,7 +155,6 @@ class Pop : Toy {
         val nu = s.nu
         shot = Shot(nu.x, nu.y, cos(aim) * SPEED, sin(aim) * SPEED, load)
         wait = 0.0
-        s.rim = null
         s.out.tick(2)
     }
 
@@ -213,14 +218,13 @@ class Pop : Toy {
         if (count >= need(s)) {
             count = 0
             s.clear()
-            if (s.over) { over = true; s.rim = null; return }
+            if (s.over) { over = true; return }
         }
         s.part = clamp(count.toDouble() / need(s), 0.0, 1.0)
         load = pick()
         // Down to the line?
         for (j in 0 until ROWS) for (i in 0 until COLS) if (grid[j][i] >= 0 && y(j) + AR > LINE) {
             over = true
-            s.rim = null
             s.fx.ring(Pt(x(s, j, i), y(j)), Ink.RED, AR, AR + 24, 700.0)
             s.out.miss()
             s.out.buzz(26)
@@ -245,6 +249,9 @@ class Pop : Toy {
             val dx = cos(aim); val dy = sin(aim)
             pen.line(nu.x + dx * (nu.r + 6), nu.y + dy * (nu.r + 6), nu.x + dx * 60, nu.y + dy * 60, Ink.WHITE, 2.0, 0.45)
             pen.dot(nu.x + 20, nu.y + 4, AR - 1, colour(load))
+            // The shot clock's last part: a small ring round the next atom, emptying.
+            val left = 1 - wait / limit(s)
+            if (left < CUE) pen.arc(nu.x + 20, nu.y + 4, AR + 3, -PI / 2, TAU * clamp(left / CUE, 0.0, 1.0), Ink.K300, 2.5, 0.7)
         }
         nu.draw(pen, now)
     }

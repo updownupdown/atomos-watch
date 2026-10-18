@@ -1,8 +1,10 @@
 package app.buildatomos.core
 
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.pow
+import kotlin.math.sin
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -66,10 +68,17 @@ class LevelsCTest {
         assertTrue(run("pulse", 100, null, 120_000.0, ::pulseBot).level >= 3)
     }
 
+    /** The first wave waits a moment before it spreads. */
+    @Test fun pulseWaitsAtTheStart() {
+        var first = -1.0
+        run("pulse", 50, null, 5000.0) { s, _, spy -> if (first < 0 && spy.rings(Ink.WHITE, 3.0).isNotEmpty()) first = s.now }
+        assertTrue(first - 1000 >= 1200, "first wave at ${first - 1000} ms")
+    }
+
     @Test fun pulseHeats() {
         fun look(dial: Int): Pair<Double, Double> {
             var r0 = -1.0; var speed = 0.0; var band = 0.0
-            run("pulse", dial, null, 1400.0) { _, _, spy ->
+            run("pulse", dial, null, 4000.0) { _, _, spy ->
                 val w = spy.rings(Ink.WHITE, 3.0).firstOrNull()
                 if (w != null) { if (r0 >= 0) speed = (w.r - r0) / 16; r0 = w.r }
                 spy.marks.firstOrNull { it.ring && it.width > 4 }?.let { band = it.width }
@@ -243,6 +252,21 @@ class LevelsCTest {
     @Test fun rippleClears() {
         val won = (1..5).count { run("ripple", 1, 3, 180_000.0, rippleBot()).result == Result.WON }
         assertTrue(won >= 3, "won $won of 5")
+    }
+
+    /** Nu sent drifting slowly to the rim doesn't stay stuck there: the water eases it back in,
+     *  leaving room to tap outside it. */
+    @Test fun rippleLetsGoOfTheRim() {
+        for (k in 0 until 8) {
+            val a = k * TAU / 8
+            var tapped = false
+            // A ripple from the far side, so faint that it only just carries Nu to the rim.
+            val s = run("ripple", 1, null, 9000.0) { s, t, _ ->
+                if (!tapped && s.now > 1100) { tap(s, t, Pt(s.nu.x - cos(a) * 135, s.nu.y - sin(a) * 135)); tapped = true }
+            }
+            val gap = s.R - dist(s.nu.x, s.nu.y, s.c.x, s.c.y) - s.nu.r
+            assertTrue(gap > 12, "pushed toward ${k * 45} degrees, Nu ended $gap from the rim")
+        }
     }
 
     @Test fun rippleHeats() {
