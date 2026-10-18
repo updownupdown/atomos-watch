@@ -94,9 +94,9 @@ fun GamesScreen(model: AppModel, onGame: (String) -> Unit) {
 /** Rotary pixels per difficulty step on a game's page. */
 private const val PICK_PX = 60f
 
-/** One game's page for free play: its icon and name on one row, the difficulty (tap a dot or
- *  turn the crown; the picked dot holds a check), the best level reached at it, and Play near the
- *  foot. */
+/** One game's page for free play: its icon and name on one row, the difficulty across the middle
+ *  (tap a dot or turn the crown; the picked dot holds a check), the best level reached at it, and
+ *  Play near the foot. */
 @Composable
 fun FreePlayScreen(model: AppModel, game: Game, onPlay: (Int) -> Unit) {
     model.version
@@ -122,39 +122,42 @@ fun FreePlayScreen(model: AppModel, game: Game, onPlay: (Int) -> Unit) {
             .focusable(),
     ) {
         Column(
-            Modifier.fillMaxSize().padding(top = 30.dp, bottom = 12.dp),
+            Modifier.fillMaxSize().padding(top = 22.dp, bottom = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GameIcon(game.id, 30)
+                GameIcon(game.id, 28)
                 Label(game.label, size = 18.sp, weight = FontWeight.SemiBold, lines = 1)
             }
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.weight(1f))
             Label(Difficulty.WORDS[level], size = 15.sp, color = Color(Difficulty.COLORS[level]), weight = FontWeight.SemiBold)
-            // The five levels as dots to pick from, each in its own color; the picked one is
-            // filled and holds a check.
-            Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            // The five levels as dots to pick from, each in its own color, across the middle of the
+            // screen where it is widest. Each dot's tap target is its whole share of the row, so
+            // they touch; the picked one is filled and holds a check.
+            Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp)) {
                 for (i in 0 until Difficulty.LEVELS) {
-                    Canvas(Modifier.size(30.dp).clickable { set(i) }) {
-                        val pen = ComposePen(this, 30.0)
-                        val c = Difficulty.COLORS[i]
-                        if (i == level) {
-                            pen.dot(15.0, 15.0, 14.0, c)
-                            pen.icon(Icon.CHECK, 15.0, 15.0, 18.0, Ink.BLACK)
-                        } else {
-                            pen.dot(15.0, 15.0, 11.0, Ink.K800)
-                            pen.ring(15.0, 15.0, 10.0, c, 2.4)
+                    Box(Modifier.weight(1f).height(44.dp).clickable { set(i) }, contentAlignment = Alignment.Center) {
+                        Canvas(Modifier.size(34.dp)) {
+                            val pen = ComposePen(this, 34.0)
+                            val c = Difficulty.COLORS[i]
+                            if (i == level) {
+                                pen.dot(17.0, 17.0, 16.5, c)
+                                pen.icon(Icon.CHECK, 17.0, 17.0, 20.0, Ink.BLACK)
+                            } else {
+                                pen.dot(17.0, 17.0, 13.5, Ink.K800)
+                                pen.ring(17.0, 17.0, 12.5, c, 2.6)
+                            }
                         }
                     }
                 }
             }
             val best = model.bestLevel(game, level)
-            Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (best > 0) Canvas(Modifier.size(20.dp)) { ComposePen(this, 20.0).levels(10.0, 10.0, 20.0, best, null) }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (best > 0) Canvas(Modifier.size(18.dp)) { ComposePen(this, 18.0).levels(9.0, 9.0, 18.0, best, null) }
                 Label(if (best > 0) "Best: $best" else "No best yet", size = 13.sp, color = Tone.text2)
             }
             Spacer(Modifier.weight(1f))
-            IconMark(Icon.PLAY, 52, Ink.BLACK, disc = Ink.WHITE, modifier = Modifier.clickable { onPlay(level) })
+            IconMark(Icon.PLAY, 46, Ink.BLACK, disc = Ink.WHITE, modifier = Modifier.clickable { onPlay(level) })
         }
     }
 }

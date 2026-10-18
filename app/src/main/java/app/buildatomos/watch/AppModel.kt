@@ -7,6 +7,7 @@ import android.content.ComponentName
 import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.wear.tiles.TileService
@@ -50,6 +51,9 @@ class AppModel(private val context: Context) {
         private set
     /** The last won run's payout, until Home has shown it. */
     var payout by mutableStateOf<Payout?>(null)
+    /** The sections open on an atom's Atlas page (all start closed): kept while the app runs, so
+     *  stepping to the next atom keeps the same ones open. */
+    val atlasOpen = mutableStateListOf<String>()
 
     var sound: Boolean
         get() { version; return store.sound }
