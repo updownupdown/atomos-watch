@@ -3,17 +3,28 @@
 The watch companion to ATOMOS: Nu's games on the wrist, and a collection of atoms you build by
 playing them. It works on its own, with no phone and no sync, and it is free.
 
-- **Home** shows the atom you are building. Its cloud fills with color as electrons come in, and
-  the rim shows how far it has come. The rose Next button plays the game Nu wants to play. Turn
-  the crown to look through your collection, and tap an atom to read about it.
-- **Games** lists all 17 games, A to Z, with your best in each.
+- **Home** is a short list the crown scrolls. At the top is the atom you are building: its
+  cloud fills with color shell by shell, and under it are the game and difficulty of the next
+  shell and the rose Build button. Then come Nu's three questions of the day, the same ones the
+  phone asks. At the bottom are rows for all the atoms (the Atlas), all the games (free play)
+  and Settings.
+- **A run** opens on a card with the game's name, its difficulty and the levels to reach. The
+  ATOMOS mark at the top of the screen (or the back button) pauses it and opens a menu: Resume,
+  Restart, Exit. The levels show as a tiny atom at the bottom of the screen.
+  - A run for an atom has a goal: 3 levels at Very easy up to 7 at Expert. Each level cleared
+    fills one electron slot. Win, and the atom's next shell is built.
+  - Free play has no goal. The tiny atom counts levels in binary across 8 slots, up to 255, and
+    every level is harder than the last.
+- **The Atlas** shows every atom on a wheel (the crown steps through them) or in the table. Each
+  atom's page has its structure, numbers, properties, isotopes, discovery, facts and uses.
 - **Settings** has Sound (off to start), Haptics (on to start, and soft), and starting the
   collection over.
-- **The tile** shows Nu's pick with a Play button. **The complication** shows the atom being built
-  on a watch face.
+- **The tile** and **the Play with Nu complication** open straight into the next run for the
+  atom. **The building complication** shows the atom being built on a watch face.
 
-Every run pays electrons into the collection: 10 for a run at par, at least 1 for any score, and
-double for a new best. Atom Z takes Z electrons, so the whole table takes 7,021.
+Atom Z has as many shells as its period: hydrogen takes 1 win, carbon 2, iron 4 and oganesson
+7, so the whole table takes 620. Each shell is played at the atom's difficulty (the phone's
+`atomDial`, 5 for hydrogen up to 75 for oganesson), a little harder for each shell further out.
 
 ## Run it on your watch
 
@@ -38,6 +49,8 @@ From a terminal: `gradlew :app:installDebug` builds and installs to the connecte
 - `app/src/main/assets/atoms.json` and `atoms.bin` are the 118 atoms and their clouds, baked from
   the phone app's own orbital sampler. To bake them again, from a checkout of the phone app:
   `npx -y tsx ../atomos-watch/tools/gen-atoms.mts . ../atomos-watch/app/src/main/assets`.
+- `atoms-info.json` is what the Atlas tells about each atom, baked the same way with
+  `tools/gen-info.mts`.
 - `core/.../Quiz.kt` deals Nu's daily questions as the phone does. `QuizTest` checks it against
   the phone's own deal in `core/src/test/resources/quiz-phone.json`, made with
   `npx -y tsx ../atomos-watch/tools/gen-quiz.mts . <out file> [from day] [to day]`.
@@ -48,8 +61,11 @@ The watch keeps everything in one SharedPreferences file, `atomos`:
 
 | Key | What it holds |
 | --- | --- |
-| `atomos.collection.v1` | `{building, electrons, built: {z: day}}` |
-| `atomos.bests.v1` | `{gameId: best}`, in each game's own count |
+| `atomos.collection.v2` | `{building, shells, built: {z: day}}` |
+| `atomos.collection.v1` | The first builds' `{building, electrons, built}`: read once, moved to v2 |
+| `atomos.levels.v1` | `{"<game>.<difficulty 0..4>": best level in free play}` |
+| `atomos.picked.v1` | `{"<game>": difficulty 0..4 last picked for free play}` |
+| `atomos.quiz.v1` | `{day, answers: [bool], streak, streakDay}` |
 | `atomos.sound` | Sound on or off (off to start) |
 | `atomos.haptics` | Haptics on or off (on to start) |
 | `atomos.runs` | Runs played, used to change Nu's pick after each run |
