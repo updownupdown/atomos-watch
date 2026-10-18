@@ -16,8 +16,8 @@ private const val IDLE_MS = 20_000.0
  * A wrong one shows where they were and costs one of three lives.
  * The phone lays the grid out in its rectangular arena, with Nu above it. On the watch the grid
  * sits in the middle of the round court, its spacing (at most the phone's 74) as big as lets the
- * corner dots stay inside the rim; Nu waits under it, the lives above. On a 6 by 6 grid the dots
- * are about 33 apart, so a tap goes to the nearest dot in reach rather than the last one. And
+ * corner dots stay inside the rim; Nu waits under it, the lives above. The grid stops at 5 by 5
+ * (the phone goes to 6 by 6), where the dots are about 41 apart, so a tap goes to the nearest dot in reach rather than the last one. And
  * since the watch's run must end when nobody plays, 20 s without a tap while asked counts as a
  * wrong one.
  */
@@ -56,8 +56,9 @@ class Recall : Toy {
     }
 
     private fun deal(now: Double) {
-        size = if (n <= 4) 3 else if (n <= 7) 4 else if (n <= 11) 5 else 6
-        lit = (0 until size * size).shuffled().take(n).toSet()
+        // The phone goes up to 6 by 6; on the watch 5 by 5 is as fine as a fingertip allows.
+        size = if (n <= 4) 3 else if (n <= 7) 4 else 5
+        lit = (0 until size * size).shuffled().take(min(n, size * size - 4)).toSet()
         found.clear()
         wrong = -1
         state = State.SHOW

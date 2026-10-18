@@ -18,7 +18,15 @@ class Game(
 
 object Games {
     val all: List<Game> = listOf(
+        Game("dive", "Dive", 5.0) { Dive() },
+        Game("echo", "Echo", 6.0) { Echo() },
+        Game("flash", "Flash", 20.0) { Flash() },
         Game("halo", "Halo", 18.0, crown = true) { Halo() },
+        Game("orbit", "Orbit", 12.0, crown = true) { Orbit() },
+        Game("pulse", "Pulse", 8.0) { Pulse() },
+        Game("ready", "Ready", 10.0) { Ready() },
+        Game("recall", "Recall", 5.0) { Recall() },
+        Game("shells", "Shells", 4.0) { Shells() },
     ).sortedBy { it.label }
 
     fun byId(id: String): Game? = all.firstOrNull { it.id == id }
