@@ -31,7 +31,7 @@ class LevelsFTest {
     }
 
     /** Steers by the crown, as a player watching the pads would: going up off a plain pad, under
-     *  the next pad up; coming down, over the first pad below. */
+     *  the next pad up; coming down, over the first pad below. Clockwise sends Nu left. */
     private val hopper: (Hop, Stage) -> Unit = { t, s ->
         val on = t.on
         val next = if (t.vy > 0) t.pads.filter { it.y - it.r * 0.6 - s.nu.r >= t.y }.minByOrNull { it.y }
@@ -39,8 +39,19 @@ class LevelsFTest {
         else null
         if (next != null) {
             val d = next.x - t.aim
-            if (abs(d) > 0.5) t.crown(s, d / (t.run(s) * 2 / 3))
+            if (abs(d) > 0.5) t.crown(s, -d / (t.run(s) * 2 / 3))
         }
+    }
+
+    /** Hop's crown turned clockwise sends Nu left, anticlockwise right. */
+    @Test fun hopCrownSteersLeftClockwise() {
+        val s = Stage()
+        val t = Hop()
+        t.enter(s)
+        t.crown(s, 0.3)
+        assertTrue(t.aim < s.c.x, "clockwise aims at ${t.aim}")
+        t.crown(s, -0.6)
+        assertTrue(t.aim > s.c.x, "anticlockwise aims at ${t.aim}")
     }
 
     @Test fun aGoodPlayerWinsAnEasyRun() {
@@ -73,7 +84,7 @@ class LevelsFTest {
         }
         val (r0, g0, m0) = hopAt(1)
         val (r1, _, _) = hopAt(100)
-        assertTrue(r1 < r0 && m0 == 0 && g0 < 70, "hop: pads $r0 vs $r1, $m0 drifting, gap $g0")
+        assertTrue(r1 < r0 && m0 == 0 && g0 < 78, "hop: pads $r0 vs $r1, $m0 drifting, gap $g0")
         val (r2, g2, _) = hopAt(100, 200)
         assertTrue(r2 >= 6.0 && g2 < 105, "hop deep in free play: pads $r2, gap $g2")
     }

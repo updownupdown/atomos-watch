@@ -18,7 +18,9 @@ import kotlin.math.sin
  *
  * A level is a set of catches: ten, and one more each level. Then the atoms rest for a breath
  * and the next set starts. Lives carry over, and every third level cleared gives one back. Heat
- * keeps each light on for less time, lights the next one sooner and lights more of them red.
+ * keeps each light on for less time (1.17 s at the gentlest, under 0.6 s at Expert, never under
+ * 0.4 s), lights the next one sooner and lights more of them red (one in nine at the gentlest,
+ * near one in four at Expert). It plays a notch and a half harder than the phone's.
  */
 class Flash : Toy {
     private var nodes = listOf<Pt>()
@@ -64,9 +66,9 @@ class Flash : Toy {
 
     /** How long a light stays on, ms, how much sooner the next comes (a factor on the wait), and
      *  how often one is red. */
-    internal fun window(h: Double) = max(400.0, 1400.0 - 650 * h)
-    private fun sooner(h: Double) = clamp(1.15 - 0.35 * h, 0.45, 1.15)
-    internal fun redChance(h: Double) = min(0.35, 0.06 + 0.14 * h)
+    internal fun window(h: Double) = max(400.0, 1170.0 - 650 * h)
+    private fun sooner(h: Double) = clamp(1.03 - 0.35 * h, 0.45, 1.15)
+    internal fun redChance(h: Double) = min(0.35, 0.11 + 0.14 * h)
 
     /** The atom to tap now, if one is lit cyan. */
     internal val target: Pt? get() = if (lit >= 0 && !red) nodes[lit] else null

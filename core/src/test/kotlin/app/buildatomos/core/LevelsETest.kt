@@ -117,7 +117,7 @@ class LevelsETest {
         assertTrue(Lanes.gates(1.0) > 0)
         // Nothing breaks deep into free play.
         for (h in listOf(2.5, 13.0)) {
-            assertTrue(Dial.width(h) >= 0.15 && Dial.hold(h) <= 950 && Dial.each(h) >= 1900 && Dial.drift(h) <= 0.0007 && Dial.notches(255) <= 8, "dial at $h")
+            assertTrue(Dial.width(h) >= 0.14 && Dial.hold(h) <= 950 && Dial.each(h) >= 1900 && Dial.drift(h) <= 0.0007 && Dial.notches(255) <= 8, "dial at $h")
             assertTrue(Lanes.pace(h) <= 0.0026 && Lanes.every(h) >= 260 && Lanes.reds(h) < 0.65 && Lanes.gates(h) < 0.25, "lanes at $h")
         }
     }

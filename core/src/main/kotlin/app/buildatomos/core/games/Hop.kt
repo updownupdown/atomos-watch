@@ -13,6 +13,9 @@ private const val JUMP = 0.8 * K
 private const val SPRING = 1.15 * K
 /** A pad holds Nu this many times; the next time it lands there, the pad gives way. */
 private const val HOLDS = 3
+/** How much higher up the phone's climb than the dial Hop plays: a notch, so Very easy plays as
+ *  Easy first did. */
+private const val NOTCH = 0.25
 
 /**
  * Hop (the phone's src/nu/yard.ts). Nu hops up from pad to pad, and the view climbs with it;
@@ -22,9 +25,11 @@ private const val HOLDS = 3
  * pads up at first, and a little higher every level. Falling to the bottom costs one of three
  * lives (they carry on from level to level, and one comes back every third level): Nu is caught
  * by a pad at the bottom and hops on. Heat brings what the phone's height brought: smaller pads,
- * wider gaps, and from a little past Very easy the drifting pads.
+ * wider gaps, and from the first steps of Very easy the drifting pads. Hop plays a notch higher
+ * up the phone's climb than the dial (`NOTCH`).
  * On the watch Nu climbs in the round court between two unseen walls set in from the sides, and
- * the crown steers it, as in Rain: a radian of crown is a third of the way across. A finger slid
+ * the crown steers it: turned clockwise it sends Nu left, anticlockwise right, a radian of crown
+ * a third of the way across. A finger slid
  * anywhere still steers it too, as on the phone. Pads fade in through the rim at the top and out
  * at the bottom, over the level counter. And since a run nobody plays must end, a pad holds Nu
  * three times and gives way on the fourth: left alone, Nu hops in place on its pad until it falls.
@@ -66,8 +71,9 @@ class Hop : Toy {
     private fun height(s: Stage) = 1000.0 + min(s.level, 10) * 50
 
     /** How far up the phone's climb this is, in its pixels: the phone grew harder with height,
-     *  about 3600 up at Expert, and climbing through each level toward the next. */
-    private fun depth(s: Stage) = (s.heat + HEAT_PER_LEVEL * s.part) * 3600
+     *  900 up at the very start, about 4100 up at Expert, and climbing through each level toward
+     *  the next. */
+    private fun depth(s: Stage) = (s.heat + NOTCH + HEAT_PER_LEVEL * s.part) * 3600
 
     override fun enter(s: Stage) {
         s.nu.r = 8.0
@@ -90,7 +96,7 @@ class Hop : Toy {
         while (last.y > top) {
             val d = depth(s)
             val gap = (60 + rnd() * min(110.0, 50 + d * 0.015)) * K
-            val moving = d > 900 && rnd() < 0.3
+            val moving = d > 1000 && rnd() < 0.3
             val spring = !moving && rnd() < 0.1
             // Plain pads vary a little in size; springs and drifters keep the usual size. Pads
             // shrink with the depth: from 13 round to about 7 at Expert.
@@ -233,7 +239,8 @@ class Hop : Toy {
         if (over) return
         grab = null
         val from = if (turning) want ?: x else x
-        want = clamp(from + by * run(s) * 2 / 3, s.c.x - run(s), s.c.x + run(s))
+        // Clockwise sends Nu left.
+        want = clamp(from - by * run(s) * 2 / 3, s.c.x - run(s), s.c.x + run(s))
         turning = true
     }
 

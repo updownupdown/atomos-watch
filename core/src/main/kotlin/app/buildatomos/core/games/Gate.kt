@@ -30,6 +30,8 @@ private const val MINE = 6.0
 /** After a hit, nothing hurts for this long (Nu blinks). */
 private const val SAFE_MS = 1200.0
 private const val LIVES = 3
+/** How much hotter than the dial the course runs: a notch, so Very easy plays as Easy first did. */
+private const val NOTCH = 0.25
 
 /**
  * Gate (the phone's src/nu/brook.ts). Slalom, Nu's way: Nu glides down while the course rolls up
@@ -44,8 +46,9 @@ private const val LIVES = 3
  * A level is a set of gates through: ten at first and one more each level, up to twenty. Then the
  * course goes on into a calm section, a breath before the next. The lives carry on from level to
  * level, and one comes back every third level. Heat is the phone's run going on: the course
- * faster, the gates narrower and swinging further out, more red dots, and soon some that drift
- * (Very easy plays like the phone's first gates, Expert like its fortieth or so).
+ * faster, the gates narrower and swinging further out, more red dots, and soon some that drift.
+ * It runs a notch hotter than the dial (`NOTCH`): Very easy plays like the phone's tenth gate or
+ * so, Expert like its fiftieth (the first few gates of a run stay gentle all the same).
  *
  * On the watch Nu rides a line across the upper part of the round court, under the menu, and the
  * course comes into sight over a horizon low in the circle (fading in, above the level counter
@@ -110,12 +113,12 @@ class Gate : Toy {
     private fun span(s: Stage) = s.hw - s.nu.r - 4
     private fun need(s: Stage) = min(20, 10 + s.level)
 
-    /** The phone's count of gates for the heat: about 40 at Expert, climbing toward the next level. */
-    private fun depth(s: Stage) = (s.heat + HEAT_PER_LEVEL * s.part) * 40
+    /** The phone's count of gates for the heat: about 46 at Expert, climbing toward the next level. */
+    private fun depth(s: Stage) = (s.heat + NOTCH + HEAT_PER_LEVEL * s.part) * 40
 
     /** The course's speed before a section's pace, in the phone's px/ms: its start at the easiest,
      *  its most a little past Expert, and a little more on into free play. */
-    internal fun speed(h: Double) = V0 + (V1 - V0) * min(1.0, h * 0.75) + min(0.04, max(0.0, h - 1.34) * 0.01)
+    internal fun speed(h: Double) = V0 + (V1 - V0) * min(1.0, (h + NOTCH) * 0.75) + min(0.04, max(0.0, h - 1.34) * 0.01)
     private fun cap(h: Double) = V1 * TOP + min(0.04, max(0.0, h - 1.34) * 0.01)
 
     /** A gate's width (court units) for a section's factor `k` at the phone's count `n`: never
