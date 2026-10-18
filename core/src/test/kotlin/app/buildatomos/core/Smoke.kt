@@ -8,6 +8,7 @@ class CheckPen : Pen {
     override fun ring(x: Double, y: Double, r: Double, color: Int, width: Double, alpha: Double) = ok(x, y, r, width, alpha)
     override fun arc(x: Double, y: Double, r: Double, start: Double, sweep: Double, color: Int, width: Double, alpha: Double) = ok(x, y, r, start, sweep, width, alpha)
     override fun line(x1: Double, y1: Double, x2: Double, y2: Double, color: Int, width: Double, alpha: Double) = ok(x1, y1, x2, y2, width, alpha)
+    override fun poly(xs: DoubleArray, ys: DoubleArray, n: Int, color: Int, width: Double, alpha: Double) { for (i in 0 until n) ok(xs[i], ys[i]); ok(width, alpha) }
     override fun dashed(x: Double, y: Double, r: Double, color: Int, width: Double, alpha: Double, n: Int) = ok(x, y, r, width, alpha)
     override fun rect(x: Double, y: Double, w: Double, h: Double, radius: Double, color: Int, alpha: Double) = ok(x, y, w, h, radius, alpha)
     override fun rectRing(x: Double, y: Double, w: Double, h: Double, radius: Double, color: Int, width: Double, alpha: Double) = ok(x, y, w, h, radius, width, alpha)

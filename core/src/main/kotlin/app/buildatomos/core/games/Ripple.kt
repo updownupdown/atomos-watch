@@ -7,8 +7,11 @@ import kotlin.math.min
 import kotlin.math.pow
 
 private const val RUN_MS = 40_000.0
-private const val REACH = 260.0
-private const val SPEED = 0.24
+/** The phone's reach, speed and push, scaled to the watch's smaller court (138 / 190), so a
+ *  ripple doesn't sweep the whole circle and small nudges are still possible. */
+private const val SMALL = 138.0 / 190.0
+private const val REACH = 260.0 * SMALL
+private const val SPEED = 0.24 * SMALL
 /** How long the clock waits for the first ripple before it starts anyway (ms). */
 private const val WAIT = 5000.0
 
@@ -77,7 +80,7 @@ class Ripple : Toy {
             val r = (now - w.t0) * SPEED
             val d = dist(w.x, w.y, b.x, b.y)
             if (was < d && r >= d && d < REACH) {
-                val k = 0.42 * (1 - d / REACH).pow(0.7)
+                val k = 0.42 * SMALL * (1 - d / REACH).pow(0.7)
                 val n = if (d > 0) d else 1.0
                 b.vx += (b.x - w.x) / n * k
                 b.vy += (b.y - w.y) / n * k

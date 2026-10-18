@@ -80,6 +80,9 @@ interface Pen {
     /** An arc with round caps, from `start` turning `sweep` (positive = clockwise). */
     fun arc(x: Double, y: Double, r: Double, start: Double, sweep: Double, color: Int, width: Double = 2.0, alpha: Double = 1.0)
     fun line(x1: Double, y1: Double, x2: Double, y2: Double, color: Int, width: Double = 2.0, alpha: Double = 1.0)
+    /** An open line through the first `n` points, round caps and joins (one stroke, so a
+     *  translucent line doesn't darken where its pieces meet). */
+    fun poly(xs: DoubleArray, ys: DoubleArray, n: Int, color: Int, width: Double = 2.0, alpha: Double = 1.0)
     /** A ring in `n` even dashes, so the join doesn't show. */
     fun dashed(x: Double, y: Double, r: Double, color: Int, width: Double = 3.0, alpha: Double = 1.0, n: Int = 0)
     fun rect(x: Double, y: Double, w: Double, h: Double, radius: Double, color: Int, alpha: Double = 1.0)

@@ -203,19 +203,23 @@ class Tune : Toy {
         grow(s)
     }
 
-    /** Draws a wave as short lines from `x0` to `x1`, only where it lies inside the court. */
+    private val xs = DoubleArray(400)
+    private val ys = DoubleArray(400)
+
+    /** Draws a wave from `x0` to `x1` as one line per stretch that lies inside the court. */
     private inline fun wave(s: Stage, pen: Pen, x0: Double, x1: Double, color: Int, width: Double, alpha: Double, y: (Double) -> Double) {
         if (x1 <= x0) return
         val lim = s.R - width
-        var ax = x0
-        var ay = y(ax)
-        while (ax < x1) {
-            val bx = min(ax + 3, x1)
-            val by = y(bx)
-            if (dist(ax, ay, s.c.x, s.c.y) < lim && dist(bx, by, s.c.x, s.c.y) < lim) pen.line(ax, ay, bx, by, color, width, alpha)
-            ax = bx
-            ay = by
+        var n = 0
+        var x = x0
+        while (true) {
+            val yy = y(x)
+            if (dist(x, yy, s.c.x, s.c.y) < lim && n < xs.size) { xs[n] = x; ys[n] = yy; n++ }
+            else { if (n > 1) pen.poly(xs, ys, n, color, width, alpha); n = 0 }
+            if (x >= x1) break
+            x = min(x + 3, x1)
         }
+        if (n > 1) pen.poly(xs, ys, n, color, width, alpha)
     }
 
     override fun draw(s: Stage, pen: Pen, now: Double) {

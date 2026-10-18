@@ -25,6 +25,10 @@ class SvgPen(private val size: Double = SCREEN) : Pen {
     override fun line(x1: Double, y1: Double, x2: Double, y2: Double, color: Int, width: Double, alpha: Double) {
         sb.append("<line x1='${f(x1)}' y1='${f(y1)}' x2='${f(x2)}' y2='${f(y2)}' stroke='${c(color)}' stroke-width='${f(width)}' stroke-linecap='round' stroke-opacity='${f(alpha)}'/>")
     }
+    override fun poly(xs: DoubleArray, ys: DoubleArray, n: Int, color: Int, width: Double, alpha: Double) {
+        val pts = (0 until n).joinToString(" ") { "${f(xs[it])},${f(ys[it])}" }
+        sb.append("<polyline points='$pts' fill='none' stroke='${c(color)}' stroke-width='${f(width)}' stroke-linecap='round' stroke-linejoin='round' stroke-opacity='${f(alpha)}'/>")
+    }
     override fun dashed(x: Double, y: Double, r: Double, color: Int, width: Double, alpha: Double, n: Int) {
         val k = if (n > 0) n else maxOf(6, (TAU * r / 14).toInt())
         val step = TAU * r / k

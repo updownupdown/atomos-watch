@@ -6,8 +6,10 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import app.buildatomos.core.Pen
@@ -61,6 +63,14 @@ class ComposePen(private val scope: DrawScope, units: Double = SCREEN) : Pen {
     override fun line(x1: Double, y1: Double, x2: Double, y2: Double, color: Int, width: Double, alpha: Double) {
         if (alpha <= 0) return
         scope.drawLine(col(color, alpha), Offset(X(x1), Y(y1)), Offset(X(x2), Y(y2)), L(width), StrokeCap.Round)
+    }
+
+    override fun poly(xs: DoubleArray, ys: DoubleArray, n: Int, color: Int, width: Double, alpha: Double) {
+        if (n < 2 || alpha <= 0) return
+        val path = Path()
+        path.moveTo(X(xs[0]), Y(ys[0]))
+        for (i in 1 until n) path.lineTo(X(xs[i]), Y(ys[i]))
+        scope.drawPath(path, col(color, alpha), style = Stroke(L(width), cap = StrokeCap.Round, join = StrokeJoin.Round))
     }
 
     override fun dashed(x: Double, y: Double, r: Double, color: Int, width: Double, alpha: Double, n: Int) {
