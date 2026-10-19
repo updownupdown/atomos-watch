@@ -1,10 +1,11 @@
-// A run of one game. It opens on a card without words: the game's icon in a ring that fills in
-// the difficulty's color until play starts, its name, and the goal as an empty tiny atom; a tap
-// starts it sooner. Then the court fills the screen: the levels as a tiny atom at the bottom
-// (with the time left, for a game that keeps time, as a small ring round it), and the ATOMOS mark
-// at the top, dim, which pauses the run (the back button does the same): the white Resume disc
-// between a bare Exit and Restart, the level and the best as tiny atoms. The run ends on a card:
-// what it built or reached, and the rose Next after a shell is built, else Again, beside Exit.
+// A run of one game. It opens on a card: the game's icon in a ring that fills in the
+// difficulty's color until play starts, its name, its difficulty, and the levels to reach (or
+// Free play); a tap starts it sooner. Then the court fills the screen: the levels as a tiny atom
+// at the bottom (with the time left, for a game that keeps time, as a small ring round it), and
+// the ATOMOS mark at the top, dim, which pauses the run (the back button does the same): the game
+// and its difficulty, Exit, the white Resume and Restart, each named under it, and how far the
+// run has come. The run ends on a card: what it built or reached, and Exit beside the rose Next
+// after a shell is built, else Again.
 
 package app.buildatomos.watch.ui
 
@@ -227,9 +228,9 @@ private fun nextButton(pen: ComposePen) {
     pen.icon(Icon.NEXT, MID, NEXT_Y, 24.0, Ink.BLACK)
 }
 
-/** The opening card, without words: the game's icon in a ring that fills, in the difficulty's
- *  color, as the wait runs out (`waited`, 0..1); its name; and, for a run with a goal, the goal as
- *  an empty tiny atom. A tap anywhere (or the crown) skips the wait. */
+/** The opening card: the game's icon in a ring that fills, in the difficulty's color, as the wait
+ *  runs out (`waited`, 0..1); its name and its difficulty; and the levels to reach, as an empty
+ *  tiny atom and in words, or Free play. A tap anywhere (or the crown) skips the wait. */
 @Composable
 private fun IntroCard(spec: RunSpec, waited: () -> Double) {
     val color = Difficulty.color(spec.dial)
@@ -242,16 +243,21 @@ private fun IntroCard(spec: RunSpec, waited: () -> Double) {
                     pen.arc(50.0, 50.0, 46.0, -PI / 2, TAU * waited(), color, 4.0)
                     pen.gameIcon(spec.game.id, 50.0, 50.0, 44.0, Ink.WHITE)
                 }
-                Label(spec.game.label, Modifier.padding(top = u * 10), size = u.text(18), lines = 1)
+                Label(spec.game.label, Modifier.padding(top = u * 8), size = u.text(20), weight = FontWeight.SemiBold, lines = 1)
+                Label(Difficulty.word(spec.dial), size = u.text(14), color = Color(color), lines = 1)
                 val goal = spec.goal
-                if (goal != null) TinyAtom(0, goal, u * 24, modifier = Modifier.padding(top = u * 8))
+                if (goal != null) {
+                    TinyAtom(0, goal, u * 24, modifier = Modifier.padding(top = u * 8))
+                    Label("Reach $goal levels", size = u.text(13), color = Tone.text2, weight = FontWeight.Normal, lines = 1)
+                } else Label("Free play", Modifier.padding(top = u * 6), size = u.text(13), color = Tone.text2, weight = FontWeight.Normal, lines = 1)
             }
         }
     }
 }
 
-/** The pause menu: the game's icon at the top; a bare cross (Exit), the white Resume disc and a
- *  bare restart across the middle; under them the run's levels and the best as tiny atoms. */
+/** The pause menu: the game's icon and name at the top, its difficulty under them; Exit, the big
+ *  white Resume and Restart across the middle, each named under it; at the foot how far the run
+ *  has come (and the best, in free play), as a tiny atom and in words. */
 @Composable
 private fun PauseCard(model: AppModel, spec: RunSpec, s: Stage, onExit: () -> Unit, onResume: () -> Unit, onRestart: () -> Unit) {
     val goal = s.goal
@@ -259,19 +265,25 @@ private fun PauseCard(model: AppModel, spec: RunSpec, s: Stage, onExit: () -> Un
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = VEIL))) {
         Face { u ->
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                GameMark(spec.game.id, u * 26, color = Ink.K200)
-                Row(
-                    Modifier.padding(top = u * 18),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(u * 16),
-                ) {
-                    BareIcon(Icon.EXIT, u * 24, onExit, color = Ink.K200, touch = u * 48)
-                    Disc(u * 66, Ink.WHITE, onResume, icon = Icon.PLAY)
-                    BareIcon(Icon.RESTART, u * 24, onRestart, color = Ink.K200, touch = u * 48)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(u * 7)) {
+                    GameMark(spec.game.id, u * 20, color = Ink.K200)
+                    Label(spec.game.label, size = u.text(18), weight = FontWeight.SemiBold, lines = 1)
                 }
-                Row(Modifier.padding(top = u * 16), horizontalArrangement = Arrangement.spacedBy(u * 22)) {
-                    TinyAtom(s.level, goal, u * 26)
-                    if (best > 0) TinyAtom(best, null, u * 26, Ink.WHITE)
+                Label(Difficulty.word(spec.dial), size = u.text(13), color = Color(Difficulty.color(spec.dial)), lines = 1)
+                Row(
+                    Modifier.padding(top = u * 8),
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(u * 6),
+                ) {
+                    LabeledDisc(u * 44, Ink.K800, Icon.EXIT, "Exit", onExit, ink = Ink.WHITE, text = u.text(13))
+                    LabeledDisc(u * 60, Ink.WHITE, Icon.PLAY, "Resume", onResume, text = u.text(13))
+                    LabeledDisc(u * 44, Ink.K800, Icon.RESTART, "Restart", onRestart, ink = Ink.WHITE, text = u.text(13))
+                }
+                Row(Modifier.padding(top = u * 6), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(u * 6)) {
+                    TinyAtom(s.level, goal, u * 22)
+                    val foot = if (goal != null) "Level ${s.level} of $goal"
+                    else if (best > 0) "Level ${s.level} · Best: $best" else "Level ${s.level}"
+                    Label(foot, size = u.text(13), color = Tone.text2, weight = FontWeight.Normal, lines = 1)
                 }
             }
         }
@@ -279,9 +291,9 @@ private fun PauseCard(model: AppModel, spec: RunSpec, s: Stage, onExit: () -> Un
 }
 
 /** The end card, fading in over the court. For an atom: the shell built (or the atom), with the
- *  rose Next; or how far the run got. For free play: the level reached and the best. Under it a
- *  bare cross (Exit) beside the disc that goes on: Next after a shell is built (that run is
- *  done), else Again. */
+ *  rose Next; or how far the run got. For free play: the level reached and the best. Under it
+ *  Exit beside the disc that goes on, each named: Next after a shell is built (that run is done),
+ *  else Again. */
 @Composable
 private fun OverCard(model: AppModel, spec: RunSpec, run: Run, onExit: () -> Unit, onAgain: () -> Unit, onNext: () -> Unit) {
     val s = run.stage
@@ -326,15 +338,13 @@ private fun OverCard(model: AppModel, spec: RunSpec, run: Run, onExit: () -> Uni
                 Label(sub, size = u.text(14), color = subColor, lines = 1)
                 if (z == null && won && s.level >= MAX_LEVEL) Label("of $MAX_LEVEL", size = u.text(13), color = Tone.text2)
                 Row(
-                    Modifier.padding(top = u * 12),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(u * 16),
+                    Modifier.padding(top = u * 10),
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(u * 14),
                 ) {
-                    BareIcon(Icon.EXIT, u * 24, onExit, color = Ink.K200, touch = u * 48)
-                    if (next) Disc(u * 56, Ink.ROSE, onNext, icon = Icon.NEXT)
-                    else Disc(u * 56, Ink.WHITE, onAgain, icon = Icon.RESTART)
-                    // Balances the cross, so the disc sits in the middle.
-                    Spacer(Modifier.size(u * 48))
+                    LabeledDisc(u * 44, Ink.K800, Icon.EXIT, "Exit", onExit, ink = Ink.WHITE, text = u.text(13))
+                    if (next) LabeledDisc(u * 52, Ink.ROSE, Icon.NEXT, "Next", onNext, text = u.text(13))
+                    else LabeledDisc(u * 52, Ink.WHITE, Icon.RESTART, "Again", onAgain, text = u.text(13))
                 }
             }
         }

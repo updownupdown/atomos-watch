@@ -1,8 +1,9 @@
-// Home, quiet: a list the crown scrolls, with no section labels and no plates. The mark and
-// ATOMOS; the atom being built as its cloud, with the rose Build in the middle of it, its name
-// and its shells as a tiny atom, and the next shell's game and difficulty; the way into the
-// collection. Then the atom of the day and the way into the Atlas; the game Nu picked for today
-// (its white disc plays it) and Nu's three questions; every game; and Settings as a bare gear.
+// Home: a list the crown scrolls, each part on its own soft plate with room between. The mark
+// and ATOMOS. Build: the atom being built as its cloud, with the rose Build in the middle of it,
+// its name and its shells as a tiny atom, the next shell's game and difficulty, and the way into
+// the collection. Atlas: the atom of the day and the way into every atom. Games: the game Nu
+// picked for today (its white disc plays it) and the way into every game. Then Nu's three
+// questions on a plate of their own, and Settings.
 
 package app.buildatomos.watch.ui
 
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,6 +45,7 @@ import app.buildatomos.core.Ink
 import app.buildatomos.core.Nebula
 import app.buildatomos.core.atomOfDay
 import app.buildatomos.core.icon
+import app.buildatomos.core.inkFor
 import app.buildatomos.core.mark
 import app.buildatomos.core.periodOf
 import app.buildatomos.watch.AppModel
@@ -64,16 +67,31 @@ fun HomeScreen(
     val state = rememberScalingLazyListState(initialCenterItemIndex = 1)
     val frame = rememberFrame()
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        QuietList(state, top = 20.dp, gap = 10.dp) {
+        QuietList(state, side = 12.dp, top = 20.dp, gap = 14.dp) {
             item { Wordmark() }
-            item { BuildHero(model, frame, onRun, onBuildAtom) }
-            item { LinkRow(Icon.SHELLS, "Collection", "${model.collection.built.size}/$ATOMS", onCollection) }
-            item { AtomOfDay(model, onAtom) }
-            item { LinkRow(Icon.ATLAS, "All atoms", "$ATOMS", onAtlas) }
-            item { TodayGame(model, onPlay) }
-            item { QuizCard(model, onAtom) }
-            item { LinkRow(Icon.GAMES, "All games", "${Games.all.size}", onGames) }
-            item { BareIcon(Icon.GEAR, 22.dp, onSettings, color = Ink.K400) }
+            item {
+                Plate {
+                    BuildHero(model, frame, onRun, onBuildAtom)
+                    PlateDivider()
+                    PlateLink(Icon.SHELLS, "Collection", "${model.collection.built.size}/$ATOMS", onCollection)
+                }
+            }
+            item {
+                Plate {
+                    AtomOfDay(model, onAtom)
+                    PlateDivider()
+                    PlateLink(Icon.ATLAS, "All atoms", "$ATOMS", onAtlas)
+                }
+            }
+            item {
+                Plate {
+                    TodayGame(model, onPlay)
+                    PlateDivider()
+                    PlateLink(Icon.GAMES, "All games", "${Games.all.size}", onGames)
+                }
+            }
+            item { Plate { QuizCard(model, onAtom) } }
+            item { Disc(40.dp, Ink.K900, onSettings, icon = Icon.GEAR, ink = Ink.K300) }
         }
         Scroll(state)
     }
@@ -151,18 +169,30 @@ private fun BuildHero(model: AppModel, frame: () -> Long, onRun: () -> Unit, onA
     }
 }
 
-/** The phone's atom of the day: its symbol in its color and its name. Opens its Atlas page. */
+/** The phone's atom of the day: its plate (number over symbol, in its color), its name and what
+ *  it is. Opens its Atlas page. */
 @Composable
 private fun AtomOfDay(model: AppModel, onAtom: (Int) -> Unit) {
     val z = atomOfDay(model.today())
     val atom = model.atlas.atom(z)
     Row(
-        Modifier.clip(RoundedCornerShape(16.dp)).clickable { onAtom(z) }.padding(horizontal = 10.dp, vertical = 4.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { onAtom(z) }.padding(2.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(7.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Label(atom.symbol, size = 17.sp, color = Color(atom.color), lines = 1)
-        Label(atom.name, size = 16.sp, color = Tone.text2, weight = FontWeight.Normal, lines = 1)
+        val ink = Color(inkFor(atom.color))
+        Column(
+            Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)).background(Color(atom.color)),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Label("$z", size = 11.sp, color = ink, weight = FontWeight.Normal, lines = 1)
+            Label(atom.symbol, size = 18.sp, color = ink, weight = FontWeight.SemiBold, lines = 1)
+        }
+        Column {
+            Label(atom.name, size = 16.sp, weight = FontWeight.SemiBold, align = TextAlign.Start, lines = 1)
+            Label("Atom of the day", size = 13.sp, color = Tone.text2, weight = FontWeight.Normal, align = TextAlign.Start, lines = 1)
+        }
     }
 }
 
@@ -172,25 +202,11 @@ private fun AtomOfDay(model: AppModel, onAtom: (Int) -> Unit) {
 @Composable
 private fun TodayGame(model: AppModel, onPlay: (Game, Int) -> Unit) {
     val game = model.nuPick()
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Disc(48.dp, Ink.WHITE, { onPlay(game, model.pickedLevel(game)) }, game = game.id)
         Column {
             Label(game.label, Modifier.padding(start = 2.dp), size = 17.sp, align = TextAlign.Start, lines = 1)
             LevelDots(model, game) { onPlay(game, it) }
         }
-    }
-}
-
-/** A way into a screen: a bare icon, a word and a count after it, gray. */
-@Composable
-fun LinkRow(icon: Icon, label: String, count: String?, onClick: () -> Unit) {
-    Row(
-        Modifier.clip(RoundedCornerShape(18.dp)).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Canvas(Modifier.size(20.dp)) { ComposePen(this, 24.0).icon(icon, 12.0, 12.0, 24.0, Ink.WHITE) }
-        Label(label, size = 16.sp, lines = 1)
-        if (count != null) Label(count, size = 14.sp, color = Tone.text3, weight = FontWeight.Normal, lines = 1)
     }
 }

@@ -1,6 +1,7 @@
-// The games list and Settings, quiet. The games list: every game as its bare icon and its name,
-// with its three difficulties as dots under the name, and Nu's pick marked with a rose dot.
-// Settings: icons for words, the reset as red text, the version.
+// The games list and Settings. The games list: every game on its own plate, its icon and its
+// name, with its three difficulties as dots under the name, and Nu's pick marked with a rose dot.
+// Settings: sound and haptics named beside their marks and switches on one plate, starting the
+// collection over in red, the version.
 
 package app.buildatomos.watch.ui
 
@@ -11,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -77,7 +79,7 @@ fun GamesScreen(model: AppModel, onPlay: (Game, Int) -> Unit) {
     val pick = model.nuPick()
     val state = rememberScalingLazyListState(initialCenterItemIndex = 0)
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        QuietList(state, side = 18.dp, gap = 2.dp) {
+        QuietList(state, side = 14.dp, gap = 6.dp) {
             items(Games.all) { g -> GameRow(model, g, nu = g.id == pick.id, onPlay = onPlay) }
         }
         Scroll(state)
@@ -91,8 +93,9 @@ private fun GameRow(model: AppModel, game: Game, nu: Boolean, onPlay: (Game, Int
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
+            .background(Color(Ink.K900))
             .clickable { onPlay(game, model.pickedLevel(game)) }
-            .padding(start = 8.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
+            .padding(start = 12.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -108,9 +111,9 @@ private fun GameRow(model: AppModel, game: Game, nu: Boolean, onPlay: (Game, Int
     }
 }
 
-/** Settings on one screen: the gear at the top; sound (off to start) and haptics (on to start,
- *  and soft) as their marks with a switch each; starting the collection over in red; the
- *  version. */
+/** Settings on one screen: the gear and Settings at the top; sound (off to start) and haptics (on
+ *  to start, and soft) on one plate, each its mark, its name and a switch; starting the collection
+ *  over in red; the version. */
 @Composable
 fun SettingsScreen(model: AppModel) {
     model.version
@@ -118,13 +121,19 @@ fun SettingsScreen(model: AppModel) {
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         Face { u ->
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Canvas(Modifier.size(u * 26)) { ComposePen(this, 24.0).icon(Icon.GEAR, 12.0, 12.0, 24.0, Ink.K300) }
-                SwitchRow(Modifier.padding(top = u * 12), model.sound, { on -> soundMark(on) }) { model.sound = it; if (it) model.feel.chime(2) }
-                SwitchRow(Modifier.padding(top = u * 6), model.haptics, { hapticsMark() }) { model.haptics = it; if (it) model.feel.hit(0.5) }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(u * 6)) {
+                    Canvas(Modifier.size(u * 18)) { ComposePen(this, 24.0).icon(Icon.GEAR, 12.0, 12.0, 24.0, Ink.K300) }
+                    Label("Settings", size = u.text(15), color = Tone.text2, lines = 1)
+                }
+                Plate(Modifier.padding(top = u * 8).width(u * 190), gap = 2.dp, padding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)) {
+                    SwitchRow("Sound", model.sound, { on -> soundMark(on) }) { model.sound = it; if (it) model.feel.chime(2) }
+                    PlateDivider()
+                    SwitchRow("Haptics", model.haptics, { hapticsMark() }) { model.haptics = it; if (it) model.feel.hit(0.5) }
+                }
                 Label(
-                    "Start over",
-                    Modifier.padding(top = u * 8).clip(RoundedCornerShape(16.dp)).clickable { asking = true }.padding(horizontal = 12.dp, vertical = 6.dp),
-                    size = u.text(16), color = Color(Ink.RED), lines = 1,
+                    "Start the collection over",
+                    Modifier.padding(top = u * 6).clip(RoundedCornerShape(16.dp)).clickable { asking = true }.padding(horizontal = 12.dp, vertical = 6.dp),
+                    size = u.text(14), color = Color(Ink.RED), lines = 1,
                 )
                 val v = model.versionName
                 Label(v.ifBlank { "ATOMOS" }, Modifier.padding(top = u * 4), size = u.text(14), color = Tone.text3, weight = FontWeight.Normal, lines = 1)
@@ -138,15 +147,17 @@ fun SettingsScreen(model: AppModel) {
     }
 }
 
-/** A setting that is on or off: its mark, then a switch, cyan when on. The whole row toggles. */
+/** A setting that is on or off: its mark and its name, then a switch, cyan when on. The whole row
+ *  toggles. */
 @Composable
-private fun SwitchRow(modifier: Modifier, on: Boolean, draw: ComposePen.(Boolean) -> Unit, set: (Boolean) -> Unit) {
+private fun SwitchRow(label: String, on: Boolean, draw: ComposePen.(Boolean) -> Unit, set: (Boolean) -> Unit) {
     Row(
-        modifier.clip(RoundedCornerShape(20.dp)).clickable { set(!on) }.padding(horizontal = 10.dp, vertical = 6.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).clickable { set(!on) }.padding(horizontal = 6.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(40.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Canvas(Modifier.size(24.dp)) { ComposePen(this, 24.0).draw(on) }
+        Canvas(Modifier.size(20.dp)) { ComposePen(this, 24.0).draw(on) }
+        Label(label, Modifier.weight(1f), size = 15.sp, align = TextAlign.Start, lines = 1)
         Canvas(Modifier.width(44.dp).height(26.dp)) {
             val pen = ComposePen(this, 44.0, wide = true)
             pen.rect(1.0, 1.0, 42.0, 24.0, 12.0, if (on) Ink.CYAN else Ink.K700)
@@ -176,8 +187,8 @@ private fun ComposePen.hapticsMark() {
     line(20.0, 9.0, 20.0, 15.0, c, 2.0)
 }
 
-/** A destructive action asks first: the question, then a bare cross to cancel and a red disc
- *  with a check to go ahead. Back cancels. */
+/** A destructive action asks first: the question, then Cancel and a red Yes, each named under its
+ *  disc. Back cancels. */
 @Composable
 fun Confirm(question: String, onNo: () -> Unit, onYes: () -> Unit) {
     BackHandler { onNo() }
@@ -187,11 +198,11 @@ fun Confirm(question: String, onNo: () -> Unit, onYes: () -> Unit) {
                 Label(question, size = u.text(15))
                 Row(
                     Modifier.padding(top = u * 14),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.spacedBy(u * 20),
                 ) {
-                    BareIcon(Icon.EXIT, 22.dp, onNo, color = Ink.K200)
-                    Disc(u * 50, Ink.RED, onYes, icon = Icon.CHECK)
+                    LabeledDisc(u * 44, Ink.K800, Icon.EXIT, "Cancel", onNo, ink = Ink.WHITE, text = u.text(13))
+                    LabeledDisc(u * 50, Ink.RED, Icon.CHECK, "Yes", onYes, text = u.text(13))
                 }
             }
         }

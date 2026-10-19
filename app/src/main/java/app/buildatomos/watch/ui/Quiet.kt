@@ -1,5 +1,5 @@
-// The Quiet look: less on every screen. No titles and no section labels; no plates but the one
-// thing to tap, a disc; icons where words aren't needed; numbers as the app's tiny atoms; one
+// The look: calm, on black, with each part of a screen on its own soft plate and room between;
+// buttons named under their discs where a word helps; numbers as the app's tiny atoms; one
 // accent a screen. Lists are Wear's ScalingLazyColumn under its scroll arc; the screens that
 // don't scroll are laid out on a face 240 across, scaled to the watch.
 
@@ -7,18 +7,30 @@ package app.buildatomos.watch.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -132,4 +144,68 @@ fun Pips(dial: Int, modifier: Modifier = Modifier) {
 fun Pen.rowsMark(cx: Double, cy: Double, size: Double, color: Int) {
     val k = size / 24
     for (i in 0 until 8) dot(cx + ((i % 3) * 7 - 7) * k, cy + ((i / 3) * 6 - 6) * k, 2.0 * k, color)
+}
+
+/** A soft plate that groups one part of a screen (a section of Home, a game in the list, a part
+ *  of an atom's page): the dark K900 rounded round its content. */
+@Composable
+fun Plate(
+    modifier: Modifier = Modifier,
+    gap: Dp = 8.dp,
+    padding: PaddingValues = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Color(Ink.K900)).padding(padding),
+        verticalArrangement = Arrangement.spacedBy(gap),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        content = content,
+    )
+}
+
+/** A hairline between the parts of a plate. */
+@Composable
+fun PlateDivider() {
+    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(Ink.K800)))
+}
+
+/** A plate's title, small and gray over what it holds. */
+@Composable
+fun PlateTitle(text: String) {
+    Label(text, Modifier.fillMaxWidth().padding(start = 4.dp), size = 13.sp, color = Tone.text2, align = TextAlign.Start, lines = 1)
+}
+
+/** A way into a screen on a plate: its icon, a word and a count after it, and a chevron at the
+ *  end; the whole row takes the tap. */
+@Composable
+fun PlateLink(icon: Icon, label: String, count: String?, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(horizontal = 4.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Canvas(Modifier.size(18.dp)) { ComposePen(this, 24.0).icon(icon, 12.0, 12.0, 24.0, Ink.K200) }
+        Label(label, size = 15.sp, lines = 1)
+        if (count != null) Label(count, size = 13.sp, color = Tone.text3, weight = FontWeight.Normal, lines = 1)
+        Spacer(Modifier.weight(1f))
+        Canvas(Modifier.size(14.dp)) { ComposePen(this, 24.0).icon(Icon.CHEVRON, 12.0, 12.0, 24.0, Ink.K400) }
+    }
+}
+
+/** A round button with its word under it, so a row of them reads at a glance (the run's menu and
+ *  cards, the confirm): a disc of `fill` with `icon` in `ink`, and `label` in gray. */
+@Composable
+fun LabeledDisc(size: Dp, fill: Int, icon: Icon, label: String, onClick: () -> Unit, ink: Int = Ink.BLACK, text: TextUnit = 13.sp) {
+    Column(
+        Modifier.clip(RoundedCornerShape(20.dp)).clickable(onClick = onClick).padding(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Canvas(Modifier.size(size)) {
+            val pen = ComposePen(this, 100.0)
+            pen.dot(50.0, 50.0, 50.0, fill)
+            pen.icon(icon, 50.0, 50.0, 48.0, ink)
+        }
+        Label(label, size = text, color = Tone.text2, lines = 1)
+    }
 }

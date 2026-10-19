@@ -3,18 +3,23 @@
 The watch companion to ATOMOS: Nu's games on the wrist, and a collection of atoms you build by
 playing them. It works on its own, with no phone and no sync, and it is free.
 
-- **The look** is Quiet: less on every screen. No titles and no section labels; no plates but
-  the one thing to tap, a disc (rose for Build and Next, white for Play and Resume, red to
-  confirm a reset); icons where words aren't needed; numbers as the app's tiny atoms; one
-  accent a screen. Lists shrink and fade toward the edges, with Wear's scroll arc on the right;
+- **The look** is Quiet, grouped: calm on black, with each part of a screen on its own soft
+  plate and room between (Home's sections, each game in the list, each part of an atom's page);
+  the thing to tap first a disc (rose for Build and Next, white for Play and Resume, red to
+  confirm a reset), and a word under each button where a row of them needs reading (the run's
+  menu and cards, the confirm); numbers as the app's tiny atoms; one accent a screen. Lists shrink and fade toward the edges, with Wear's scroll arc on the right;
   the screens that don't scroll are laid out on a face 240 across and scaled to the watch.
-- **Home** is a list the crown scrolls: the mark and ATOMOS; the atom you are building as its
-  cloud (filling with color shell by shell) with the rose Build disc in the middle, its name and
-  its shells as a tiny atom (a tap opens its Build page), and the next shell's game and
-  difficulty; Collection; the atom of the day (the same one the phone shows) and All atoms; the
-  game Nu picked for today (its white disc plays it, its dots play a difficulty) and Nu's three
-  questions of the day (the same ones the phone asks); All games; and Settings as a bare gear.
-- **The games list** has every game, A to Z: its bare icon, its name (Nu's pick with a rose dot
+- **Home** is a list the crown scrolls, the mark and ATOMOS, then four plates and Settings:
+  - Build: the atom you are building as its cloud (filling with color shell by shell) with the
+    rose Build disc in the middle, its name and its shells as a tiny atom (a tap opens its Build
+    page), the next shell's game and difficulty, and Collection.
+  - Atlas: the atom of the day (the same one the phone shows) as its plate, name and "Atom of
+    the day", and All atoms.
+  - Games: the game Nu picked for today (its white disc plays it, its dots play a difficulty),
+    and All games.
+  - Nu asks: Nu's three questions of the day (the same ones the phone asks).
+  - Settings, a gear on a dark disc.
+- **The games list** has every game, A to Z, each on its own plate: its icon, its name (Nu's pick with a rose dot
   after it), and under the name its three difficulties, Easy, Medium and Hard, as dots in green,
   yellow and red. A dot with a best holds it in black; one without is an empty ring. A tap on a
   dot plays that difficulty at once; a tap anywhere else on the row plays the one last played
@@ -37,17 +42,19 @@ playing them. It works on its own, with no phone and no sync, and it is free.
 - **The Atlas** is a wheel: one atom named, its symbol large in its color with its number and
   name, its neighbors' symbols either side, and the atoms round the rim as dots, the crown
   turning them. A bare icon at the foot switches to the table and back. A tap on the atom opens
-  its Atlas page, a list with no tiles, section headers or folds: its symbol and name, where it
-  sits, Build, the atom itself, the headline, the little table, its properties as sliders (a
-  track from the lowest atom to the highest, this one a dot in its color), the facts, its
-  structure, its discovery and name, its isotopes, where it comes from and what it is for, and
-  the atoms either side.
-- **A run** opens on a card without words: the game's icon in a ring that fills, in the
-  difficulty's color, until play starts; its name; and the goal as an empty tiny atom (a tap or
-  a turn of the crown starts it sooner). The ATOMOS mark, dim at the top of the screen (or the
-  back button), pauses it: the white Resume disc between a bare Exit and Restart, with the
-  levels and the best as tiny atoms. It ends on a card with what it built or reached, and a bare
-  Exit beside the disc that goes on: the rose Next after a shell is built, else Again. The
+  its Atlas page, a list: its symbol and name, where it sits, Build, the atom itself, the
+  headline on a plate, the little table, then titled plates: Properties (each a slider, a track
+  from the lowest atom to the highest, this one a dot in its color), Facts, Structure,
+  Discovered (with where its name comes from), Isotopes, Made in and Used for; and the atoms
+  either side.
+- **A run** opens on a card: the game's icon in a ring that fills, in the difficulty's color,
+  until play starts; its name and difficulty; and the levels to reach (an empty tiny atom and
+  "Reach 3 levels"), or Free play (a tap or a turn of the crown starts it sooner). The ATOMOS
+  mark, dim at the top of the screen (or the back button), pauses it: the game's icon and name
+  and its difficulty; Exit, the big white Resume and Restart, each named under it; and how far
+  the run has come ("Level 2 of 5", or the level and the best in free play). It ends on a card
+  with what it built or reached, and Exit beside the disc that goes on, each named: the rose
+  Next after a shell is built, else Again. The
   levels show as a tiny atom at the bottom of the screen; a game that keeps time shows the time
   left as a small ring round it, gray, then amber in the last quarter (no game draws a countdown
   round the whole bezel). Exit from free play goes back to the games list (or Home, for Nu's
@@ -56,9 +63,9 @@ playing them. It works on its own, with no phone and no sync, and it is free.
     fills one electron slot. Win, and the atom's next shell is built.
   - Free play has no goal. The tiny atom counts levels in binary across 8 slots, up to 255, and
     every level is harder than the last. Its difficulty is the dot tapped in the games list.
-- **Settings** has Sound (off to start), Haptics (on to start, and soft), and starting the
-  collection over (it asks first: Cancel, or the red Start over at the edge), with the version
-  curved along the foot.
+- **Settings** has Sound (off to start) and Haptics (on to start, and soft), each its mark,
+  its name and a switch on one plate, and starting the collection over (it asks first: Cancel,
+  or the red Yes, each named under its disc), with the version under them.
 - **The tile** and **the Play with Nu complication** open straight into the next run for the
   atom. **The building complication** shows the atom being built on a watch face.
 

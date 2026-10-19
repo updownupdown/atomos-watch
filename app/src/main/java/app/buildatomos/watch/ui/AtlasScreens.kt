@@ -247,7 +247,7 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
     val outer = subs.filter { it !in coreSubs }
     val state = rememberScalingLazyListState(initialCenterItemIndex = 0)
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        QuietList(state, side = 22.dp, top = 22.dp, gap = 10.dp) {
+        QuietList(state, side = 14.dp, top = 22.dp, gap = 12.dp) {
             item {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Label(atom.symbol, size = 22.sp, color = color, weight = FontWeight.SemiBold, lines = 1)
@@ -287,15 +287,24 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
                     nebula.draw(ComposePen(this, 104.0), 52.0, 52.0, 48.0, frame() / 1e6, 1.0, still = share < 1)
                 }
             }
-            if (info.headline.isNotBlank()) item { Para(info.headline) }
+            if (info.headline.isNotBlank()) item { Plate { Para(info.headline) } }
             item { Locator(model, z) { onTable(z) } }
             val crowds = Property.ALL.map { Crowd(it, model.atlas.infos, z) }.filter { it.value != null }
-            for (crowd in crowds) item { Slider(crowd, atom.color) }
+            if (crowds.isNotEmpty()) item {
+                Plate(gap = 10.dp) {
+                    PlateTitle("Properties")
+                    for (crowd in crowds) Slider(crowd, atom.color)
+                }
+            }
             if (info.facts.isNotEmpty()) item {
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) { for (f in info.facts) Bullet(f) }
+                Plate {
+                    PlateTitle("Facts")
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) { for (f in info.facts) Bullet(f) }
+                }
             }
             item {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Plate(gap = 4.dp) {
+                    PlateTitle("Structure")
                     Canvas(Modifier.size(96.dp)) { shells(ComposePen(this, 96.0), counts, atom.color) }
                     val config = listOfNotNull(core?.let { "[${model.atlas.atom(it).symbol}]" }) + outer.map(::subLabel)
                     Label(config.joinToString(" "), size = 14.sp, lines = 2)
@@ -304,30 +313,40 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
                 }
             }
             item {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Plate(gap = 4.dp) {
+                    PlateTitle("Discovered")
                     val ancient = info.year == null || info.who?.contains("ancient", true) == true
                     Label(info.year?.toString() ?: "In antiquity", size = 18.sp, color = color)
                     val by = listOfNotNull(info.who?.takeIf { !(ancient && it.contains("ancient", true)) }, info.where).joinToString(" · ")
                     if (by.isNotBlank()) Para(by, color = Tone.text2)
+                    info.origin?.let { o -> Para(o, color = Tone.text2) }
                 }
             }
-            info.origin?.let { o -> item { Para(o, color = Tone.text2) } }
             item {
-                val lasting = info.stableIsotopes
-                Label(
-                    when {
-                        info.knownIsotopes == 0 -> if (lasting == 0) "No lasting isotopes" else "$lasting lasting isotopes"
-                        lasting == 0 -> "None of its ${info.knownIsotopes} isotopes lasts"
-                        else -> "$lasting of ${info.knownIsotopes} isotopes last"
-                    },
-                    size = 14.sp, color = Tone.text2, weight = FontWeight.Normal,
-                )
+                Plate(gap = 4.dp) {
+                    PlateTitle("Isotopes")
+                    val lasting = info.stableIsotopes
+                    Label(
+                        when {
+                            info.knownIsotopes == 0 -> if (lasting == 0) "No lasting isotopes" else "$lasting lasting isotopes"
+                            lasting == 0 -> "None of its ${info.knownIsotopes} isotopes lasts"
+                            else -> "$lasting of ${info.knownIsotopes} isotopes last"
+                        },
+                        size = 14.sp, color = Tone.text2, weight = FontWeight.Normal,
+                    )
+                }
             }
             if (info.origins.isNotEmpty()) item {
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) { for (f in info.origins.take(3)) Bullet(f) }
+                Plate {
+                    PlateTitle("Made in")
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) { for (f in info.origins.take(3)) Bullet(f) }
+                }
             }
             if (info.uses.isNotEmpty()) item {
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) { for (f in info.uses.take(3)) Bullet(f) }
+                Plate {
+                    PlateTitle("Used for")
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) { for (f in info.uses.take(3)) Bullet(f) }
+                }
             }
             item { Neighbors(model, z, onAtom) }
         }
