@@ -90,7 +90,7 @@ fun App(model: AppModel, launchBuild: Boolean, onLaunched: () -> Unit, onExit: (
                 GameScreen(model, spec, onLeave = { nav.leaveFreeRun() }, onNextRun = { nav.leaveFreeRun() })
             }
             composable(Routes.COLLECTION) {
-                CollectionScreen(model, onBuild = run, onAtom = { nav.go(Routes.build(it)) })
+                CollectionScreen(model, onAtom = { nav.go(Routes.build(it)) })
             }
             composable("build/{z}") { e ->
                 AtomBuildScreen(

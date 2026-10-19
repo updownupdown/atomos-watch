@@ -1,7 +1,8 @@
 // Nu asks: the phone's three questions of the day, one at a time on Home. Two choices stack as
 // rows; four atoms sit two by two. Once answered, the right choice shows green (a wrong pick red)
 // with what each choice is under it, and a line about the atom if there is one; then the next
-// question. Done for the day, the card shows how many were right and the streak.
+// question. Done for the day, the card shows how many were right and the streak. No plate round
+// it: only the choices, the things to tap, sit on one.
 
 package app.buildatomos.watch.ui
 
@@ -10,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -53,7 +55,7 @@ fun QuizCard(model: AppModel, onAtom: (Int) -> Unit) {
             picked = -1
         }
     }
-    Plate {
+    Box(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Canvas(Modifier.size(10.dp)) { ComposePen(this, 10.0).dot(5.0, 5.0, 4.0, Ink.ROSE) }

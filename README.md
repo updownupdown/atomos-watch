@@ -3,59 +3,55 @@
 The watch companion to ATOMOS: Nu's games on the wrist, and a collection of atoms you build by
 playing them. It works on its own, with no phone and no sync, and it is free.
 
-- **The look** follows Wear OS (after Material 3 Expressive): a screen's main action is an edge
-  button, a wide pill at the foot whose bottom follows the round screen (rose for Build, white
-  for All games, dark for the rest); the screen's title curves along the top edge; lists shrink
-  and fade toward the edges, with Wear's scroll arc on the right.
-- **Home** is a short list the crown scrolls, under the mark and ATOMOS, in sections. The curved
-  title shows the time in Build and the section's name past it, and the edge button follows the
-  section:
-  - **Build**: the atom you are building (its cloud fills with color shell by shell, its shells
-    so far as bars) and your collection. The edge is the rose Build, with the next shell's game
-    and difficulty under it.
-  - **Atlas**: the atom of the day (the same one the phone shows) and every atom; the edge is
-    All atoms.
-  - **Games**: the game Nu picked for today (with its three difficulties, as in the games list)
-    and Nu's three questions of the day (the same ones the phone asks); the edge is All games.
-  - The Settings button.
-- **The games list** has every game, A to Z: its icon (Nu's pick with a rose dot on it), its
-  name, and under the name its three difficulties, Easy, Medium and Hard, as dots in green,
+- **The look** is Quiet: less on every screen. No titles and no section labels; no plates but
+  the one thing to tap, a disc (rose for Build and Next, white for Play and Resume, red to
+  confirm a reset); icons where words aren't needed; numbers as the app's tiny atoms; one
+  accent a screen. Lists shrink and fade toward the edges, with Wear's scroll arc on the right;
+  the screens that don't scroll are laid out on a face 240 across and scaled to the watch.
+- **Home** is a list the crown scrolls: the mark and ATOMOS; the atom you are building as its
+  cloud (filling with color shell by shell) with the rose Build disc in the middle, its name and
+  its shells as a tiny atom (a tap opens its Build page), and the next shell's game and
+  difficulty; Collection; the atom of the day (the same one the phone shows) and All atoms; the
+  game Nu picked for today (its white disc plays it, its dots play a difficulty) and Nu's three
+  questions of the day (the same ones the phone asks); All games; and Settings as a bare gear.
+- **The games list** has every game, A to Z: its bare icon, its name (Nu's pick with a rose dot
+  after it), and under the name its three difficulties, Easy, Medium and Hard, as dots in green,
   yellow and red. A dot with a best holds it in black; one without is an empty ring. A tap on a
   dot plays that difficulty at once; a tap anywhere else on the row plays the one last played
-  (Easy to start). The rose Nu's pick at the edge plays Nu's game for today at its last level.
-- **Build** shows every atom three ways, picked on a switch of three, Rows, Dial and Shells (the
-  choice lasts until the app closes):
-  - the rows: every period's atoms as plates, eight to a row, built ones in their own color,
-    the one being built ringed in rose; the switch at the top, the rose Build (the atom's name)
-    at the edge;
+  (Easy to start).
+- **Build** shows every atom three ways, picked with three bare icons at the foot (the choice
+  lasts until the app closes):
+  - the table: every atom as a dot in its place, built ones lit in their own color, the one
+    being built ringed in rose, and how many are built at the top;
   - the dial: the atoms as plates round the rim, the crown turning them past the top, and the
     picked atom's cloud, name and state in the middle;
   - the shells: the whole table as one atom, a shell of dots for each period, the picked atom's
-    plate in the middle; the crown steps through them.
+    plate in the middle.
 
-  The dial and the shells fill the screen, so their switch sits in its open foot. In them, a tap
-  on an atom picks it and a tap on the picked one opens it. Each atom's Build page has its name
-  curved at the top, its card, its shells as a track (built ones checked, the next rose) and as
-  a ring round the bezel, the next shell's game and difficulty with Play, its cloud and where it
-  stands, its neighbors, and View in Atlas at the edge; back is at the middle of the left edge.
-- **The Atlas** shows every atom as a list the crown scrolls (each atom's plate, name and kind)
-  or in the table; the edge button switches between them. Each atom's Atlas page has its plate,
-  Build, the atom itself, the headline and facts, its name and discovery, its structure,
-  properties and isotopes, and where it comes from and what it is for, each a section that
-  folds (only the facts open to start). Its properties show, as on the phone, where the atom
-  sits among all the measured ones: every atom a dot along the scale in its block's color, this
-  one in white, with its rank and the two ends. The edge button is split in two: the atoms
-  either side, as their cards.
-- **A run** opens on a card with the game's name curved at the top, its difficulty and the
-  levels to reach, a ring round its icon, in the difficulty's color, that fills until play
-  starts, and Start at the edge (Start, a tap or a turn of the crown starts it sooner). The
-  ATOMOS mark at the top of the screen (or the back button) pauses it: Resume at the edge, Exit
-  and Restart as pills, with the level reached and the best. It ends on a card with what it
-  built or reached: Next at the edge after a shell is built, and Again and Exit as pills (just
-  Exit after a shell is built). The levels show as a tiny atom at the bottom of the screen; a game
-  that keeps time shows the time left as a small ring round it, gray, then amber in the last
-  quarter (no game draws a countdown round the whole bezel). Exit from free play goes back to
-  the games list (or Home, for Nu's pick).
+  In all three the crown moves a pick, a tap on an atom picks it, and a tap on the picked one
+  opens it (on the table the picked atom's name replaces the count). Each atom's Build page fits
+  one screen: its shells as the bezel (built ones white, the next rose), its number, symbol and
+  name, then the rose disc with the next shell's game, which plays it, and its difficulty (once
+  built, its cloud; before then a lock and where it stands), and the Atlas's book at the foot.
+  The crown steps to the atoms either side; back is a chevron at the middle of the left edge.
+- **The Atlas** is a wheel: one atom named, its symbol large in its color with its number and
+  name, its neighbors' symbols either side, and the atoms round the rim as dots, the crown
+  turning them. A bare icon at the foot switches to the table and back. A tap on the atom opens
+  its Atlas page, a list with no tiles, section headers or folds: its symbol and name, where it
+  sits, Build, the atom itself, the headline, the little table, its properties as sliders (a
+  track from the lowest atom to the highest, this one a dot in its color), the facts, its
+  structure, its discovery and name, its isotopes, where it comes from and what it is for, and
+  the atoms either side.
+- **A run** opens on a card without words: the game's icon in a ring that fills, in the
+  difficulty's color, until play starts; its name; and the goal as an empty tiny atom (a tap or
+  a turn of the crown starts it sooner). The ATOMOS mark, dim at the top of the screen (or the
+  back button), pauses it: the white Resume disc between a bare Exit and Restart, with the
+  levels and the best as tiny atoms. It ends on a card with what it built or reached, and a bare
+  Exit beside the disc that goes on: the rose Next after a shell is built, else Again. The
+  levels show as a tiny atom at the bottom of the screen; a game that keeps time shows the time
+  left as a small ring round it, gray, then amber in the last quarter (no game draws a countdown
+  round the whole bezel). Exit from free play goes back to the games list (or Home, for Nu's
+  pick).
   - A run for an atom has a goal: 3 levels at Easy, 4 at Medium, 5 at Hard. Each level cleared
     fills one electron slot. Win, and the atom's next shell is built.
   - Free play has no goal. The tiny atom counts levels in binary across 8 slots, up to 255, and

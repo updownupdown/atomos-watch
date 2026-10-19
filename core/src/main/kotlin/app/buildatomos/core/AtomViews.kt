@@ -179,14 +179,14 @@ object AtomShells {
 }
 
 /** An atom's `need` shells as a ring round the bezel, clockwise from the top, one segment each:
- *  the first `done` of them (all once the atom is `built`) lit green, and, while the atom is the
- *  one being built (`next`), the shell to play next in rose. */
-fun Pen.shellRing(need: Int, done: Int, built: Boolean, next: Boolean = false) {
+ *  the first `done` of them (all once the atom is `built`) lit in `lit`, and, while the atom is
+ *  the one being built (`next`), the shell to play next in rose. */
+fun Pen.shellRing(need: Int, done: Int, built: Boolean, next: Boolean = false, lit: Int = Ink.GREEN) {
     val c = SCREEN / 2
     val r = c - 5
     val w = 5.0
     fun tone(i: Int) = when {
-        built || i < done -> Ink.GREEN
+        built || i < done -> lit
         next && i == done -> Ink.ROSE
         else -> Ink.K800
     }
