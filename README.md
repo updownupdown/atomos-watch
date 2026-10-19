@@ -22,7 +22,7 @@ playing them. It works on its own, with no phone and no sync, and it is free.
   name, and under the name its three difficulties, Easy, Medium and Hard, as dots in green,
   yellow and red. A dot with a best holds it in black; one without is an empty ring. A tap on a
   dot plays that difficulty at once; a tap anywhere else on the row plays the one last played
-  (Easy to start).
+  (Easy to start). The rose Nu's pick at the edge plays Nu's game for today at its last level.
 - **Build** shows every atom three ways, picked on a switch of three, Rows, Dial and Shells (the
   choice lasts until the app closes):
   - the rows: every period's atoms as plates, eight to a row, built ones in their own color,
@@ -46,11 +46,13 @@ playing them. It works on its own, with no phone and no sync, and it is free.
   sits among all the measured ones: every atom a dot along the scale in its block's color, this
   one in white, with its rank and the two ends. The edge button is split in two: the atoms
   either side, as their cards.
-- **A run** opens on a card with the game's name, its difficulty and the levels to reach, and a
-  ring round its icon, in the difficulty's color, that fills until play starts (a tap or a turn
-  of the crown starts it sooner). The ATOMOS mark at the top of the screen (or the back button)
-  pauses it: Exit on the left, Resume in the middle, Restart on the right, with the level reached
-  and the best at the foot. The levels show as a tiny atom at the bottom of the screen; a game
+- **A run** opens on a card with the game's name curved at the top, its difficulty and the
+  levels to reach, a ring round its icon, in the difficulty's color, that fills until play
+  starts, and Start at the edge (Start, a tap or a turn of the crown starts it sooner). The
+  ATOMOS mark at the top of the screen (or the back button) pauses it: Resume at the edge, Exit
+  and Restart as pills, with the level reached and the best. It ends on a card with what it
+  built or reached: Next at the edge after a shell is built, and Again and Exit as pills (just
+  Exit after a shell is built). The levels show as a tiny atom at the bottom of the screen; a game
   that keeps time shows the time left as a small ring round it, gray, then amber in the last
   quarter (no game draws a countdown round the whole bezel). Exit from free play goes back to
   the games list (or Home, for Nu's pick).
@@ -59,7 +61,8 @@ playing them. It works on its own, with no phone and no sync, and it is free.
   - Free play has no goal. The tiny atom counts levels in binary across 8 slots, up to 255, and
     every level is harder than the last. Its difficulty is the dot tapped in the games list.
 - **Settings** has Sound (off to start), Haptics (on to start, and soft), and starting the
-  collection over, with the version curved along the foot.
+  collection over (it asks first: Cancel, or the red Start over at the edge), with the version
+  curved along the foot.
 - **The tile** and **the Play with Nu complication** open straight into the next run for the
   atom. **The building complication** shows the atom being built on a watch face.
 

@@ -1,5 +1,6 @@
-// The list screens: every game for free play (each with its three difficulties to tap) and
-// Settings. Each is a ScalingLazyColumn, scrolled by touch or the crown.
+// The list screens: every game for free play (each with its three difficulties to tap, and Nu's
+// pick at the edge) and Settings. Each is a ScalingLazyColumn under a curved title, scrolled by
+// touch or the crown, with the scroll arc on the right.
 
 package app.buildatomos.watch.ui
 
@@ -10,7 +11,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,29 +32,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
-import androidx.wear.compose.foundation.lazy.ScalingLazyListScope
 import androidx.wear.compose.foundation.lazy.items
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import app.buildatomos.core.Difficulty
 import app.buildatomos.core.Game
 import app.buildatomos.core.Games
+import app.buildatomos.core.Icon
 import app.buildatomos.core.Ink
 import app.buildatomos.core.gameIcon
 import app.buildatomos.watch.AppModel
 import kotlin.math.PI
-
-@Composable
-fun WatchList(start: Int = 0, content: ScalingLazyListScope.() -> Unit) {
-    val state = rememberScalingLazyListState(initialCenterItemIndex = start)
-    ScalingLazyColumn(
-        Modifier.fillMaxSize().background(Color.Black),
-        state = state,
-        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 28.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-        content = content,
-    )
-}
 
 /** A game's card icon: black on a white circle; Nu's pick has a rose dot at its top right. */
 @Composable
@@ -100,15 +87,22 @@ fun LevelDots(model: AppModel, game: Game, onPlay: (Int) -> Unit) {
     }
 }
 
-/** Every game, A to Z, for free play: its icon (Nu's pick marked with a rose dot) and its name,
- *  and under the name its three difficulties as dots, each with its best. A tap on a dot plays
- *  that difficulty; a tap anywhere else on the row, the one last played. */
+/** Every game, A to Z, for free play, under Games curved at the top: each a soft pill row with
+ *  its icon (Nu's pick marked with a rose dot) and its name, and under the name its three
+ *  difficulties as dots, each with its best. A tap on a dot plays that difficulty; a tap anywhere
+ *  else on the row, the one last played. Nu's pick is the rose edge button, at its last level. */
 @Composable
 fun GamesScreen(model: AppModel, onPlay: (Game, Int) -> Unit) {
     model.version
-    val pick = model.nuPick().id
-    WatchList {
-        items(Games.all) { g -> GameRow(model, g, nu = g.id == pick, onPlay = onPlay) }
+    val pick = model.nuPick()
+    val state = rememberScalingLazyListState(initialCenterItemIndex = 1)
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        EdgeList(state, side = 12.dp, gap = 5.dp) {
+            items(Games.all) { g -> GameRow(model, g, nu = g.id == pick.id, onPlay = onPlay) }
+        }
+        CurvedTitle("Games")
+        EdgeScroll(state)
+        EdgeButton({ onPlay(pick, model.pickedLevel(pick)) }, fill = Tone.rose) { EdgeLabel("Nu's pick", Tone.ink) }
     }
 }
 
@@ -118,7 +112,7 @@ private fun GameRow(model: AppModel, game: Game, nu: Boolean, onPlay: (Game, Int
     Row(
         Modifier
             .fillMaxWidth()
-            .background(Tone.plate, RoundedCornerShape(26.dp))
+            .background(Tone.plate, RoundedCornerShape(30.dp))
             .clickable { onPlay(game, model.pickedLevel(game)) }
             .padding(start = 10.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -156,6 +150,7 @@ fun SettingsScreen(model: AppModel) {
         EdgeScroll(state)
         if (asking) Confirm(
             question = "Start the collection over? Every atom you built goes.",
+            yes = "Start over",
             onNo = { asking = false },
             onYes = { asking = false; model.resetCollection() },
         )
@@ -197,33 +192,20 @@ private fun ComposePen.hapticsMark() {
     line(20.0, 9.0, 20.0, 15.0, c, 2.0)
 }
 
-/** A destructive action asks first: the question, a gray No and a red Yes. */
+/** A destructive action asks first: the question, Cancel as a pill under it, and the action
+ *  itself (`yes`) in red at the edge. Back cancels. */
 @Composable
-fun Confirm(question: String, onNo: () -> Unit, onYes: () -> Unit) {
+fun Confirm(question: String, yes: String, onNo: () -> Unit, onYes: () -> Unit) {
     BackHandler { onNo() }
-    Box(Modifier.fillMaxSize().background(Color.Black).clickable(enabled = false) {}, contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 26.dp)) {
+    Box(Modifier.fillMaxSize().background(Color.Black).clickable(enabled = false) {}) {
+        Column(
+            Modifier.align(Alignment.Center).padding(start = 26.dp, end = 26.dp, bottom = 30.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             Label(question, size = 15.sp)
-            Spacer(Modifier.height(14.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                RoundButton(Ink.K700, onNo) { pen ->
-                    pen.line(16.0, 16.0, 32.0, 32.0, Ink.WHITE, 3.5)
-                    pen.line(32.0, 16.0, 16.0, 32.0, Ink.WHITE, 3.5)
-                }
-                RoundButton(Ink.RED, onYes) { pen ->
-                    pen.line(14.0, 25.0, 21.0, 32.0, Ink.BLACK, 3.5)
-                    pen.line(21.0, 32.0, 34.0, 17.0, Ink.BLACK, 3.5)
-                }
-            }
+            Spacer(Modifier.height(12.dp))
+            Pill("Cancel", Icon.EXIT, onNo, fill = Tone.plate)
         }
-    }
-}
-
-@Composable
-private fun RoundButton(color: Int, onClick: () -> Unit, mark: (ComposePen) -> Unit) {
-    Canvas(Modifier.size(48.dp).clickable(onClick = onClick)) {
-        val pen = ComposePen(this, 48.0)
-        pen.dot(24.0, 24.0, 24.0, color)
-        mark(pen)
+        EdgeButton(onYes, fill = Color(Ink.RED)) { EdgeLabel(yes, Tone.ink, Icon.CHECK) }
     }
 }
