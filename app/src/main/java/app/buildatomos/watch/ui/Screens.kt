@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -101,52 +102,47 @@ fun GamesScreen(model: AppModel, onGame: (Game) -> Unit) {
     }
 }
 
-/** One game's difficulties for free play: its icon and name, then Easy, Medium and Hard, each on
- *  its own plate with its color, its word and the best level reached at it. The one last played
- *  is marked with a check. A tap on a difficulty plays it. */
+/** One game's difficulties for free play, on one screen: its icon and name at the top; Easy,
+ *  Medium and Hard as three circles in a row across the middle, each in its color, filled with
+ *  the best level reached at it in black, or a ring only until there is one, its word under it;
+ *  and a small back button at the foot, a black chevron on a white disc. A tap on a circle plays
+ *  that difficulty. */
 @Composable
-fun DifficultyScreen(model: AppModel, game: Game, onPlay: (Int) -> Unit) {
+fun DifficultyScreen(model: AppModel, game: Game, onPlay: (Int) -> Unit, onBack: () -> Unit) {
     model.version
-    val picked = model.pickedLevel(game)
-    val state = rememberScalingLazyListState(initialCenterItemIndex = 1)
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        QuietList(state, side = 16.dp, gap = 8.dp) {
-            item {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    GameIcon(game.id, 32.dp)
-                    Label(game.label, size = 18.sp, weight = FontWeight.SemiBold, lines = 1)
+        Face { u ->
+            Column(Modifier.fillMaxSize().padding(top = u * 34, bottom = u * 14), horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(u * 8)) {
+                    GameIcon(game.id, u * 30)
+                    Label(game.label, size = u.text(18), weight = FontWeight.SemiBold, lines = 1)
                 }
-            }
-            items((0 until Difficulty.LEVELS).toList()) { i ->
-                val best = model.bestLevel(game, i)
-                val c = Difficulty.COLORS[i]
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(26.dp))
-                        .background(Color(Ink.K900))
-                        .clickable { onPlay(i) }
-                        .padding(start = 10.dp, end = 14.dp, top = 9.dp, bottom = 9.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Canvas(Modifier.size(26.dp)) {
-                        val pen = ComposePen(this, 26.0)
-                        pen.dot(13.0, 13.0, 13.0, c)
-                        if (i == picked) pen.icon(Icon.CHECK, 13.0, 13.0, 17.0, Ink.BLACK)
+                Spacer(Modifier.weight(1f))
+                Row(horizontalArrangement = Arrangement.spacedBy(u * 8)) {
+                    for (i in 0 until Difficulty.LEVELS) {
+                        val best = model.bestLevel(game, i)
+                        val c = Difficulty.COLORS[i]
+                        Column(
+                            Modifier.clip(RoundedCornerShape(u * 20)).clickable { onPlay(i) }.padding(u * 3),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(u * 4),
+                        ) {
+                            Box(Modifier.size(u * 54), contentAlignment = Alignment.Center) {
+                                Canvas(Modifier.fillMaxSize()) {
+                                    val pen = ComposePen(this, 54.0)
+                                    if (best > 0) pen.dot(27.0, 27.0, 27.0, c)
+                                    else pen.ring(27.0, 27.0, 25.5, c, 3.0)
+                                }
+                                if (best > 0) Label("$best", size = u.text(20), color = Color.Black, weight = FontWeight.SemiBold, lines = 1)
+                            }
+                            Label(Difficulty.WORDS[i], size = u.text(13), color = Color(c), lines = 1)
+                        }
                     }
-                    Column(Modifier.weight(1f)) {
-                        Label(Difficulty.WORDS[i], size = 16.sp, weight = FontWeight.SemiBold, align = TextAlign.Start, lines = 1)
-                        Label(
-                            if (best > 0) "Best: $best" else "No best yet", size = 13.sp,
-                            color = if (best > 0) Tone.text2 else Tone.text3, weight = FontWeight.Normal, align = TextAlign.Start, lines = 1,
-                        )
-                    }
-                    if (best > 0) TinyAtom(best, null, 22.dp, Ink.CYAN)
                 }
+                Spacer(Modifier.weight(1f))
+                Disc(u * 34, Ink.WHITE, onBack, icon = Icon.BACK)
             }
         }
-        Scroll(state)
     }
 }
 

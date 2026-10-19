@@ -104,7 +104,7 @@ fun App(model: AppModel, launchBuild: Boolean, onLaunched: () -> Unit, onExit: (
             composable(Routes.GAMES) { GamesScreen(model) { nav.go(Routes.game(it.id)) } }
             composable("game/{id}") { e ->
                 val game = e.arguments?.getString("id")?.let(Games::byId) ?: Games.all.first()
-                DifficultyScreen(model, game) { play(game, it) }
+                DifficultyScreen(model, game, onPlay = { play(game, it) }, onBack = { nav.popBackStack() })
             }
             composable("atlas/{z}/{view}") { e ->
                 AtlasScreen(model, e.arguments?.getString("z")?.toIntOrNull() ?: 1, e.arguments?.getString("view") == "table") { nav.go(Routes.atom(it)) }
