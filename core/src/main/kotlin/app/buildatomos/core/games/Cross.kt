@@ -125,7 +125,9 @@ class Cross : Toy {
     override fun step(s: Stage, dt: Double, now: Double) {
         val nu = s.nu
         val to = Pt(col, rowY(s, row))
-        nu.seek(to, dt, if (safe > 0) 0.6 else 0.9, 0.08)
+        // Quick to follow and gently eased in, so a hop or a step lands with only a slight sway
+        // past its place (about 4 units on a lane's 30) and the way it went reads at a glance.
+        nu.seek(to, dt, if (safe > 0) 0.6 else 0.9, 0.025, lag = 20.0)
         val span = x1(s) - x0(s)
         for (l in lanes) {
             if (l == null) continue

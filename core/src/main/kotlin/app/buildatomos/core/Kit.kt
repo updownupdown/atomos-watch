@@ -141,15 +141,17 @@ class Body {
 
     fun at(p: Pt) { x = p.x; y = p.y; vx = 0.0; vy = 0.0; hist.clear() }
 
-    /** Steers toward `to` with a top speed (units/ms) and slows as it arrives: no jumps, no jerks. */
-    fun seek(to: Pt, dt: Double, top: Double = 0.5, ease: Double = 0.006) {
+    /** Steers toward `to` with a top speed (units/ms) and slows as it arrives: no jumps, no jerks.
+     *  Its speed follows the wanted one `lag` ms behind: the longer the lag, the more it sways past
+     *  `to` and back before it settles. */
+    fun seek(to: Pt, dt: Double, top: Double = 0.5, ease: Double = 0.006, lag: Double = 90.0) {
         val dx = to.x - x
         val dy = to.y - y
         val d = hypot(dx, dy)
         val want = min(top, d * ease * 1.6)
         val tx = if (d > 0.01) dx / d * want else 0.0
         val ty = if (d > 0.01) dy / d * want else 0.0
-        val k = 1 - exp(-dt / 90)
+        val k = 1 - exp(-dt / lag)
         vx += (tx - vx) * k
         vy += (ty - vy) * k
         x += vx * dt
