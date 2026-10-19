@@ -81,7 +81,7 @@ class LevelsETest {
     }
 
     @Test fun aGoodPlayerWinsAnEasyRun() {
-        assertEquals(Result.WON, run(Dial(), 1, 3, bot = dialer()).result, "dial")
+        assertEquals(Result.WON, run(Dial(), 50, 3, bot = dialer()).result, "dial")
         val won = (1..5).count { run(Lanes(), 1, 3, bot = laner()).result == Result.WON }
         assertTrue(won >= 4, "lanes won $won of 5")
     }
@@ -93,7 +93,7 @@ class LevelsETest {
 
     /** A level takes a while at the easiest: not over in a few seconds, not a slog. */
     @Test fun aLevelTakesAWhileAtTheEasiest() {
-        val d = run(Dial(), 1, 1, bot = dialer())
+        val d = run(Dial(), 50, 1, bot = dialer())
         val l = run(Lanes(), 1, 1, bot = laner())
         assertEquals(Result.WON, d.result)
         assertEquals(Result.WON, l.result)
@@ -103,7 +103,7 @@ class LevelsETest {
 
     /** Free play goes on, a level harder each time, until the player slips. */
     @Test fun freePlayGoesOn() {
-        assertTrue(run(Dial(), 1, null, bot = dialer()).level >= 8, "dial")
+        assertTrue(run(Dial(), 50, null, bot = dialer()).level >= 8, "dial")
         assertTrue((1..3).maxOf { run(Lanes(), 1, null, bot = laner()).level } >= 5, "lanes")
     }
 
@@ -131,6 +131,27 @@ class LevelsETest {
             val name = make()::class.simpleName
             assertTrue(hard.sumOf { it.now } < easy.sumOf { it.now }, "$name: ${hard.map { it.now }} vs ${easy.map { it.now }}")
         }
+    }
+
+    /** Dial keeps its clock off the bezel: a small ring in the middle drains as the time goes,
+     *  and fills again for the next level or after a life is lost. */
+    @Test fun dialsClockIsInTheMiddle() {
+        var least = 1.0
+        var most = 0.0
+        var refilled = false
+        var last = 1.0
+        val s = run(Dial(), 50, null, 60_000.0) { t, st ->
+            assertEquals(null, st.rim, "no clock on the bezel")
+            val f = t.timeLeft
+            if (f != null) {
+                least = minOf(least, f)
+                most = maxOf(most, f)
+                if (f > last + 0.5) refilled = true
+                last = f
+            }
+        }
+        assertEquals(Result.LOST, s.result)
+        assertTrue(least < 0.05 && most > 0.95 && refilled, "clock ran $least..$most, refilled $refilled")
     }
 
     /** However the reds come round, when they reach Nu there is always a ring none of them is on. */
