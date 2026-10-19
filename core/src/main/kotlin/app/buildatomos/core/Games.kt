@@ -1,5 +1,5 @@
 // The watch's games, A to Z. Most are Nu's park games from the phone, fitted to the watch; Core,
-// Dial, Fill, Fit and Lanes are the watch's own. All are played on the round court in levels;
+// Dial, Fit and Lanes are the watch's own. All are played on the round court in levels;
 // `crown` marks the ones the crown steers.
 
 package app.buildatomos.core
