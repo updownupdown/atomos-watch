@@ -8,10 +8,12 @@ import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.min
 
-/** The breath between levels, while the rim fills again (ms). */
+/** The breath between levels, while the clock fills again (ms). */
 private const val CALM_MS = 1000.0
 /** The dial's face: this many graduations, every fourth a little bigger. */
 private const val TICKS = 48
+/** The clock's ring round the pins in the middle (units). */
+private const val CLOCK_R = 31.0
 
 /**
  * Dial, made for the watch (the phone has no crown). A safe's dial: Nu is its pointer, riding the
@@ -21,9 +23,11 @@ private const val TICKS = 48
  * drain away (twice as fast as it filled). The upcoming notch shows faintly, so the turn can be
  * planned; the combination's pins sit round the middle and turn green as they lock.
  * A level is a combination: five notches at first, one more every other level, up to eight, all
- * on one clock on the rim. Running out of time costs one of three lives, and the clock fills
- * again with the pins kept; the last life lost loses the run. Lives carry on from level to level,
- * and one comes back every third level. Between levels the rim fills again for a breath.
+ * on one clock: a small quiet ring round the pins in the middle, draining as it goes, amber in its
+ * last quarter (not the bezel, which would pull the eye off the notch). Running out of time costs
+ * one of three lives, and the clock fills again with the pins kept; the last life lost loses the
+ * run. Lives carry on from level to level, and one comes back every third level. Between levels
+ * the clock fills again for a breath.
  * Every notch creeps round the ring, so a lock means following it. Heat narrows the notches (15.5
  * degrees at the gentlest, 8 at Expert and no narrower), holds them longer (0.65 s to 0.92 s, at
  * most 0.95 s), gives less time for each (3.2 s to 2 s, never under 1.9 s), and drifts them faster
@@ -47,6 +51,8 @@ class Dial : Toy {
     /** The level's clock: all it has, and what is left (ms). */
     private var bank = 1.0
     private var clock = 1.0
+    /** The clock as drawn, 0..1 left, or null for none. */
+    private var face: Double? = null
     /** The breath between levels, ms left, or 0. */
     private var calm = 0.0
     /** Nu is in the notch to lock, as of the last frame. */
@@ -59,6 +65,8 @@ class Dial : Toy {
     internal val goal: Double? get() = if (calm > 0 || over || at >= combo.size) null else combo[at].a
     internal val goalDrift: Double get() = if (at < combo.size) combo[at].v else 0.0
     internal val pointer: Double get() = a
+    /** The clock in the middle, 0..1 left, or null when none shows: for the tests. */
+    internal val timeLeft: Double? get() = face
 
     override fun enter(s: Stage) {
         s.nu.r = 9.0
@@ -82,7 +90,8 @@ class Dial : Toy {
         clock = bank
         inside = false
         s.part = 0.0
-        s.rim = 1.0
+        s.rim = null
+        face = 1.0
     }
 
     override fun step(s: Stage, dt: Double, now: Double) {
@@ -96,7 +105,7 @@ class Dial : Toy {
         for (q in combo) if (q.lockedAt == null) q.a += q.v * dt
         if (calm > 0) {
             calm -= dt
-            s.rim = clamp(1 - calm / CALM_MS, 0.0, 1.0)
+            face = clamp(1 - calm / CALM_MS, 0.0, 1.0)
             if (calm <= 0) { calm = 0.0; deal(s) }
             return
         }
@@ -121,15 +130,15 @@ class Dial : Toy {
             if (at >= combo.size) {
                 s.fx.ring(s.c, Ink.GREEN, 10.0, track(s) - 12, 700.0)
                 s.clear()
-                if (s.over) { over = true; s.rim = null; return }
+                if (s.over) { over = true; face = null; return }
                 if (s.level % 3 == 0) left = min(LIVES, left + 1)
                 calm = CALM_MS
-                s.rim = 0.0
+                face = 0.0
             }
             return
         }
         clock -= dt
-        s.rim = clamp(clock / bank, 0.0, 1.0)
+        face = clamp(clock / bank, 0.0, 1.0)
         if (clock <= 0) {
             left--
             s.fx.ring(polar(s, q.a, track(s)), Ink.RED, 8.0, 30.0, 600.0)
@@ -137,7 +146,7 @@ class Dial : Toy {
             s.out.buzz(22)
             if (left <= 0) {
                 over = true
-                s.rim = 0.0
+                face = 0.0
                 s.lose()
                 return
             }
@@ -166,6 +175,12 @@ class Dial : Toy {
             else pen.ring(p, 3.4, Ink.K500, 1.8, 0.8)
         }
         pen.dot(c, 5.0, Ink.K300, 0.6)
+        // The clock round them: a faint track, and what is left of it draining from the top,
+        // amber in its last quarter.
+        face?.let { f ->
+            pen.ring(c, CLOCK_R, Ink.K900, 3.0, 1.0)
+            if (f > 0.005) pen.arc(c.x, c.y, CLOCK_R, -PI / 2, TAU * f, if (f < 0.25 && calm <= 0) Ink.AMBER else Ink.K400, 3.0, 0.9)
+        }
         // The pins locked this level stay on the ring where they clicked.
         for (q in combo) if (q.lockedAt != null) pen.dot(polar(s, q.a, t), 4.0, Ink.GREEN, 0.8)
         if (!over && calm <= 0 && at < combo.size) {

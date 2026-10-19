@@ -45,12 +45,9 @@ object Games {
         Game("spot", "Spot") { Spot() },
         Game("stick", "Stick") { Stick() },
         Game("tune", "Tune", crown = true) { Tune() },
-        Game("bank", "Bank", crown = true) { Bank() },
         Game("cross", "Cross") { Cross() },
-        Game("fill", "Fill") { Fill() },
         Game("fit", "Fit", crown = true) { Fit() },
         Game("herd", "Herd", crown = true) { Herd() },
-        Game("poise", "Poise") { Poise() },
     ).sortedBy { it.label }
 
     fun byId(id: String): Game? = all.firstOrNull { it.id == id }

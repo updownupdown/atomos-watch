@@ -146,10 +146,51 @@ class CoreFuseTest {
     }
 
     @Test fun fuseClears() {
-        val won = (1..5).count { run(Fuse(), 1, 3, bot = fuser()).result == Result.WON }
-        assertTrue(won >= 4, "won $won of 5 at Very easy")
+        val won = (1..5).count { run(Fuse(), 50, 3, bot = fuser()).result == Result.WON }
+        assertTrue(won >= 4, "won $won of 5 at Easy")
         val hard = (1..5).count { run(Fuse(), 100, 7, bot = fuser()).level >= 1 }
-        assertTrue(hard >= 3, "Expert cleared a level $hard times of 5")
+        assertTrue(hard >= 3, "Hard cleared a level $hard times of 5")
+    }
+
+    /** The pile is lively: an atom set down near the top of a bigger one rolls off it (even dead
+     *  on top), and an atom dropped onto the floor bounces back up a little before it rests. */
+    @Test fun fuseAtomsRollOffAndBounce() {
+        for (off in listOf(0.0, 0.5, 3.0)) {
+            val s = Stage()
+            val f = Fuse()
+            s.now = 1000.0
+            f.enter(s)
+            val big = Fuse.size(3)
+            val small = Fuse.size(1)
+            @Suppress("UNCHECKED_CAST") val pile = f.pile as MutableList<Fuse.Atom>
+            pile += Fuse.Atom(s.c.x, 256 - big, 0.0, 0.0, 3, 0.0, 0.0)
+            pile += Fuse.Atom(s.c.x + off, 256 - 2 * big - small, 0.0, 0.0, 1, 0.0, 0.0)
+            var offAt: Double? = null
+            var t = 0.0
+            while (t < 3000 && offAt == null) {
+                t += 16; s.now += 16
+                f.step(s, 16.0, s.now)
+                if (pile[1].y > 256 - 2 * big) offAt = t
+            }
+            assertTrue(offAt != null && offAt < 1500, "offset $off: rolled off at $offAt ms")
+        }
+        val s = Stage()
+        val f = Fuse()
+        s.now = 1000.0
+        f.enter(s)
+        @Suppress("UNCHECKED_CAST") val pile = f.pile as MutableList<Fuse.Atom>
+        val r = Fuse.size(2)
+        pile += Fuse.Atom(s.c.x, 100.0, 0.0, 0.05, 2, 0.0, 0.0)
+        var landed = false
+        var top = 999.0
+        repeat(300) {
+            s.now += 16
+            f.step(s, 16.0, s.now)
+            if (pile[0].y + r >= 255.5) landed = true
+            if (landed) top = minOf(top, pile[0].y)
+        }
+        assertTrue(256 - r - top > 3, "bounced ${256 - r - top} units")
+        assertTrue(abs(pile[0].vy) < 0.003 && abs(pile[0].y + r - 256) < 0.5, "at rest after ~5 s")
     }
 
     /** Left alone, Nu holds the atom, it pulses pale three times at the end of the wait, and Nu

@@ -181,13 +181,7 @@ fun Pen.gameIcon(id: String, cx: Double, cy: Double, size: Double, color: Int) {
             a(12.0, 12.0, 5.2, PI * 0.75 + 0.6, TAU - 1.2)
             f(12.0, 12.0, 1.8); f(3.0, 12.0, 2.6)
         }
-        "bank" -> {
-            // The shot's way as dots, off a bank on the left, to the ring at the top right; Nu below.
-            for ((x, y) in listOf(9.5 to 16.2, 6.5 to 13.6, 3.8 to 11.2, 7.3 to 9.4, 11.0 to 7.4, 14.6 to 5.6)) f(x, y, 1.1)
-            o(18.5, 4.5, 2.6); f(12.0, 20.0, 2.6)
-        }
         "cross" -> { f(12.0, 20.0, 2.4); f(5.0, 14.0, 1.8); f(17.0, 14.0, 1.8); f(9.0, 8.5, 1.8); f(20.0, 8.5, 1.8); l(4.0, 3.5, 20.0, 3.5) }
-        "fill" -> { f(8.5, 9.5, 6.0); o(17.0, 16.5, 4.5); f(17.0, 16.5, 1.7); f(19.5, 5.0, 1.7) }
         "fit" -> {
             // A ring with two gaps closing on the shell, its two electrons lined up with them.
             a(12.0, 12.0, 9.5, -PI / 2 + 0.5, PI - 1.0); a(12.0, 12.0, 9.5, PI / 2 + 0.5, PI - 1.0)
@@ -199,7 +193,6 @@ fun Pen.gameIcon(id: String, cx: Double, cy: Double, size: Double, color: Int) {
             f(12.0 + 9.5 * cos(-0.8), 12.0 + 9.5 * sin(-0.8), 2.5)
             f(12.0, 12.0, 2.2); f(14.6, 9.4, 1.4); f(7.8, 14.2, 1.4)
         }
-        "poise" -> { l(3.0, 15.5, 21.0, 12.5); f(12.0, 17.0, 2.0); l(12.0, 19.0, 12.0, 22.0); f(6.0, 11.5, 3.0); o(18.0, 8.5, 2.2) }
         else -> { o(12.0, 12.0, 8.0); f(12.0, 12.0, 3.0) }
     }
 }
