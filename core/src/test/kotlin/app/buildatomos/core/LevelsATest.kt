@@ -90,7 +90,7 @@ class LevelsATest {
         assertEquals(Result.WON, run(Blast(), 1, 3, bot = crownBlaster()).result, "blast by the crown")
         assertEquals(Result.WON, run(Dive(), 1, 3, bot = diver).result, "dive")
         assertEquals(Result.WON, run(Echo(), 1, 3, bot = echoer()).result, "echo")
-        assertEquals(Result.WON, run(Flash(), 1, 3, bot = flasher()).result, "flash")
+        assertEquals(Result.WON, run(Flash(), 50, 3, bot = flasher()).result, "flash")
     }
 
     @Test fun aGoodPlayerClearsLevelsAtExpert() {
@@ -150,6 +150,8 @@ class LevelsATest {
         assertTrue(e.length(1.0) > e.length(0.0) && e.pace(1.0) > e.pace(0.0))
         val f = Flash()
         assertTrue(f.window(1.0) < f.window(0.0) && f.redChance(1.0) > f.redChance(0.0))
+        // A notch harder than it was: Easy plays as Medium did, Hard at the quickest lights.
+        assertTrue(f.window(0.5) in 650.0..720.0 && f.window(0.9) <= 430 && f.redChance(0.5) > 0.2, "flash at Easy ${f.window(0.5)}")
         // Nothing breaks deep into free play.
         for (h in listOf(2.5, 13.0)) {
             assertTrue(b.speed(h) < 0.2 && b.every(h) >= 300, "blast at $h")

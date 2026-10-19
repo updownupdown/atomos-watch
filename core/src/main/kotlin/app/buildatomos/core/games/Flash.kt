@@ -18,9 +18,10 @@ import kotlin.math.sin
  *
  * A level is a set of catches: ten, and one more each level. Then the atoms rest for a breath
  * and the next set starts. Lives carry over, and every third level cleared gives one back. Heat
- * keeps each light on for less time (1.17 s at the gentlest, under 0.6 s at Expert, never under
- * 0.4 s), lights the next one sooner and lights more of them red (one in nine at the gentlest,
- * near one in four at Expert). It plays a notch and a half harder than the phone's.
+ * keeps each light on for less time (1 s at the gentlest, 0.68 s at Medium's middle, 0.42 s at
+ * Expert's and never under 0.4 s), lights the next one sooner and lights more of them red (one in
+ * seven at the gentlest, near three in ten at Expert). It plays two and a half notches harder
+ * than the phone's: each level plays as the one above it used to.
  */
 class Flash : Toy {
     private var nodes = listOf<Pt>()
@@ -65,10 +66,10 @@ class Flash : Toy {
     }
 
     /** How long a light stays on, ms, how much sooner the next comes (a factor on the wait), and
-     *  how often one is red. */
-    internal fun window(h: Double) = max(400.0, 1170.0 - 650 * h)
-    private fun sooner(h: Double) = clamp(1.03 - 0.35 * h, 0.45, 1.15)
-    internal fun redChance(h: Double) = min(0.35, 0.11 + 0.14 * h)
+     *  how often one is red; each a notch (a quarter of the heat scale) past the dial. */
+    internal fun window(h: Double) = max(400.0, 1170.0 - 650 * (h + NOTCH))
+    private fun sooner(h: Double) = clamp(1.03 - 0.35 * (h + NOTCH), 0.45, 1.15)
+    internal fun redChance(h: Double) = min(0.35, 0.11 + 0.14 * (h + NOTCH))
 
     /** The atom to tap now, if one is lit cyan. */
     internal val target: Pt? get() = if (lit >= 0 && !red) nodes[lit] else null
@@ -162,5 +163,7 @@ class Flash : Toy {
         const val LIVES = 3
         /** The breath between levels, ms. */
         const val CALM = 900.0
+        /** How much hotter than the dial it plays: a level's worth. */
+        const val NOTCH = 0.25
     }
 }
