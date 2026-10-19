@@ -1,5 +1,6 @@
-// The games list and Settings. The games list: every game on its own plate, its icon and its
-// name, with its three difficulties as dots under the name, and Nu's pick marked with a rose dot.
+// The games list, a game's difficulties and Settings. The games list: every game on its own
+// plate, its icon black on a white disc and its name, Nu's pick marked with a rose dot. A game's
+// difficulties: Easy, Medium and Hard on plates, each with its best.
 // Settings: sound and haptics named beside their marks and switches on one plate, starting the
 // collection over in red, the version.
 
@@ -71,43 +72,81 @@ fun LevelDots(model: AppModel, game: Game, onPlay: (Int) -> Unit) {
     }
 }
 
-/** Every game, A to Z, for free play: see the top of this file. A tap on a dot plays that
- *  difficulty; a tap anywhere else on the row, the one last played. */
+/** Every game, A to Z, for free play: each on its own plate, its icon black on a white disc
+ *  (Nu's pick with a rose dot on it) and its name. A tap opens the game's difficulties. */
 @Composable
-fun GamesScreen(model: AppModel, onPlay: (Game, Int) -> Unit) {
+fun GamesScreen(model: AppModel, onGame: (Game) -> Unit) {
     model.version
     val pick = model.nuPick()
     val state = rememberScalingLazyListState(initialCenterItemIndex = 0)
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         QuietList(state, side = 14.dp, gap = 6.dp) {
-            items(Games.all) { g -> GameRow(model, g, nu = g.id == pick.id, onPlay = onPlay) }
+            items(Games.all) { g ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(26.dp))
+                        .background(Color(Ink.K900))
+                        .clickable { onGame(g) }
+                        .padding(start = 8.dp, end = 12.dp, top = 7.dp, bottom = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    GameIcon(g.id, 36.dp, nu = g.id == pick.id)
+                    Label(g.label, Modifier.weight(1f), size = 17.sp, align = TextAlign.Start, lines = 1)
+                }
+            }
         }
         Scroll(state)
     }
 }
 
-/** One game in the games list: see GamesScreen. */
+/** One game's difficulties for free play: its icon and name, then Easy, Medium and Hard, each on
+ *  its own plate with its color, its word and the best level reached at it. The one last played
+ *  is marked with a check. A tap on a difficulty plays it. */
 @Composable
-private fun GameRow(model: AppModel, game: Game, nu: Boolean, onPlay: (Game, Int) -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color(Ink.K900))
-            .clickable { onPlay(game, model.pickedLevel(game)) }
-            .padding(start = 12.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        GameMark(game.id, 28.dp)
-        Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                // In line with the first dot's left edge.
-                Label(game.label, Modifier.padding(start = ((DOT_CELL - DOT) / 2).dp), size = 17.sp, align = TextAlign.Start, lines = 1)
-                if (nu) Canvas(Modifier.size(8.dp)) { ComposePen(this, 8.0).dot(4.0, 4.0, 4.0, Ink.ROSE) }
+fun DifficultyScreen(model: AppModel, game: Game, onPlay: (Int) -> Unit) {
+    model.version
+    val picked = model.pickedLevel(game)
+    val state = rememberScalingLazyListState(initialCenterItemIndex = 1)
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        QuietList(state, side = 16.dp, gap = 8.dp) {
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    GameIcon(game.id, 32.dp)
+                    Label(game.label, size = 18.sp, weight = FontWeight.SemiBold, lines = 1)
+                }
             }
-            LevelDots(model, game) { onPlay(game, it) }
+            items((0 until Difficulty.LEVELS).toList()) { i ->
+                val best = model.bestLevel(game, i)
+                val c = Difficulty.COLORS[i]
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(26.dp))
+                        .background(Color(Ink.K900))
+                        .clickable { onPlay(i) }
+                        .padding(start = 10.dp, end = 14.dp, top = 9.dp, bottom = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Canvas(Modifier.size(26.dp)) {
+                        val pen = ComposePen(this, 26.0)
+                        pen.dot(13.0, 13.0, 13.0, c)
+                        if (i == picked) pen.icon(Icon.CHECK, 13.0, 13.0, 17.0, Ink.BLACK)
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Label(Difficulty.WORDS[i], size = 16.sp, weight = FontWeight.SemiBold, align = TextAlign.Start, lines = 1)
+                        Label(
+                            if (best > 0) "Best: $best" else "No best yet", size = 13.sp,
+                            color = if (best > 0) Tone.text2 else Tone.text3, weight = FontWeight.Normal, align = TextAlign.Start, lines = 1,
+                        )
+                    }
+                    if (best > 0) TinyAtom(best, null, 22.dp, Ink.CYAN)
+                }
+            }
         }
+        Scroll(state)
     }
 }
 

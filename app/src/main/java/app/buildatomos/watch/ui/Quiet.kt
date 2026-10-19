@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,6 +42,7 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListScope
 import androidx.wear.compose.foundation.lazy.ScalingLazyListState
 import androidx.wear.compose.material.PositionIndicator
+import app.buildatomos.core.Game
 import app.buildatomos.core.Icon
 import app.buildatomos.core.Ink
 import app.buildatomos.core.Pen
@@ -207,5 +209,53 @@ fun LabeledDisc(size: Dp, fill: Int, icon: Icon, label: String, onClick: () -> U
             pen.icon(icon, 50.0, 50.0, 48.0, ink)
         }
         Label(label, size = text, color = Tone.text2, lines = 1)
+    }
+}
+
+/** A rounded button with its word, for the main action where a disc alone would be unclear: rose
+ *  for Build, with `icon` before the word if it has one. */
+@Composable
+fun Pill(label: String, fill: Int, onClick: () -> Unit, modifier: Modifier = Modifier, icon: Icon? = null, ink: Int = Ink.BLACK) {
+    Row(
+        modifier.heightIn(min = 44.dp).clip(RoundedCornerShape(22.dp)).background(Color(fill)).clickable(onClick = onClick).padding(horizontal = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+    ) {
+        if (icon != null) Canvas(Modifier.size(18.dp)) { ComposePen(this, 24.0).icon(icon, 12.0, 12.0, 24.0, ink) }
+        Label(label, size = 16.sp, color = Color(ink), weight = FontWeight.SemiBold, lines = 1)
+    }
+}
+
+/** A game's card icon, as on the phone: its icon black on a white disc, `size` across; Nu's pick
+ *  has a rose dot at its top right. */
+@Composable
+fun GameIcon(id: String, size: Dp, nu: Boolean = false) {
+    Canvas(Modifier.size(size)) {
+        val pen = ComposePen(this, 100.0)
+        pen.dot(50.0, 50.0, 50.0, Ink.WHITE)
+        pen.gameIcon(id, 50.0, 50.0, 60.0, Ink.BLACK)
+        if (nu) {
+            // Cut out of the white by the plate's own color, so it reads as a dot on the icon.
+            pen.dot(84.0, 16.0, 20.0, Ink.K900)
+            pen.dot(84.0, 16.0, 13.0, Ink.ROSE)
+        }
+    }
+}
+
+/** A game on a card inside a plate: its icon, its name and its difficulty's pips. The whole card
+ *  plays it. */
+@Composable
+fun GameCard(game: Game, dial: Int, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Color(Ink.K800)).clickable(onClick = onClick)
+            .padding(start = 6.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        GameIcon(game.id, 36.dp)
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Label(game.label, size = 15.sp, weight = FontWeight.SemiBold, align = TextAlign.Start, lines = 1)
+            Pips(dial)
+        }
     }
 }

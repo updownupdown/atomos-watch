@@ -1,7 +1,7 @@
-// The Atlas: every atom, two ways, switched with a bare icon at the foot. The wheel: one atom
-// named, its symbol large in its color, its number and name, its neighbors' symbols either side,
-// and the atoms round the rim as dots, the crown turning them. The table: all 118 in their
-// standard places, the crown moving a highlight. Tapping the atom opens its Atlas page, a list
+// The Atlas: every atom, two ways, switched with a bare icon at the foot. The wheel: one atom on
+// a gray card, its number, its symbol large in its color and its name, and the atoms round the
+// rim as dots in their colors, ticked between periods, the crown turning them. The table: all 118
+// in their standard places under a card naming the picked one, the crown moving a highlight. Tapping the atom opens its Atlas page, a list
 // with no tiles, section headers or fold boxes: its symbol and name, where it sits, Build, the
 // atom itself, the headline, its properties as sliders, the facts, its structure, discovery,
 // name and isotopes, where it comes from and what it is for, and the atoms either side.
@@ -43,6 +43,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
@@ -51,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import app.buildatomos.core.ATOMS
+import app.buildatomos.core.Atom
 import app.buildatomos.core.Crowd
 import app.buildatomos.core.Icon
 import app.buildatomos.core.Ink
@@ -60,6 +62,7 @@ import app.buildatomos.core.Pt
 import app.buildatomos.core.SCREEN
 import app.buildatomos.core.TAU
 import app.buildatomos.core.icon
+import app.buildatomos.core.periodOf
 import app.buildatomos.core.shellCounts
 import app.buildatomos.watch.AppModel
 import java.math.BigDecimal
@@ -101,9 +104,53 @@ fun AtlasScreen(model: AppModel, start: Int, startTable: Boolean, onAtom: (Int) 
     }
 }
 
-/** The wheel or the table, the crown stepping the atom. On the wheel a tap on the middle opens
- *  the atom and a tap on a neighbor turns to it; on the table a tap on an atom picks it, and a
- *  tap on the picked one (or its name) opens it. */
+/** The table's cells, in court units, shared by the Atlas and the Build screen: a cell's side,
+ *  the table's left edge and top. */
+object Grid {
+    const val CELL = 11.6
+    const val LEFT = MID - CELL * 9
+    const val TOP = 116.0
+
+    /** The middle of the cell at column `col` and row `row` (the f-block on rows 9 and 10). */
+    fun at(col: Int, row: Int) = Pt(LEFT + (col - 0.5) * CELL, TOP + (row - 0.5) * CELL + if (row >= 9) -CELL * 0.6 else 0.0)
+
+    /** The atom whose cell is at p, or 0. */
+    fun hit(atoms: List<Atom>, p: Pt): Int {
+        for (a in atoms) {
+            val (col, row) = tableSpot(a.z, a.group, a.period)
+            val q = at(col, row)
+            if (abs(p.x - q.x) <= CELL / 2 + 1 && abs(p.y - q.y) <= CELL / 2 + 1) return a.z
+        }
+        return 0
+    }
+}
+
+/** The card over a table naming the picked atom, in court units: its number and symbol over its
+ *  name, on a gray plate that shows it opens. */
+private const val CARD_TOP = 40.0
+private const val CARD_BOTTOM = 104.0
+private const val CARD_HALF = 66.0
+
+fun inTableCard(p: Pt) = abs(p.x - MID) < CARD_HALF + 6 && p.y > CARD_TOP - 6 && p.y < CARD_BOTTOM + 6
+
+fun ComposePen.tableCard(measurer: TextMeasurer, atom: Atom) {
+    rect(MID - CARD_HALF, CARD_TOP, CARD_HALF * 2, CARD_BOTTOM - CARD_TOP, 22.0, Ink.K900)
+    val nw = textWidth(measurer, "${atom.z}", 15.0)
+    val sw = textWidth(measurer, atom.symbol, 22.0, FontWeight.SemiBold)
+    val x0 = MID - (nw + 6 + sw) / 2
+    text(measurer, "${atom.z}", x0 + nw / 2, 60.0, 15.0, Ink.K300)
+    text(measurer, atom.symbol, x0 + nw + 6 + sw / 2, 59.0, 22.0, atom.color, FontWeight.SemiBold)
+    text(measurer, atom.name, MID, 86.0, 18.0, Ink.WHITE)
+}
+
+/** The wheel's card round the atom, in court units. */
+private const val WHEEL_CARD_TOP = 68.0
+private const val WHEEL_CARD_BOTTOM = 232.0
+private const val WHEEL_CARD_HALF = 76.0
+
+/** The wheel or the table, the crown stepping the atom. On the wheel a tap on the card opens the
+ *  atom; on the table a tap on an atom picks it, and a tap on the picked one (or its card) opens
+ *  it. */
 @Composable
 private fun AtlasTurner(model: AppModel, z: Int, onPick: (Int) -> Unit, onAtom: (Int) -> Unit, table: Boolean) {
     val c = model.collection
@@ -125,11 +172,6 @@ private fun AtlasTurner(model: AppModel, z: Int, onPick: (Int) -> Unit, onAtom: 
         val t = to.coerceIn(1, ATOMS)
         if (t != at) { pick(t); model.feel.buzz(15) }
     }
-    // The table's cells, in court units.
-    val cell = 11.6
-    val left = MID - cell * 9
-    val top = 112.0
-    fun cellAt(col: Int, row: Int) = Pt(left + (col - 0.5) * cell, top + (row - 0.5) * cell + if (row >= 9) -cell * 0.6 else 0.0)
 
     Box(
         Modifier
@@ -139,8 +181,8 @@ private fun AtlasTurner(model: AppModel, z: Int, onPick: (Int) -> Unit, onAtom: 
                 val steps = (spun / STEP_PX).toInt()
                 if (steps != 0) {
                     spun -= steps * STEP_PX
-                    // The wheel's rim turns the same way as the crown; the table steps on like a list.
-                    move(if (isTable) at + steps else at - steps)
+                    // The same way as the Build screen's dial.
+                    move(at + steps)
                 }
                 true
             }
@@ -151,20 +193,11 @@ private fun AtlasTurner(model: AppModel, z: Int, onPick: (Int) -> Unit, onAtom: 
                 detectTapGestures { o ->
                     val p = court(o)
                     if (!isTable) {
-                        when {
-                            hypot(p.x - 64, p.y - 150) < 32 -> move(at - 1)
-                            hypot(p.x - 236, p.y - 150) < 32 -> move(at + 1)
-                            abs(p.x - MID) < 70 && abs(p.y - 150) < 80 -> open(at)
-                        }
+                        if (abs(p.x - MID) < WHEEL_CARD_HALF && p.y > WHEEL_CARD_TOP && p.y < WHEEL_CARD_BOTTOM) open(at)
                         return@detectTapGestures
                     }
-                    if (abs(p.y - 70) < 18) { open(at); return@detectTapGestures }
-                    var hit = 0
-                    for (a in model.atlas.atoms) {
-                        val (col, row) = tableSpot(a.z, a.group, a.period)
-                        val q = cellAt(col, row)
-                        if (abs(p.x - q.x) <= cell / 2 + 1 && abs(p.y - q.y) <= cell / 2 + 1) hit = a.z
-                    }
+                    if (inTableCard(p)) { open(at); return@detectTapGestures }
+                    val hit = Grid.hit(model.atlas.atoms, p)
                     if (hit == at) open(at) else if (hit != 0) move(hit)
                 }
             },
@@ -174,32 +207,33 @@ private fun AtlasTurner(model: AppModel, z: Int, onPick: (Int) -> Unit, onAtom: 
             val atom = model.atlas.atom(z)
             if (!table) {
                 // The rim: the atoms near this one as small dots in their colors (smaller still
-                // until built), turning with the crown, this one large at the top.
+                // until built), turning with the crown, this one large at the top; a tick between
+                // the last atom of a period and the first of the next.
                 val step = 8.5 * PI / 180
                 val r = MID - 12
                 for (n in (pos - 18).toInt().coerceAtLeast(1)..(pos + 18).toInt().coerceAtMost(ATOMS)) {
                     val d = n - pos
                     if (abs(d) > 17.6) continue
                     val a = -PI / 2 + d * step
+                    if (n < ATOMS && periodOf(n + 1) != periodOf(n) && abs(d + 0.5) < 17.6) {
+                        val t = a + step / 2
+                        pen.line(MID + cos(t) * (r - 7), MID + sin(t) * (r - 7), MID + cos(t) * (r + 7), MID + sin(t) * (r + 7), Ink.K500, 1.8)
+                    }
                     val x = MID + cos(a) * r
                     val y = MID + sin(a) * r
-                    if (n == z) pen.dot(x, y, 4.6, atom.color)
+                    if (n == z) pen.dot(x, y, 7.5, atom.color)
                     else pen.dot(x, y, if (c.isBuilt(n)) 2.4 else 1.6, model.atlas.atom(n).color)
                 }
-                pen.text(measurer, "$z", MID, 92.0, 17.0, Ink.K200)
-                pen.text(measurer, atom.symbol, MID, 146.0, 80.0, atom.color, FontWeight.SemiBold)
-                pen.text(measurer, atom.name, MID, 204.0, 22.0, Ink.WHITE)
-                if (z > 1) pen.text(measurer, model.atlas.atom(z - 1).symbol, 64.0, 150.0, 19.0, Ink.K400)
-                if (z < ATOMS) pen.text(measurer, model.atlas.atom(z + 1).symbol, 236.0, 150.0, 19.0, Ink.K400)
+                pen.rect(MID - WHEEL_CARD_HALF, WHEEL_CARD_TOP, WHEEL_CARD_HALF * 2, WHEEL_CARD_BOTTOM - WHEEL_CARD_TOP, 34.0, Ink.K900)
+                pen.text(measurer, "$z", MID, 98.0, 26.0, Ink.K200)
+                pen.text(measurer, atom.symbol, MID, 153.0, 74.0, atom.color, FontWeight.SemiBold)
+                pen.text(measurer, atom.name, MID, 207.0, 22.0, Ink.WHITE)
             } else {
-                val sw = pen.textWidth(measurer, atom.symbol, 19.0, FontWeight.SemiBold)
-                val nw = pen.textWidth(measurer, atom.name, 17.0)
-                val x0 = MID - (sw + 7 + nw) / 2
-                pen.text(measurer, atom.symbol, x0 + sw / 2, 70.0, 19.0, atom.color, FontWeight.SemiBold)
-                pen.text(measurer, atom.name, x0 + sw + 7 + nw / 2, 70.0, 17.0, Ink.WHITE)
+                pen.tableCard(measurer, atom)
                 for (a in model.atlas.atoms) {
                     val (col, row) = tableSpot(a.z, a.group, a.period)
-                    val q = cellAt(col, row)
+                    val q = Grid.at(col, row)
+                    val cell = Grid.CELL
                     val color = if (c.isBuilt(a.z)) a.color else Ink.K800
                     pen.rect(q.x - cell / 2 + 0.8, q.y - cell / 2 + 0.8, cell - 1.6, cell - 1.6, 2.0, color)
                     if (a.z == z) pen.rectRing(q.x - cell / 2 - 0.4, q.y - cell / 2 - 0.4, cell + 0.8, cell + 0.8, 2.6, Ink.WHITE, 1.6)

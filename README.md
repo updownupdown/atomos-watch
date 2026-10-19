@@ -10,38 +10,39 @@ playing them. It works on its own, with no phone and no sync, and it is free.
   menu and cards, the confirm); numbers as the app's tiny atoms; one accent a screen. Lists shrink and fade toward the edges, with Wear's scroll arc on the right;
   the screens that don't scroll are laid out on a face 240 across and scaled to the watch.
 - **Home** is a list the crown scrolls, the mark and ATOMOS, then four plates and Settings:
-  - Build: the atom you are building as its cloud (filling with color shell by shell) with the
-    rose Build disc in the middle, its name and its shells as a tiny atom (a tap opens its Build
-    page), the next shell's game and difficulty, and Collection.
+  - Build: the atom you are building as its cloud (filling with color shell by shell), its name
+    and which shell is next; the rose Build, which opens its Build page; the next shell's game,
+    name and difficulty on a card, which plays it; and Collection.
   - Atlas: the atom of the day (the same one the phone shows) as its plate, name and "Atom of
-    the day", and All atoms.
+    the day", one of its facts (a different one each day), and All atoms.
   - Games: the game Nu picked for today (its white disc plays it, its dots play a difficulty),
     and All games.
   - Nu asks: Nu's three questions of the day (the same ones the phone asks).
   - Settings, a gear on a dark disc.
-- **The games list** has every game, A to Z, each on its own plate: its icon, its name (Nu's pick with a rose dot
-  after it), and under the name its three difficulties, Easy, Medium and Hard, as dots in green,
-  yellow and red. A dot with a best holds it in black; one without is an empty ring. A tap on a
-  dot plays that difficulty at once; a tap anywhere else on the row plays the one last played
-  (Easy to start).
-- **Build** shows every atom three ways, picked with three bare icons at the foot (the choice
-  lasts until the app closes):
-  - the table: every atom as a dot in its place, built ones lit in their own color, the one
-    being built ringed in rose, and how many are built at the top;
+- **The games list** has every game, A to Z, each on its own plate: its icon black on a white
+  disc (Nu's pick with a rose dot on it) and its name. A tap opens the game's difficulties:
+  Easy, Medium and Hard, each on a plate with its color (the one last played holding a check)
+  and its best ("Best: 7", or "No best yet"). A tap on one plays it.
+- **Build** shows every atom two ways, switched with a bare icon at the foot as in the Atlas
+  (the choice lasts until the app closes):
+  - the table, laid out as the Atlas's: every atom in its place, built ones in their own color,
+    the one being built ringed in rose, the picked one ringed in white and named (number and
+    symbol over its name) on a gray card above, and how many are built as a ring round the
+    bezel;
   - the dial: the atoms as plates round the rim, the crown turning them past the top, and the
-    picked atom's cloud, name and state in the middle;
-  - the shells: the whole table as one atom, a shell of dots for each period, the picked atom's
-    plate in the middle.
+    picked atom's cloud, name and state in the middle.
 
-  In all three the crown moves a pick, a tap on an atom picks it, and a tap on the picked one
-  opens it (on the table the picked atom's name replaces the count). Each atom's Build page fits
-  one screen: its shells as the bezel (built ones white, the next rose), its number, symbol and
-  name, then the rose disc with the next shell's game, which plays it, and its difficulty (once
-  built, its cloud; before then a lock and where it stands), and the Atlas's book at the foot.
-  The crown steps to the atoms either side; back is a chevron at the middle of the left edge.
-- **The Atlas** is a wheel: one atom named, its symbol large in its color with its number and
-  name, its neighbors' symbols either side, and the atoms round the rim as dots, the crown
-  turning them. A bare icon at the foot switches to the table and back. A tap on the atom opens
+  In both the crown moves a pick, a tap on an atom picks it, and a tap on the picked one (or its
+  card) opens it. Each atom's Build page is a list the crown scrolls, inside its shells drawn as
+  the bezel (built ones white, the next rose), which stay put: its number, symbol and name; while
+  it is being built, the next shell's game on a card, which plays it; its cloud and where it
+  stands (before its turn, the atom being built and the way to it); View in Atlas; and the
+  atoms either side.
+- **The Atlas** is a wheel: one atom on a gray card, its number, its symbol large in its color
+  and its name, and the atoms round the rim as dots in their colors with a tick between periods,
+  the crown turning them the same way as the Build screen's dial. A bare icon at the foot
+  switches to the table (the picked atom named on a gray card above it) and back. A tap on the
+  card opens
   its Atlas page, a list: its symbol and name, where it sits, Build, the atom itself, the
   headline on a plate, the little table, then titled plates: Properties (each a slider, a track
   from the lowest atom to the highest, this one a dot in its color), Facts, Structure,
@@ -57,12 +58,13 @@ playing them. It works on its own, with no phone and no sync, and it is free.
   Next after a shell is built, else Again. The
   levels show as a tiny atom at the bottom of the screen; a game that keeps time shows the time
   left as a small ring round it, gray, then amber in the last quarter (no game draws a countdown
-  round the whole bezel). Exit from free play goes back to the games list (or Home, for Nu's
-  pick).
+  round the whole bezel). Exit from free play goes back to the game's difficulties (or Home,
+  for Nu's pick).
   - A run for an atom has a goal: 3 levels at Easy, 4 at Medium, 5 at Hard. Each level cleared
     fills one electron slot. Win, and the atom's next shell is built.
   - Free play has no goal. The tiny atom counts levels in binary across 8 slots, up to 255, and
-    every level is harder than the last. Its difficulty is the dot tapped in the games list.
+    every level is harder than the last. Its difficulty is the one tapped on the game's
+    difficulties (or the dot tapped on Home, for Nu's pick).
 - **Settings** has Sound (off to start) and Haptics (on to start, and soft), each its mark,
   its name and a switch on one plate, and starting the collection over (it asks first: Cancel,
   or the red Yes, each named under its disc), with the version under them.

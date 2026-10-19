@@ -1,7 +1,7 @@
 // The screens and the way between them. Home first; from it the next shell's run, the Build
 // screen and each atom's Build page, the Atlas and each atom's Atlas page (each page links to the
-// other), every game for free play (a tap on one of a game's difficulty dots plays it at once),
-// and Settings. Swipe right goes back
+// other), every game for free play (a tap on a game opens its difficulties; a tap on one plays
+// it), and Settings. Swipe right goes back
 // everywhere but in a run, where the game owns the screen and the mark at the top (or the back
 // button) opens the run's menu.
 
@@ -33,6 +33,7 @@ object Routes {
     fun atlas(z: Int, table: Boolean = false) = "atlas/$z/${if (table) "table" else "list"}"
     fun atom(z: Int) = "atom/$z"
     fun free(id: String, level: Int) = "free/$id/$level"
+    fun game(id: String) = "game/$id"
 }
 
 @Composable
@@ -98,10 +99,13 @@ fun App(model: AppModel, launchBuild: Boolean, onLaunched: () -> Unit, onExit: (
                     onBuild = run,
                     onAtlas = { nav.across("atom/{z}", it) },
                     onAtom = { z -> nav.swap(Routes.build(z)) },
-                    onBack = { nav.popBackStack() },
                 )
             }
-            composable(Routes.GAMES) { GamesScreen(model, play) }
+            composable(Routes.GAMES) { GamesScreen(model) { nav.go(Routes.game(it.id)) } }
+            composable("game/{id}") { e ->
+                val game = e.arguments?.getString("id")?.let(Games::byId) ?: Games.all.first()
+                DifficultyScreen(model, game) { play(game, it) }
+            }
             composable("atlas/{z}/{view}") { e ->
                 AtlasScreen(model, e.arguments?.getString("z")?.toIntOrNull() ?: 1, e.arguments?.getString("view") == "table") { nav.go(Routes.atom(it)) }
             }
@@ -120,7 +124,7 @@ fun App(model: AppModel, launchBuild: Boolean, onLaunched: () -> Unit, onExit: (
 
 private fun NavHostController.go(route: String) = navigate(route) { launchSingleTop = true }
 
-/** Leaving a free run goes back to wherever the game was chosen: the games list, or Home for
+/** Leaving a free run goes back to wherever the game was chosen: its difficulties, or Home for
  *  Nu's pick. Does nothing once the run has gone, so a second tap on Exit can't pop further. */
 private fun NavHostController.leaveFreeRun() {
     if (currentBackStackEntry?.destination?.route != "free/{id}/{level}") return

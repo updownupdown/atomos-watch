@@ -1,9 +1,9 @@
 // Home: a list the crown scrolls, each part on its own soft plate with room between. The mark
-// and ATOMOS. Build: the atom being built as its cloud, with the rose Build in the middle of it,
-// its name and its shells as a tiny atom, the next shell's game and difficulty, and the way into
-// the collection. Atlas: the atom of the day and the way into every atom. Games: the game Nu
-// picked for today (its white disc plays it) and the way into every game. Then Nu's three
-// questions on a plate of their own, and Settings.
+// and ATOMOS. Build: the atom being built as its cloud, name and shells, the rose Build (which
+// opens its Build page), the next shell's game on a card (which plays it), and the way into the
+// collection. Atlas: the atom of the day with a fact about it, and the way into every atom.
+// Games: the game Nu picked for today (its white disc plays it) and the way into every game.
+// Then Nu's three questions on a plate of their own, and Settings.
 
 package app.buildatomos.watch.ui
 
@@ -71,7 +71,7 @@ fun HomeScreen(
             item { Wordmark() }
             item {
                 Plate {
-                    BuildHero(model, frame, onRun, onBuildAtom)
+                    BuildCard(model, frame, onRun, onBuildAtom)
                     PlateDivider()
                     PlateLink(Icon.SHELLS, "Collection", "${model.collection.built.size}/$ATOMS", onCollection)
                 }
@@ -110,12 +110,13 @@ private fun Wordmark() {
     }
 }
 
-/** The atom being built: its cloud, filling shell by shell, with the rose Build in the middle
- *  (which plays its next shell); under it its name and its shells as a tiny atom (a tap opens
- *  its Build page), and the next shell's game and difficulty. After a won run the cloud fills to
- *  the new share; a finished atom rings green for a moment before the next takes its place. */
+/** The atom being built: its cloud, filling shell by shell, its name and which shell is next (a
+ *  tap opens its Build page); the rose Build, which opens its Build page too; and under it the
+ *  next shell's game, name and difficulty on a card, which plays it. After a won run the cloud
+ *  fills to the new share; a finished atom rings green for a moment before the next takes its
+ *  place. */
 @Composable
-private fun BuildHero(model: AppModel, frame: () -> Long, onRun: () -> Unit, onAtom: (Int) -> Unit) {
+private fun BuildCard(model: AppModel, frame: () -> Long, onRun: () -> Unit, onAtom: (Int) -> Unit) {
     val c = model.collection
     val payout = model.payout
     var finished by remember { mutableIntStateOf(0) }
@@ -144,54 +145,60 @@ private fun BuildHero(model: AppModel, frame: () -> Long, onRun: () -> Unit, onA
     val nebula = remember(z) { Nebula(atom, model.atlas.cloud(z)) }
     val need = periodOf(z)
     val run = if (finished == 0) model.buildRun() else null
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Box(Modifier.size(96.dp), contentAlignment = Alignment.Center) {
-            Canvas(Modifier.fillMaxSize()) {
-                val pen = ComposePen(this, 96.0)
-                val sh = if (finished != 0) 1.0 else share.value.toDouble()
-                nebula.draw(pen, 48.0, 48.0, 44.0, frame() / 1e6, sh, still = sh <= 0)
-                if (finished != 0) pen.ring(48.0, 48.0, 46.0, Ink.GREEN, 2.0)
-            }
-            if (run != null) Disc(46.dp, Ink.ROSE, onRun, icon = Icon.PLAY)
-        }
-        Row(
-            Modifier.clip(RoundedCornerShape(14.dp)).clickable { onAtom(z) }.padding(horizontal = 6.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Label(atom.name, size = 17.sp, lines = 1)
-            TinyAtom(if (finished != 0) need else c.shells, need, 20.dp, if (finished != 0) Ink.GREEN else Ink.WHITE)
-        }
-        if (run != null) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-            GameMark(run.game.id, 16.dp, color = Ink.K300)
-            Pips(run.dial)
-        }
-    }
-}
-
-/** The phone's atom of the day: its plate (number over symbol, in its color), its name and what
- *  it is. Opens its Atlas page. */
-@Composable
-private fun AtomOfDay(model: AppModel, onAtom: (Int) -> Unit) {
-    val z = atomOfDay(model.today())
-    val atom = model.atlas.atom(z)
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { onAtom(z) }.padding(2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        val ink = Color(inkFor(atom.color))
-        Column(
-            Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)).background(Color(atom.color)),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Label("$z", size = 11.sp, color = ink, weight = FontWeight.Normal, lines = 1)
-            Label(atom.symbol, size = 18.sp, color = ink, weight = FontWeight.SemiBold, lines = 1)
+        Canvas(Modifier.size(56.dp)) {
+            val pen = ComposePen(this, 60.0)
+            val sh = if (finished != 0) 1.0 else share.value.toDouble()
+            nebula.draw(pen, 30.0, 30.0, 27.0, frame() / 1e6, sh, still = sh <= 0)
+            if (finished != 0) pen.ring(30.0, 30.0, 29.0, Ink.GREEN, 2.0)
         }
-        Column {
-            Label(atom.name, size = 16.sp, weight = FontWeight.SemiBold, align = TextAlign.Start, lines = 1)
-            Label("Atom of the day", size = 13.sp, color = Tone.text2, weight = FontWeight.Normal, align = TextAlign.Start, lines = 1)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Label(atom.name, size = 17.sp, weight = FontWeight.SemiBold, align = TextAlign.Start, lines = 2)
+            if (finished != 0) Label("Built", size = 13.sp, color = Tone.green, align = TextAlign.Start, lines = 1)
+            else Label("Shell ${c.shells + 1} of $need", size = 13.sp, color = Tone.text2, weight = FontWeight.Normal, align = TextAlign.Start, lines = 1)
+        }
+    }
+    if (run != null) {
+        Pill("Build", Ink.ROSE, { onAtom(z) }, Modifier.fillMaxWidth())
+        GameCard(run.game, run.dial, onRun)
+    }
+}
+
+/** The phone's atom of the day: its plate (number over symbol, in its color), its name and what
+ *  it is, and one of its facts, a different one each day. Opens its Atlas page. */
+@Composable
+private fun AtomOfDay(model: AppModel, onAtom: (Int) -> Unit) {
+    val day = model.today()
+    val z = atomOfDay(day)
+    val atom = model.atlas.atom(z)
+    val info = model.atlas.info(z)
+    val facts = (listOf(info.headline) + info.facts).filter { it.isNotBlank() }
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { onAtom(z) }.padding(2.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            val ink = Color(inkFor(atom.color))
+            Column(
+                Modifier.size(48.dp).clip(RoundedCornerShape(11.dp)).background(Color(atom.color)),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Label("$z", size = 13.sp, color = ink, weight = FontWeight.Normal, lines = 1)
+                Label(atom.symbol, size = 18.sp, color = ink, weight = FontWeight.SemiBold, lines = 1)
+            }
+            Column {
+                Label(atom.name, size = 16.sp, weight = FontWeight.SemiBold, align = TextAlign.Start, lines = 1)
+                Label("Atom of the day", size = 13.sp, color = Tone.text2, weight = FontWeight.Normal, align = TextAlign.Start, lines = 1)
+            }
+        }
+        if (facts.isNotEmpty()) {
+            val fact = facts[Math.floorMod(day * 7 + z, facts.size.toLong()).toInt()]
+            Label(fact, Modifier.fillMaxWidth().padding(horizontal = 2.dp), size = 14.sp, weight = FontWeight.Normal, align = TextAlign.Start)
         }
     }
 }
