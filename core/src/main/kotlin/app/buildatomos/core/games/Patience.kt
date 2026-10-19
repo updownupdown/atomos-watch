@@ -9,10 +9,10 @@ import kotlin.math.sin
 internal const val PULSES_MS = 1500.0
 
 /**
- * Nu's patience with a player who has stopped playing, for the games that wait on a move (Bank,
- * Cross, Fill, Poise): after `wait` ms with no touch and no turn of the crown, Nu pulses pale three
- * times, and then the game makes the move itself. It is the signal Fuse uses instead of a clock on
- * the rim: quiet, and never seen by a player who keeps playing. Every touch or turn starts it over.
+ * Nu's patience with a player who has stopped playing, for a game that waits on a move (Cross):
+ * after `wait` ms with no touch and no turn of the crown, Nu pulses pale three times, and then the
+ * game makes the move itself. It is the signal Fuse uses instead of a clock on the rim: quiet, and
+ * never seen by a player who keeps playing. Every touch or turn starts it over.
  */
 internal class Patience {
     private var left = Double.MAX_VALUE
