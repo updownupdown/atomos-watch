@@ -20,9 +20,10 @@ playing them. It works on its own, with no phone and no sync, and it is free.
   - Nu asks: Nu's three questions of the day (the same ones the phone asks).
   - Settings, a gear on a dark disc.
 - **The games list** has every game, A to Z, each on its own plate: its icon black on a white
-  disc (Nu's pick with a rose dot on it) and its name. A tap opens the game's difficulties:
-  Easy, Medium and Hard, each on a plate with its color (the one last played holding a check)
-  and its best ("Best: 7", or "No best yet"). A tap on one plays it.
+  disc (Nu's pick with a rose dot on it) and its name. A tap opens the game's difficulties on
+  one screen: Easy, Medium and Hard as three circles in a row, each in its color, filled with
+  the best level reached in black, or a ring only until there is one, its word under it. A tap
+  on one plays it; a black chevron on a white disc at the foot goes back.
 - **Build** shows every atom two ways, switched with a bare icon at the foot as in the Atlas
   (the choice lasts until the app closes):
   - the table, laid out as the Atlas's: every atom in its place, built ones in their own color,
