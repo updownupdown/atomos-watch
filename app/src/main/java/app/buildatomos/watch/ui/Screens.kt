@@ -97,12 +97,15 @@ fun GamesScreen(model: AppModel, onPlay: (Game, Int) -> Unit) {
     val pick = model.nuPick()
     val state = rememberScalingLazyListState(initialCenterItemIndex = 1)
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        EdgeList(state, side = 12.dp, gap = 5.dp) {
-            items(Games.all) { g -> GameRow(model, g, nu = g.id == pick.id, onPlay = onPlay) }
+        val nuButton = @Composable {
+            EdgeButton({ onPlay(pick, model.pickedLevel(pick)) }, fill = Tone.rose, pinned = false) { EdgeLabel("Nu's pick", Tone.ink) }
+        }
+        EdgeScaffold(state, nuButton) { pad ->
+            EdgeList(state, side = 12.dp, gap = 5.dp, foot = pad.calculateBottomPadding()) {
+                items(Games.all) { g -> GameRow(model, g, nu = g.id == pick.id, onPlay = onPlay) }
+            }
         }
         CurvedTitle("Games")
-        EdgeScroll(state)
-        EdgeButton({ onPlay(pick, model.pickedLevel(pick)) }, fill = Tone.rose) { EdgeLabel("Nu's pick", Tone.ink) }
     }
 }
 

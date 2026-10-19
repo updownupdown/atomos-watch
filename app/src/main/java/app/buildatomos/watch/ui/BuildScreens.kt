@@ -181,24 +181,26 @@ private fun RowsView(model: AppModel, onBuild: () -> Unit, onAtom: (Int) -> Unit
     val c = model.collection
     val state = rememberScalingLazyListState(initialCenterItemIndex = 2)
     val lines = remember { plateLines(model.atlas.atoms) }
+    val run = model.buildRun()
+    val button: (@Composable () -> Unit)? = if (run == null) null else ({
+        val atom = model.atlas.atom(model.buildingZ)
+        // A long name would run off the button; its symbol stands in.
+        EdgeButton(onBuild, fill = Tone.rose, pinned = false) { EdgeLabel("Build ${if (atom.name.length <= 9) atom.name else atom.symbol}", Tone.ink) }
+    })
     Box(Modifier.fillMaxSize()) {
-        EdgeList(state, side = 18.dp, top = 28.dp, gap = 3.dp) {
-            item { ViewSwitch(View.ROWS, onPick, Modifier.padding(bottom = 6.dp)) }
-            for (line in lines) item { PlateRowOf(model, line, onAtom) }
-            item {
-                Column(Modifier.padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Label("${c.built.size} of $ATOMS built", size = 14.sp)
-                    Bar(c.built.size / ATOMS.toDouble(), Modifier.padding(top = 4.dp).size(width = 70.dp, height = 4.dp))
+        EdgeScaffold(state, button) { pad ->
+            EdgeList(state, side = 18.dp, top = 28.dp, gap = 3.dp, foot = pad.calculateBottomPadding()) {
+                item { ViewSwitch(View.ROWS, onPick, Modifier.padding(bottom = 6.dp)) }
+                for (line in lines) item { PlateRowOf(model, line, onAtom) }
+                item {
+                    Column(Modifier.padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Label("${c.built.size} of $ATOMS built", size = 14.sp)
+                        Bar(c.built.size / ATOMS.toDouble(), Modifier.padding(top = 4.dp).size(width = 70.dp, height = 4.dp))
+                    }
                 }
             }
         }
         CurvedTitle("Build")
-        EdgeScroll(state)
-        if (model.buildRun() != null) {
-            val atom = model.atlas.atom(model.buildingZ)
-            // A long name would run off the button; its symbol stands in.
-            EdgeButton(onBuild, fill = Tone.rose) { EdgeLabel("Build ${if (atom.name.length <= 9) atom.name else atom.symbol}", Tone.ink) }
-        }
     }
 }
 
@@ -416,39 +418,44 @@ fun AtomBuildScreen(model: AppModel, z: Int, onBuild: () -> Unit, onAtlas: (Int)
     val run = if (st == Standing.BUILDING) model.buildRun() else null
     val state = rememberScalingLazyListState(initialCenterItemIndex = 1)
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        ScalingLazyColumn(
-            Modifier.fillMaxSize(),
-            state = state,
-            // Clear of the ring, wider on the left for back; the foot clear of the edge button.
-            contentPadding = PaddingValues(start = 42.dp, end = 26.dp, top = 32.dp, bottom = 60.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            item { AtomCard(atom, 56, lit = st == Standing.BUILT) }
-            item { ShellTrack(counts.size, st, c.shells) }
-            if (run != null) item { NextShell(run, onBuild) }
-            item {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Canvas(Modifier.size(104.dp)) {
-                        val share = c.share(z)
-                        nebula.draw(ComposePen(this, 104.0), 52.0, 52.0, 48.0, frame() / 1e6, share, still = share <= 0)
+        val atlasButton = @Composable { EdgeButton({ onAtlas(z) }, pinned = false) { EdgeLabel("View in Atlas", Tone.cyan, Icon.ATLAS) } }
+        EdgeScaffold(state, atlasButton, indicator = false) { pad ->
+            ScalingLazyColumn(
+                Modifier.fillMaxSize(),
+                state = state,
+                // Clear of the ring, wider on the left for back; the foot clear of the edge button.
+                contentPadding = PaddingValues(start = 42.dp, end = 26.dp, top = 32.dp, bottom = pad.calculateBottomPadding()),
+                autoCentering = null,
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                item { AtomCard(atom, 56, lit = st == Standing.BUILT) }
+                item { ShellTrack(counts.size, st, c.shells) }
+                if (run != null) item { NextShell(run, onBuild) }
+                item {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Canvas(Modifier.size(104.dp)) {
+                            val share = c.share(z)
+                            nebula.draw(ComposePen(this, 104.0), 52.0, 52.0, 48.0, frame() / 1e6, share, still = share <= 0)
+                        }
+                        val (says, color) = c.says(z)
+                        Label(says, size = 13.sp, color = Color(color))
                     }
-                    val (says, color) = c.says(z)
-                    Label(says, size = 13.sp, color = Color(color))
                 }
-            }
-            if (st == Standing.LATER && !c.done) item {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    val now = model.atlas.atom(model.buildingZ)
-                    Para("Atoms are built in order, from hydrogen up. ${now.name} is next.")
-                    Pill("Go to ${now.symbol}", Icon.CHEVRON, { onAtom(now.z) })
+                if (st == Standing.LATER && !c.done) item {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        val now = model.atlas.atom(model.buildingZ)
+                        Para("Atoms are built in order, from hydrogen up. ${now.name} is next.")
+                        Pill("Go to ${now.symbol}", Icon.CHEVRON, { onAtom(now.z) })
+                    }
                 }
+                item {
+                    Para("Each shell is one game: clear its levels to build it. The outer shells are harder.")
+                }
+                item { Neighbors(model, z, onAtom) }
             }
-            item {
-                Para("Each shell is one game: clear its levels to build it. The outer shells are harder.")
-            }
-            item { Neighbors(model, z, onAtom) }
+            // The ring under the edge button, which the scaffold draws over its content.
+            Canvas(Modifier.fillMaxSize()) { ComposePen(this).shellRing(counts.size, done, st == Standing.BUILT, next = st == Standing.BUILDING) }
         }
-        Canvas(Modifier.fillMaxSize()) { ComposePen(this).shellRing(counts.size, done, st == Standing.BUILT, next = st == Standing.BUILDING) }
         CurvedTitle(atom.name, inset = 12.dp)
         Box(
             Modifier.align(Alignment.CenterStart).size(width = 40.dp, height = 56.dp).clickable(onClick = onBack),
@@ -456,7 +463,6 @@ fun AtomBuildScreen(model: AppModel, z: Int, onBuild: () -> Unit, onAtlas: (Int)
         ) {
             IconMark(Icon.BACK, 30, Ink.K200, disc = Ink.K900)
         }
-        EdgeButton({ onAtlas(z) }) { EdgeLabel("View in Atlas", Tone.cyan, Icon.ATLAS) }
     }
 }
 
