@@ -113,7 +113,7 @@ class LevelsBTest {
     }
 
     @Test fun moreClearsLevels() {
-        assertEquals(Result.WON, more(1, 3, 180_000.0).result)
+        assertEquals(Result.WON, more(50, 5, 240_000.0).result)
         assertEquals(Result.WON, more(100, 7, 300_000.0).result)
     }
 
@@ -136,7 +136,7 @@ class LevelsBTest {
 
     @Test fun moreHeatHurries() {
         fun rim(dial: Int) = run(More(), dial, null, 1000.0).rim ?: 1.0
-        assertTrue(rim(100) < rim(1) - 0.1, "rim after a second: ${rim(1)} at dial 1, ${rim(100)} at dial 100")
+        assertTrue(rim(100) < rim(50) - 0.04, "rim after a second: ${rim(50)} at dial 50, ${rim(100)} at dial 100")
     }
 
     // ---- Orbit: hops rings for the next photon, and away from antiparticles ahead. ----

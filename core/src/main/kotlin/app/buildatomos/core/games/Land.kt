@@ -1,6 +1,7 @@
 package app.buildatomos.core.games
 
 import app.buildatomos.core.*
+import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
@@ -8,8 +9,14 @@ import kotlin.math.min
 import kotlin.math.sign
 import kotlin.math.sqrt
 
-/** Fast enough to hurt, coming down (units/ms). */
-private const val SAFE = 0.15
+/** The landing speed limit (units/ms): faster hurts. 0.12 at Easy, 0.104 at Medium and 0.088 at
+ *  Hard, a step stricter for every level cleared, never under 0.06. The phone's single limit
+ *  (0.15 here) played the same at every level. */
+internal fun safeAt(heat: Double) = clamp(0.16 - heat * 0.08, 0.06, 0.15)
+
+/** The speed ring turns orange from this share of the limit: close to too fast. */
+private const val NEAR = 0.7
+private const val ORANGE = 0xFFF59A3C.toInt()
 
 /** The pull down and the thrust up while a finger is held (units/ms²): gentler than the phone's
  *  0.0003 and 0.00068, so there is time to see a landing coming and answer it. */
@@ -28,12 +35,15 @@ private const val REST_MS = 700.0
 /**
  * Land (the phone's src/nu/grove.ts). Nu drops in from the top and falls. Hold to fire it
  * upward; let go and it falls again. A ring round Nu shows its speed: green while it is slow
- * enough to land, red when not, with a line the way it is going. Set it down green on the pad
- * and it counts; too hard, or off the pad, costs one of three lives, and the last one loses the
- * run. The rim is the fuel for each landing: out of fuel, Nu just falls.
+ * enough to land, orange as it nears the limit, red past it, with a line the way it is going (out
+ * to the ring at the limit). Set it down on the pad under the limit and it counts; too hard, or
+ * off the pad, costs one of three lives, and the last one loses the run. Each landing has its
+ * fuel, shown as a short cyan arc over Nu that empties as the finger is held: out of fuel, Nu
+ * just falls. (The rim shows nothing.)
  * A level is a few good landings: two for the first two levels, then three. The lives carry from
- * level to level, and every third level cleared gives one back. Heat shrinks the pad (62 across
- * at the gentlest, never under 26) and brings in a wind that pushes Nu sideways (from a little
+ * level to level, and every third level cleared gives one back. Heat lowers the speed limit, a
+ * clear step at each difficulty and each level (`safeAt`), shrinks the pad (62 across at the
+ * gentlest, never under 26) and brings in a wind that pushes Nu sideways (from a little
  * past Very easy, stronger toward Expert), shown by drifting motes; within a level, each good
  * landing goes a step further, as on the phone.
  * On the watch it is played by touch alone, as on the phone: a finger held anywhere fires the
@@ -54,6 +64,8 @@ class Land : Toy {
     private var fuel = 1.0
     private var padX = 0.0
     private var padW = 62.0
+    /** This landing's speed limit (units/ms). */
+    private var limit = safeAt(0.0)
     /** The wind's push across (units/ms²), and the motes that show it. */
     private var wind = 0.0
     private val motes = mutableListOf<Pt>()
@@ -71,6 +83,7 @@ class Land : Toy {
     private fun depth(s: Stage) = s.heat * 8 + landed
 
     override fun enter(s: Stage) {
+        s.rim = null
         s.nu.r = 7.0
         s.nu.at(Pt(s.c.x, s.c.y - s.R * 0.5))
         next(s)
@@ -79,7 +92,7 @@ class Land : Toy {
     private fun next(s: Stage) {
         state = State.UP
         fuel = 1.0
-        s.rim = 1.0
+        limit = safeAt(s.heat)
         val d = depth(s)
         padW = max(26.0, 62 - d * 4.5)
         padX = s.c.x + (rnd() - 0.5) * (2 * half(s) - padW - 40)
@@ -88,7 +101,7 @@ class Land : Toy {
         if (wind != 0.0) repeat(7) { motes += anywhere(s, 20.0).also { it.y = min(it.y, floor(s) - 16) } }
     }
 
-    private fun safe() = hypot(vx, vy) < SAFE
+    private fun safe() = hypot(vx, vy) < limit
 
     /** How far the thrust leans toward a finger at `f`: -1 all left .. 1 all right. */
     private fun lean(nu: Pt, f: Pt) = clamp((f.x - nu.x) / LEAN_SPAN, -1.0, 1.0)
@@ -126,7 +139,6 @@ class Land : Toy {
             ax += lean(nu.p, f) * LEAN
             fuel = max(0.0, fuel - dt / FUEL_MS)
         }
-        s.rim = fuel
         vx = clamp(vx + ax * dt, -0.22, 0.22)
         vy = clamp(vy + ay * dt, -0.22, 0.34)
         nu.x += vx * dt
@@ -183,13 +195,20 @@ class Land : Toy {
                 val l = lean(nu.p, fg)
                 for (k in 1..3) pen.dot(nu.x + (rnd() - 0.5) * 4 - l * k * 3, nu.y + nu.r + k * 5, 2.6 - k * 0.5, Ink.CYAN, 0.9 - k * 0.2)
             }
-            // The speed: a line from Nu the way it's going, out to the ring at the safe speed.
-            val c = if (safe()) Ink.GREEN else Ink.RED
-            val R = nu.r + 13
+            // The speed: a line from Nu the way it's going, out to the ring at the limit; green,
+            // orange near the limit, red past it.
             val sp = hypot(vx, vy)
-            val l = min(1.8, sp / SAFE) * R
-            pen.ring(nu.x, nu.y, R, c, 3.0, 0.8)
+            val c = if (sp >= limit) Ink.RED else if (sp >= limit * NEAR) ORANGE else Ink.GREEN
+            val R = nu.r + 13
+            val l = min(1.8, sp / limit) * R
+            pen.ring(nu.x, nu.y, R, c, 3.0, 0.85)
             if (sp > 0.01) pen.line(nu.x + vx / sp * nu.r, nu.y + vy / sp * nu.r, nu.x + vx / sp * l, nu.y + vy / sp * l, c, 3.0, 0.9)
+            // The fuel: an arc over Nu, outside the speed ring, a third of the way round when
+            // full, emptying from its ends toward the top; a dim track shows what is used.
+            val fr = R + 6
+            val span = TAU / 3
+            pen.arc(nu.x, nu.y, fr, -PI / 2 - span / 2, span, Ink.K700, 3.0, 0.8)
+            if (fuel > 0.01) pen.arc(nu.x, nu.y, fr, -PI / 2 - span * fuel / 2, span * fuel, Ink.CYAN, 3.0, 0.9)
         }
         lives(s, pen, left)
         nu.draw(pen, now)
@@ -204,4 +223,7 @@ class Land : Toy {
     internal val speed get() = Pt(vx, vy)
     internal val flying get() = state == State.FLY
     internal val windNow get() = wind
+    /** This landing's speed limit, and the fuel left (0..1). */
+    internal val safeSpeed get() = limit
+    internal val fuelLeft get() = fuel
 }

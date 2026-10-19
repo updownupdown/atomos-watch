@@ -27,6 +27,8 @@ private const val SLACK = 3.0
 /** A post's radius and a red dot's. */
 private const val POST = 5.5
 private const val MINE = 6.0
+/** How wide the bar across a gate is drawn. */
+private const val BAR = 3.0
 /** After a hit, nothing hurts for this long (Nu blinks). */
 private const val SAFE_MS = 1200.0
 private const val LIVES = 3
@@ -35,11 +37,11 @@ private const val NOTCH = 0.25
 
 /**
  * Gate (the phone's src/nu/brook.ts). Slalom, Nu's way: Nu glides down while the course rolls up
- * past it. Each gate is two posts, the next one green. Through it counts; past it outside the
- * posts costs one of three lives, and so does a red dot. The course comes in sections, each with
- * its own pace and its own colour on the posts and a row of small dots across its start: calm
- * wide gates, rushes of quick close ones, wide swings from side to side and tight slaloms between
- * red dots. The gates come on one side or the other in runs of one to three, near the middle or
+ * past it. Each gate is two posts and a bar between them, the next one green. Through it
+ * counts; past it outside the posts costs one of three lives, and so does a red dot. The course
+ * comes in sections, each with its own pace and its own color on the posts and a row of small
+ * dots across its start: calm wide gates, rushes of quick close ones, wide swings from side to
+ * side and tight slaloms between red dots. The gates come on one side or the other in runs of one to three, near the middle or
  * far out, and a gate on the same side as the last is far in where that one was far out (or the
  * other way round), so it still takes a swing.
  *
@@ -284,7 +286,7 @@ class Gate : Toy {
         calm = true
     }
 
-    /** Nu enters a new section: a wave in its colour and a chime for its kind. */
+    /** Nu enters a new section: a wave in its color and a chime for its kind. */
     private fun section(s: Stage, p: Pair) {
         val c = p.kind.c
         s.fx.ring(s.nu.p, c, s.nu.r + 4, s.hw * 0.7, 900.0)
@@ -318,7 +320,7 @@ class Gate : Toy {
     override fun draw(s: Stage, pen: Pen, now: Double) {
         val nu = s.nu
         val next = pairs.firstOrNull { it.state == State.AHEAD }
-        // The start of each section: a row of small dots across in its colour.
+        // The start of each section: a row of small dots across in its color.
         for (p in pairs) {
             if (!p.first) continue
             val y = sy(s, p.y - GAP * U * p.kind.gap * 0.3)
@@ -349,7 +351,7 @@ class Gate : Toy {
             val alpha = if (p.state == State.PASSED) 0.35 else 0.95
             val sa = shows(s, ax, y, POST)
             val sb = shows(s, bx, y, POST)
-            if (isNext && sa > 0 && sb > 0) pen.line(ax, y, bx, y, Ink.GREEN, 2.0, 0.22 * min(sa, sb))
+            bar(s, pen, ax + POST, bx - POST, y, c, if (p.state == State.PASSED) 0.14 else if (isNext) 0.6 else 0.42)
             if (sa > 0) pen.dot(ax, y, POST, c, alpha * sa)
             if (sb > 0) pen.dot(bx, y, POST, c, alpha * sb)
         }
@@ -358,6 +360,21 @@ class Gate : Toy {
         nu.draw(pen, now)
         nu.hidden = false
         lives(s, pen, left, LIVES)
+    }
+
+    /** The bar across a gate, between its posts' inner edges: solid and flat in the posts' color,
+     *  fainter than they are. Only the part inside the rim and below the menu shows, fading in
+     *  over the horizon as the posts do. */
+    private fun bar(s: Stage, pen: Pen, x0: Double, x1: Double, y: Double, c: Int, a: Double) {
+        if (y < s.c.y - s.R * 0.72 || x1 <= x0) return
+        val dy = y - s.c.y
+        val room = (s.R - BAR) * (s.R - BAR) - dy * dy
+        if (room <= 0) return
+        val half = kotlin.math.sqrt(room)
+        val lo = max(x0, s.c.x - half)
+        val hi = min(x1, s.c.x + half)
+        val f = clamp((horizon(s) - y) / 24, 0.0, 1.0)
+        if (hi > lo && f > 0) pen.line(lo, y, hi, y, c, BAR, a * f)
     }
 
     override fun crown(s: Stage, by: Double) {

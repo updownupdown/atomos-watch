@@ -17,14 +17,19 @@ private const val CALM_MS = 700.0
 /** The first wave waits this long, so the player can settle before it spreads. */
 private const val FIRST_MS = 1400.0
 
+/** How much longer each wave takes than it did (and so the room between one and the next): a
+ *  quarter. */
+private const val SPACING = 1.25
+
 /**
  * Pulse (the phone's src/nu/court.ts). A wave spreads out from the nucleus, Nu riding it at the
  * top. Tap as it crosses the marked band. Each catch moves the band; a miss, or letting the wave
  * go by, loses the run. Nu bounces on a catch as far as the tap was off: dead on, it hardly moves.
  * A level is a set of catches (14, and one more every third level); then a short calm and the
  * next wave. Heat quickens the wave and narrows the band, a little with every catch too, so the
- * window to tap in shrinks from about a second at Very easy (570 ms at Medium, 390 ms at
- * Expert) to about 120 ms in late free play: gentler than the phone, for the watch's small court.
+ * window to tap in shrinks from about 710 ms at Easy (580 ms at Medium, 480 ms at Hard) to about
+ * 150 ms in late free play: gentler than the phone, for the watch's small court. Each wave is a
+ * quarter slower than it first was (`SPACING`), so the waves come further apart.
  * The first wave waits a moment before it spreads.
  * On the phone the court is drawn bigger than the screen, its sides cropped; on the watch it is
  * just the round court. A tap anywhere counts, as on the phone. The band's outer edge stays
@@ -66,7 +71,7 @@ class Pulse : Toy {
 
     private fun place(s: Stage) {
         val h = h(s)
-        speed = min(0.2, 0.07 + 0.05 * h)
+        speed = min(0.2, 0.07 + 0.05 * h) / SPACING
         bandW = max(12.0, 37 / (1 + 0.75 * h))
         bandR = s.R * 0.3 + rnd() * max(0.0, s.R * 0.5 - bandW)
     }
