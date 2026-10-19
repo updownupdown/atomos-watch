@@ -139,7 +139,8 @@ private fun AtlasTurner(model: AppModel, z: Int, onPick: (Int) -> Unit, onAtom: 
                 val steps = (spun / STEP_PX).toInt()
                 if (steps != 0) {
                     spun -= steps * STEP_PX
-                    move(at + steps)
+                    // The wheel's rim turns the same way as the crown; the table steps on like a list.
+                    move(if (isTable) at + steps else at - steps)
                 }
                 true
             }
@@ -172,8 +173,8 @@ private fun AtlasTurner(model: AppModel, z: Int, onPick: (Int) -> Unit, onAtom: 
             val pen = ComposePen(this)
             val atom = model.atlas.atom(z)
             if (!table) {
-                // The rim: the atoms near this one as dots, turning with the crown, this one lit
-                // at the top in its color.
+                // The rim: the atoms near this one as small dots in their colors (smaller still
+                // until built), turning with the crown, this one large at the top.
                 val step = 8.5 * PI / 180
                 val r = MID - 12
                 for (n in (pos - 18).toInt().coerceAtLeast(1)..(pos + 18).toInt().coerceAtMost(ATOMS)) {
@@ -183,7 +184,7 @@ private fun AtlasTurner(model: AppModel, z: Int, onPick: (Int) -> Unit, onAtom: 
                     val x = MID + cos(a) * r
                     val y = MID + sin(a) * r
                     if (n == z) pen.dot(x, y, 4.6, atom.color)
-                    else pen.dot(x, y, 1.9, if (c.isBuilt(n)) Ink.K400 else Ink.K700)
+                    else pen.dot(x, y, if (c.isBuilt(n)) 2.4 else 1.6, model.atlas.atom(n).color)
                 }
                 pen.text(measurer, "$z", MID, 92.0, 17.0, Ink.K200)
                 pen.text(measurer, atom.symbol, MID, 146.0, 80.0, atom.color, FontWeight.SemiBold)
