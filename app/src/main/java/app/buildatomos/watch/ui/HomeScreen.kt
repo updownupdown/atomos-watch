@@ -1,7 +1,9 @@
 // Home, a compact take on the phone's "Today": a list the crown scrolls, under the mark and
-// ATOMOS, in sections, each named in small caps. Build: the atom being built and the way into the
-// whole collection. Atlas: the atom of the day (the phone's) and the way into every atom. Games:
-// the game Nu picked for today, Nu's three questions and the way into every game. Settings last.
+// ATOMOS, in sections. Build: the atom being built and the way into the whole collection. Atlas:
+// the atom of the day (the phone's) and the way into every atom. Games: the game Nu picked for
+// today and Nu's three questions. Settings last. The curved title at the top shows the time in
+// Build and the section's name past it, and the edge button follows the section: the rose Build
+// (with the next shell's game and difficulty under it), the Atlas, then All games.
 
 package app.buildatomos.watch.ui
 
@@ -9,11 +11,12 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,7 +28,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.Text
 import app.buildatomos.core.ATOMS
@@ -34,9 +36,15 @@ import app.buildatomos.core.Games
 import app.buildatomos.core.Icon
 import app.buildatomos.core.Ink
 import app.buildatomos.core.atomOfDay
-import app.buildatomos.core.icon
 import app.buildatomos.core.mark
 import app.buildatomos.watch.AppModel
+
+/** Home's sections, and the first list item of each past Build. */
+private const val BUILD = 0
+private const val ATLAS = 1
+private const val GAMES = 2
+private const val ATLAS_FROM = 3
+private const val GAMES_FROM = 5
 
 @Composable
 fun HomeScreen(
@@ -51,31 +59,57 @@ fun HomeScreen(
     onSettings: () -> Unit,
 ) {
     model.version
-    val state = rememberScalingLazyListState(initialCenterItemIndex = 2)
+    val state = rememberScalingLazyListState(initialCenterItemIndex = 1)
     val frame = rememberFrame()
     val built = model.collection.built.size
-    ScalingLazyColumn(
-        Modifier.fillMaxSize().background(Color.Black),
-        state = state,
-        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        item { Wordmark() }
-
-        item { SectionLabel("Build") }
-        item { BuildCard(model, frame, onRun, onBuildAtom) }
-        item { MinorRow("Your collection", "$built/$ATOMS", built / ATOMS.toDouble(), onCollection) }
-
-        item { SectionLabel("Atlas") }
-        item { AtomOfDayCard(model, onAtom) }
-        item { MinorRow("Explore all atoms", null, null, onAtlas) }
-
-        item { SectionLabel("Games") }
-        item { TodayGameCard(model, onPlay) }
-        item { QuizCard(model, onAtom) }
-        item { AllGamesCard(onGames) }
-
-        item { Pill("Settings", Icon.GEAR, onSettings, Modifier.padding(top = 8.dp)) }
+    val clock = rememberClock()
+    val section = when {
+        state.centerItemIndex >= GAMES_FROM -> GAMES
+        state.centerItemIndex >= ATLAS_FROM -> ATLAS
+        else -> BUILD
+    }
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        EdgeList(state, top = 26.dp, gap = 8.dp) {
+            // Build (keep ATLAS_FROM and GAMES_FROM in step with these).
+            item { Wordmark() }
+            item { BuildCard(model, frame, onBuildAtom) }
+            item { MinorRow("Your collection", "$built/$ATOMS", built / ATOMS.toDouble(), onCollection) }
+            // Atlas.
+            item { AtomOfDayCard(model, onAtom) }
+            item { MinorRow("Explore all atoms", null, null, onAtlas) }
+            // Games.
+            item { TodayGameCard(model, onPlay) }
+            item { QuizCard(model, onAtom) }
+            item { Pill("Settings", Icon.GEAR, onSettings, Modifier.padding(top = 4.dp)) }
+        }
+        CurvedTitle(
+            when (section) {
+                ATLAS -> "Atlas"
+                GAMES -> "Games"
+                else -> clock
+            },
+        )
+        EdgeScroll(state)
+        when (section) {
+            GAMES -> EdgeButton(onGames, fill = Tone.text) {
+                EdgeLabel("All games", Tone.ink, count = "${Games.all.size}", countInk = Color(Ink.K700))
+            }
+            ATLAS -> EdgeButton(onAtlas) {
+                EdgeLabel("All atoms", Tone.text, Icon.ATLAS, count = "$ATOMS", countInk = Tone.text2)
+            }
+            else -> {
+                val run = model.buildRun()
+                if (run != null) EdgeButton(onRun, fill = Tone.rose, tall = true) {
+                    EdgeLabel("Build", Tone.ink)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Label(run.game.label, size = 13.sp, color = Tone.ink, lines = 1)
+                        InkPips(run.dial, Tone.ink)
+                    }
+                } else EdgeButton(onCollection) {
+                    EdgeLabel("Collection", Tone.text, count = "$built", countInk = Tone.text2)
+                }
+            }
+        }
     }
 }
 
@@ -92,27 +126,6 @@ private fun Wordmark() {
     }
 }
 
-/** The way into every game, a major card like today's game: the games' mark, and how many. */
-@Composable
-private fun AllGamesCard(onGames: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .background(Tone.plate, RoundedCornerShape(26.dp))
-            .clickable(onClick = onGames)
-            .padding(horizontal = 10.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        IconMark(Icon.GAMES, 38, Ink.BLACK, disc = Ink.WHITE)
-        Column(Modifier.weight(1f)) {
-            Label("Play all games", size = 15.sp, weight = FontWeight.SemiBold, align = TextAlign.Start, lines = 2)
-            Label("${Games.all.size} games", size = 13.sp, color = Tone.text2, align = TextAlign.Start, lines = 1)
-        }
-        IconMark(Icon.CHEVRON, 16, Ink.K400)
-    }
-}
-
 /** The phone's atom of the day: its plate, its name and kind, and its headline. Opens its Atlas
  *  page. */
 @Composable
@@ -120,8 +133,8 @@ private fun AtomOfDayCard(model: AppModel, onAtom: (Int) -> Unit) {
     val z = atomOfDay(model.today())
     val atom = model.atlas.atom(z)
     val info = model.atlas.info(z)
-    Plate {
-        Column(Modifier.fillMaxWidth().clickable { onAtom(z) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Plate(Modifier.clickable { onAtom(z) }) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Label("Atom of the day", size = 13.sp, color = Tone.text2)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 IdPlate(atom, 56)
@@ -144,13 +157,13 @@ private fun TodayGameCard(model: AppModel, onPlay: (Game, Int) -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .background(Tone.plate, RoundedCornerShape(26.dp))
+            .background(Tone.plate, RoundedCornerShape(32.dp))
             .clickable { onPlay(game, model.pickedLevel(game)) }
-            .padding(horizontal = 10.dp, vertical = 10.dp),
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        GameIcon(game.id, 38)
+        GameIcon(game.id, 40)
         Column(Modifier.weight(1f)) {
             Label("Play ${game.label}", Modifier.padding(start = 2.dp), size = 15.sp, weight = FontWeight.SemiBold, align = TextAlign.Start, lines = 1)
             LevelDots(model, game) { onPlay(game, it) }
@@ -158,27 +171,35 @@ private fun TodayGameCard(model: AppModel, onPlay: (Game, Int) -> Unit) {
     }
 }
 
-/** A minor row, text only on black, with a progress bar and its count on the right if it has
- *  one, and a chevron. */
+/** A minor row: a soft pill on the plate, its label in the middle, with a progress bar and its
+ *  count after it if it has one. */
 @Composable
 fun MinorRow(label: String, count: String?, progress: Double?, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp),
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 40.dp)
+            .background(Tone.plate, RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
     ) {
-        Label(label, Modifier.weight(1f), size = 15.sp, align = TextAlign.Start, lines = 1)
+        Label(label, size = 15.sp, color = Color(Ink.K200), lines = 1)
         if (progress != null) Bar(progress, Modifier.size(width = 22.dp, height = 4.dp))
-        if (count != null) Label(count, size = 13.sp, color = Tone.text2)
-        Canvas(Modifier.size(14.dp)) { ComposePen(this, 14.0).icon(Icon.CHEVRON, 7.0, 7.0, 14.0, Ink.K400) }
+        if (count != null) Label(count, size = 13.sp, color = Tone.text2, lines = 1)
     }
 }
 
-/** A major card: a rounded K900 plate. */
+/** A major card: a soft K900 plate with a large radius. */
 @Composable
-fun Plate(content: @Composable () -> Unit) {
-    androidx.compose.foundation.layout.Box(
-        Modifier.fillMaxWidth().background(Tone.plate, RoundedCornerShape(26.dp)).padding(horizontal = 12.dp, vertical = 12.dp),
+fun Plate(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .background(Tone.plate, RoundedCornerShape(30.dp))
+            .then(modifier)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center,
     ) { content() }
 }

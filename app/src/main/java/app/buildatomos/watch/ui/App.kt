@@ -30,7 +30,7 @@ object Routes {
     /** The Build screen: the whole collection. */
     const val COLLECTION = "collection"
     fun build(z: Int) = "build/$z"
-    fun atlas(z: Int, table: Boolean = false) = "atlas/$z/${if (table) "table" else "wheel"}"
+    fun atlas(z: Int, table: Boolean = false) = "atlas/$z/${if (table) "table" else "list"}"
     fun atom(z: Int) = "atom/$z"
     fun free(id: String, level: Int) = "free/$id/$level"
 }

@@ -3,39 +3,49 @@
 The watch companion to ATOMOS: Nu's games on the wrist, and a collection of atoms you build by
 playing them. It works on its own, with no phone and no sync, and it is free.
 
-- **Home** is a short list the crown scrolls, under the mark and ATOMOS, in sections:
-  - **Build**: the atom you are building (its cloud fills with color shell by shell, the rose
-    Build button, and under it the game and difficulty of the next shell), and your collection.
-  - **Atlas**: the atom of the day (the same one the phone shows) and every atom.
-  - **Games**: the game Nu picked for today (with its three difficulties, as in the games list),
-    Nu's three questions of the day (the same ones the phone asks), and Play all games, each on
-    its own card.
+- **The look** follows Wear OS (after Material 3 Expressive): a screen's main action is an edge
+  button, a wide pill at the foot whose bottom follows the round screen (rose for Build, white
+  for All games, dark for the rest); the screen's title curves along the top edge; lists shrink
+  and fade toward the edges, with Wear's scroll arc on the right.
+- **Home** is a short list the crown scrolls, under the mark and ATOMOS, in sections. The curved
+  title shows the time in Build and the section's name past it, and the edge button follows the
+  section:
+  - **Build**: the atom you are building (its cloud fills with color shell by shell, its shells
+    so far as bars) and your collection. The edge is the rose Build, with the next shell's game
+    and difficulty under it.
+  - **Atlas**: the atom of the day (the same one the phone shows) and every atom; the edge is
+    All atoms.
+  - **Games**: the game Nu picked for today (with its three difficulties, as in the games list)
+    and Nu's three questions of the day (the same ones the phone asks); the edge is All games.
+  - The Settings button.
 - **The games list** has every game, A to Z: its icon (Nu's pick with a rose dot on it), its
   name, and under the name its three difficulties, Easy, Medium and Hard, as dots in green,
   yellow and red. A dot with a best holds it in black; one without is an empty ring. A tap on a
   dot plays that difficulty at once; a tap anywhere else on the row plays the one last played
   (Easy to start).
-  - The Settings button.
-- **Build** shows every atom three ways; the button at the foot switches between them (the
+- **Build** shows every atom three ways, picked on a switch of three, Rows, Dial and Shells (the
   choice lasts until the app closes):
-  - the grid: the atom being built, then every period's atoms, built ones in their own color;
+  - the rows: every period's atoms as plates, eight to a row, built ones in their own color,
+    the one being built ringed in rose; the switch at the top, the rose Build (the atom's name)
+    at the edge;
   - the dial: the atoms as plates round the rim, the crown turning them past the top, and the
     picked atom's cloud, name and state in the middle;
   - the shells: the whole table as one atom, a shell of dots for each period, the picked atom's
     plate in the middle; the crown steps through them.
 
-  In the dial and the shells, a tap on an atom picks it and a tap on the picked one opens it.
-  Each atom's Build page has its cloud, its shells as a ring round the bezel (built ones lit),
-  its plate and name, its shells as a track (built ones checked, the next with its game,
-  difficulty and Play), its neighbors, and View in Atlas at the foot; back is at the middle of
-  the left edge.
-- **The Atlas** shows every atom on a wheel (the crown steps through them) or in the table. Each
-  atom's Atlas page has its plate, Build, the atom itself, the headline and facts, its name and
-  discovery, its structure, properties and isotopes, and where it comes from and what it is for,
-  each a section that folds (only the facts open to start). Its properties show, as on the
-  phone, where the atom sits among all the measured ones: every atom a dot along the scale in its
-  block's color, this one in white, with its rank and the two ends. At the foot, the atoms either
-  side as their plates.
+  The dial and the shells fill the screen, so their switch sits in its open foot. In them, a tap
+  on an atom picks it and a tap on the picked one opens it. Each atom's Build page has its name
+  curved at the top, its card, its shells as a track (built ones checked, the next rose) and as
+  a ring round the bezel, the next shell's game and difficulty with Play, its cloud and where it
+  stands, its neighbors, and View in Atlas at the edge; back is at the middle of the left edge.
+- **The Atlas** shows every atom as a list the crown scrolls (each atom's plate, name and kind)
+  or in the table; the edge button switches between them. Each atom's Atlas page has its plate,
+  Build, the atom itself, the headline and facts, its name and discovery, its structure,
+  properties and isotopes, and where it comes from and what it is for, each a section that
+  folds (only the facts open to start). Its properties show, as on the phone, where the atom
+  sits among all the measured ones: every atom a dot along the scale in its block's color, this
+  one in white, with its rank and the two ends. The edge button is split in two: the atoms
+  either side, as their cards.
 - **A run** opens on a card with the game's name, its difficulty and the levels to reach, and a
   ring round its icon, in the difficulty's color, that fills until play starts (a tap or a turn
   of the crown starts it sooner). The ATOMOS mark at the top of the screen (or the back button)
@@ -49,7 +59,7 @@ playing them. It works on its own, with no phone and no sync, and it is free.
   - Free play has no goal. The tiny atom counts levels in binary across 8 slots, up to 255, and
     every level is harder than the last. Its difficulty is the dot tapped in the games list.
 - **Settings** has Sound (off to start), Haptics (on to start, and soft), and starting the
-  collection over.
+  collection over, with the version curved along the foot.
 - **The tile** and **the Play with Nu complication** open straight into the next run for the
   atom. **The building complication** shows the atom being built on a watch face.
 

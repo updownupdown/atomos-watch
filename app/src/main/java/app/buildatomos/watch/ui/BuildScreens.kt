@@ -1,10 +1,11 @@
-// Build: the collection. The Build screen shows every atom three ways, switched by the button at
-// its foot: the grid (the atom being built on its card, then each period's atoms as plates, built
-// ones in their own color), the dial (the atoms as plates round the rim, the crown turning them
-// past the top, the picked one's cloud in the middle) and the shells (the whole table as one
-// atom, a shell for each period, the crown stepping through them). Each atom has a Build page: its
-// cloud with its shells round the bezel, its plate and name, its shells as a track, one game each,
-// the next one with its game, its difficulty and Play, its neighbors, and View in Atlas at the foot.
+// Build: the collection. The Build screen shows every atom three ways, picked on a switch of three:
+// the rows (each period's atoms as plates, eight to a row, built ones in their own color, under
+// the curved title, the switch at the top of the list and the rose Build at the edge), the dial
+// (the atoms as plates round the rim, the crown turning them past the top, the picked one's cloud
+// in the middle) and the shells (the whole table as one atom, a shell for each period, the crown
+// stepping through them); those two fill the round screen, so their switch sits in its open foot.
+// Each atom has a Build page: its card, its shells as a track and as a ring round the bezel, the
+// next shell's game, difficulty and Play, its cloud, its neighbors, and View in Atlas at the edge.
 
 package app.buildatomos.watch.ui
 
@@ -42,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -60,7 +62,6 @@ import app.buildatomos.core.ATOMS
 import app.buildatomos.core.Atom
 import app.buildatomos.core.AtomDial
 import app.buildatomos.core.AtomShells
-import app.buildatomos.core.Difficulty
 import app.buildatomos.core.Icon
 import app.buildatomos.core.Ink
 import app.buildatomos.core.Nebula
@@ -77,18 +78,22 @@ import app.buildatomos.core.shellCounts
 import app.buildatomos.core.shellRing
 import app.buildatomos.core.standing
 import app.buildatomos.watch.AppModel
+import app.buildatomos.watch.RunSpec
 import kotlinx.coroutines.delay
 import kotlin.math.min
-
-/** The shells' letters, K innermost. */
-private const val SHELL_LETTERS = "KLMNOPQ"
 
 /** Rotary pixels per atom on the dial and the shells. */
 private const val TURN_PX = 40f
 
-/** The Build screen's views, in the order its switch steps through them. */
+/** The plates to a row in the rows view. */
+private const val PER_ROW = 8
+
+/** The Build page's track: shells to a row. */
+private const val TRACK_ROW = 4
+
+/** The Build screen's views, in the order its switch shows them. */
 private object View {
-    const val GRID = 0
+    const val ROWS = 0
     const val DIAL = 1
     const val SHELLS = 2
     const val COUNT = 3
@@ -105,53 +110,123 @@ fun rememberFrame(): () -> Long {
     return { frame }
 }
 
-/** The Build screen: every atom, as the grid, the dial or the shells, and at the foot the switch
- *  to the next view (it shows that view's icon). The view is kept for the session. */
+/** The Build screen: every atom, as the rows, the dial or the shells. The view is kept for the
+ *  session. */
 @Composable
 fun CollectionScreen(model: AppModel, onBuild: () -> Unit, onAtom: (Int) -> Unit) {
     model.version
     val view = model.buildView
+    val pick = { v: Int -> if (v != model.buildView) { model.buildView = v; model.feel.buzz(15) } }
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         when (view) {
             View.DIAL -> DialView(model, onAtom)
             View.SHELLS -> ShellsView(model, onAtom)
-            else -> GridView(model, onBuild, onAtom)
+            else -> RowsView(model, onBuild, onAtom, pick)
         }
-        val next = (view + 1) % View.COUNT
-        Box(
-            Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 6.dp)
-                .size(40.dp)
-                .clickable { model.buildView = next; model.feel.buzz(15) },
-            contentAlignment = Alignment.Center,
-        ) {
-            IconMark(when (next) { View.DIAL -> Icon.WHEEL; View.SHELLS -> Icon.SHELLS; else -> Icon.TABLE }, 30, Ink.WHITE, disc = Ink.K800)
+        if (view != View.ROWS) ViewSwitch(view, pick, Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp))
+    }
+}
+
+/** The switch between the views: a soft pill of three, Rows, Dial and Shells, the one showing lit. */
+@Composable
+private fun ViewSwitch(view: Int, onPick: (Int) -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier.background(Tone.plate, RoundedCornerShape(15.dp)).padding(2.dp)) {
+        for (v in 0 until View.COUNT) {
+            val on = v == view
+            Box(
+                Modifier
+                    .size(26.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(if (on) Color(Ink.K700) else Tone.plate)
+                    .clickable { onPick(v) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Canvas(Modifier.size(16.dp)) {
+                    val pen = ComposePen(this, 16.0)
+                    val ink = if (on) Ink.WHITE else Ink.K300
+                    when (v) {
+                        View.DIAL -> pen.icon(Icon.WHEEL, 8.0, 8.0, 16.0, ink)
+                        View.SHELLS -> pen.icon(Icon.SHELLS, 8.0, 8.0, 16.0, ink)
+                        else -> pen.rowsMark(8.0, 8.0, 16.0, ink)
+                    }
+                }
+            }
         }
     }
 }
 
-/** The grid: the atom being built, then each period's atoms. */
+/** One row of plates in the rows view; null leaves a place empty. `first` marks a period's first
+ *  row, set a little apart from the period before. */
+private class PlateLine(val atoms: List<Atom?>, val first: Boolean)
+
+/** Every period's atoms, eight to a row; hydrogen and helium at the two ends of theirs, as in the
+ *  table. */
+private fun plateLines(atoms: List<Atom>): List<PlateLine> {
+    val lines = mutableListOf<PlateLine>()
+    for (p in 1..7) {
+        val period = atoms.filter { it.period == p }
+        if (p == 1) {
+            lines += PlateLine(listOf(period[0]) + List(PER_ROW - 2) { null } + listOf(period[1]), true)
+            continue
+        }
+        for ((i, row) in period.chunked(PER_ROW).withIndex()) lines += PlateLine(row + List(PER_ROW - row.size) { null }, i == 0)
+    }
+    return lines
+}
+
+/** The rows: the switch, then every period's atoms as plates; the count of built ones last. The
+ *  rose Build at the edge plays the next shell of the atom being built. */
 @Composable
-private fun GridView(model: AppModel, onBuild: () -> Unit, onAtom: (Int) -> Unit) {
-    val frame = rememberFrame()
+private fun RowsView(model: AppModel, onBuild: () -> Unit, onAtom: (Int) -> Unit, onPick: (Int) -> Unit) {
     val c = model.collection
-    val state = rememberScalingLazyListState(initialCenterItemIndex = 1)
-    ScalingLazyColumn(
-        Modifier.fillMaxSize(),
-        state = state,
-        // Room at the foot so the last period clears the switch.
-        contentPadding = PaddingValues(start = 10.dp, end = 10.dp, top = 28.dp, bottom = 52.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        item {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Label("${c.built.size} of $ATOMS built", size = 14.sp)
-                Bar(c.built.size / ATOMS.toDouble(), Modifier.padding(top = 4.dp).size(width = 70.dp, height = 4.dp))
+    val state = rememberScalingLazyListState(initialCenterItemIndex = 2)
+    val lines = remember { plateLines(model.atlas.atoms) }
+    Box(Modifier.fillMaxSize()) {
+        EdgeList(state, side = 18.dp, top = 28.dp, gap = 3.dp) {
+            item { ViewSwitch(View.ROWS, onPick, Modifier.padding(bottom = 6.dp)) }
+            for (line in lines) item { PlateRowOf(model, line, onAtom) }
+            item {
+                Column(Modifier.padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Label("${c.built.size} of $ATOMS built", size = 14.sp)
+                    Bar(c.built.size / ATOMS.toDouble(), Modifier.padding(top = 4.dp).size(width = 70.dp, height = 4.dp))
+                }
             }
         }
-        item { BuildCard(model, frame, onBuild, onAtom) }
-        for (p in 1..7) item { PeriodPlate(model, p, onAtom) }
+        CurvedTitle("Build")
+        EdgeScroll(state)
+        if (model.buildRun() != null) {
+            val atom = model.atlas.atom(model.buildingZ)
+            // A long name would run off the button; its symbol stands in.
+            EdgeButton(onBuild, fill = Tone.rose) { EdgeLabel("Build ${if (atom.name.length <= 9) atom.name else atom.symbol}", Tone.ink) }
+        }
+    }
+}
+
+/** A row of the rows view: built atoms in their own color, the one being built ringed in rose,
+ *  the rest dark. A tap opens the atom's Build page. */
+@Composable
+private fun PlateRowOf(model: AppModel, line: PlateLine, onAtom: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(top = if (line.first) 4.dp else 0.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        for (a in line.atoms) {
+            if (a == null) { Spacer(Modifier.weight(1f)); continue }
+            val st = model.collection.standing(a.z)
+            val shape = RoundedCornerShape(30)
+            Box(
+                Modifier
+                    .weight(1f)
+                    .aspectRatio(1f)
+                    .background(if (st == Standing.BUILT) Color(a.color) else Tone.plate, shape)
+                    .then(if (st == Standing.BUILDING) Modifier.border(2.dp, Tone.rose, shape) else Modifier)
+                    .clickable { onAtom(a.z) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Label(
+                    a.symbol, size = 13.sp, lines = 1,
+                    weight = if (st == Standing.LATER) FontWeight.Medium else FontWeight.SemiBold,
+                    color = when (st) { Standing.BUILT -> inkOn(a.color); Standing.BUILDING -> Tone.rose; Standing.LATER -> Tone.text2 },
+                )
+            }
+        }
     }
 }
 
@@ -256,49 +331,25 @@ fun Bar(progress: Double, modifier: Modifier, color: Int = Ink.CYAN) {
     }
 }
 
-/** One period: its name and count, and its atoms as plates five to a row. */
+/** An atom's shells as short bars side by side, the first `done` green. */
 @Composable
-private fun PeriodPlate(model: AppModel, period: Int, onAtom: (Int) -> Unit) {
-    val atoms = model.atlas.atoms.filter { it.period == period }
-    val built = atoms.count { model.collection.isBuilt(it.z) }
-    Plate {
-        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Label("Period $period", Modifier.weight(1f), size = 14.sp, align = TextAlign.Start)
-                Label("$built/${atoms.size}", size = 13.sp, color = if (built == atoms.size) Tone.green else Tone.text2)
-            }
-            for (row in atoms.chunked(5)) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                for (a in row) {
-                    val st = model.collection.standing(a.z)
-                    val shape = RoundedCornerShape(8.dp)
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .aspectRatio(1f)
-                            .background(if (st == Standing.BUILT) Color(a.color) else Tone.chip, shape)
-                            .then(if (st == Standing.BUILDING) Modifier.border(2.dp, Tone.rose, shape) else Modifier)
-                            .clickable { onAtom(a.z) },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Label(
-                            a.symbol, size = 13.sp, lines = 1, weight = FontWeight.SemiBold,
-                            color = when (st) { Standing.BUILT -> inkOn(a.color); Standing.BUILDING -> Tone.text; Standing.LATER -> Tone.text2 },
-                        )
-                    }
-                }
-                // Keep a short last row's plates the same size.
-                repeat(5 - row.size) { Spacer(Modifier.weight(1f)) }
-            }
-        }
+private fun ShellBars(need: Int, done: Int, modifier: Modifier) {
+    Canvas(modifier) {
+        val w = size.width.toDouble() / density
+        val h = size.height.toDouble() / density
+        val pen = ComposePen(this, w, wide = true)
+        val gap = 3.0
+        val seg = (w - gap * (need - 1)) / need
+        for (i in 0 until need) pen.rect(i * (seg + gap), 0.0, seg, h, h / 2, if (i < done) Ink.GREEN else Ink.K700)
     }
 }
 
-/** The atom being built: its cloud, its name and shells, the rose Build, and under it the next
- *  shell's game and difficulty. After a won run its cloud fills to the new share; a finished atom
- *  shows green for a moment before the next one takes its place. Tapping the atom opens its Build
- *  page. */
+/** Home's card for the atom being built: its cloud, filling shell by shell, its name, its shells
+ *  so far in words and as bars. After a won run its cloud fills to the new share; a finished atom
+ *  shows green for a moment before the next one takes its place. A tap opens its Build page; the
+ *  rose Build at the edge plays its next shell. */
 @Composable
-fun BuildCard(model: AppModel, frame: () -> Long, onBuild: () -> Unit, onAtom: (Int) -> Unit) {
+fun BuildCard(model: AppModel, frame: () -> Long, onAtom: (Int) -> Unit) {
     val c = model.collection
     val payout = model.payout
     var finished by remember { mutableIntStateOf(0) }
@@ -325,43 +376,29 @@ fun BuildCard(model: AppModel, frame: () -> Long, onBuild: () -> Unit, onAtom: (
     val z = if (finished != 0) finished else model.buildingZ
     val atom = model.atlas.atom(z)
     val nebula = remember(z) { Nebula(atom, model.atlas.cloud(z)) }
-    val run = model.buildRun()
-    Plate {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Canvas(Modifier.size(92.dp).clickable { onAtom(z) }) {
+    val need = periodOf(z)
+    Plate(Modifier.clickable { onAtom(z) }) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Canvas(Modifier.size(58.dp)) {
                 val now = frame() / 1e6
-                val pen = ComposePen(this, 92.0)
+                val pen = ComposePen(this, 58.0)
                 val sh = if (finished != 0) 1.0 else share.value.toDouble()
-                nebula.draw(pen, 46.0, 46.0, 42.0, now, sh, still = sh <= 0)
-                if (finished != 0) pen.ring(46.0, 46.0, 45.0, Ink.GREEN, 2.0)
+                nebula.draw(pen, 29.0, 29.0, 26.0, now, sh, still = sh <= 0)
+                if (finished != 0) pen.ring(29.0, 29.0, 28.0, Ink.GREEN, 2.0)
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                Label("$z", size = 13.sp, color = Tone.text2)
-                Label(atom.name, size = 16.sp, weight = FontWeight.SemiBold)
-            }
-            val need = periodOf(z)
-            if (finished != 0) Label("Built", size = 13.sp, color = Tone.green)
-            else Label("Shells: ${c.shells} of $need", size = 13.sp, color = Tone.text2)
-            if (run != null && finished == 0) {
-                Pill("Build", Icon.PLAY, onBuild, Modifier.padding(top = 8.dp).fillMaxWidth(0.8f), fill = Tone.rose, ink = Color.Black)
-                Row(
-                    Modifier.padding(top = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    GameIcon(run.game.id, 20)
-                    Label(run.game.label, size = 14.sp)
-                    Canvas(Modifier.size(width = 30.dp, height = 8.dp)) {
-                        ComposePen(this, 30.0, wide = true).pips(15.0, 4.0, 28.0, run.dial)
-                    }
-                }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Label(atom.name, size = 17.sp, weight = FontWeight.SemiBold, align = TextAlign.Start, lines = 1)
+                if (finished != 0) Label("Built", size = 13.sp, color = Tone.green, align = TextAlign.Start)
+                else Label("Shells ${c.shells} of $need", size = 13.sp, color = Tone.text2, align = TextAlign.Start, lines = 1)
+                ShellBars(need, if (finished != 0) need else c.shells, Modifier.padding(top = 4.dp).size(width = 66.dp, height = 5.dp))
             }
         }
     }
 }
 
-/** One atom's Build page: a list the crown scrolls, its shells as a ring round the bezel (the
- *  built ones lit), and back at the middle of the left edge. */
+/** One atom's Build page: a list the crown scrolls under its name, curved at the top; its shells
+ *  as a ring round the bezel (built ones green, the next rose), back at the middle of the left
+ *  edge, and View in Atlas at the edge. */
 @Composable
 fun AtomBuildScreen(model: AppModel, z: Int, onBuild: () -> Unit, onAtlas: (Int) -> Unit, onAtom: (Int) -> Unit, onBack: () -> Unit) {
     model.version
@@ -376,25 +413,25 @@ fun AtomBuildScreen(model: AppModel, z: Int, onBuild: () -> Unit, onAtlas: (Int)
         Standing.BUILDING -> c.shells
         Standing.LATER -> 0
     }
+    val run = if (st == Standing.BUILDING) model.buildRun() else null
     val state = rememberScalingLazyListState(initialCenterItemIndex = 1)
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         ScalingLazyColumn(
             Modifier.fillMaxSize(),
             state = state,
-            // Wide sides, clear of the ring and of back.
-            contentPadding = PaddingValues(horizontal = 32.dp, vertical = 30.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            // Clear of the ring, wider on the left for back; the foot clear of the edge button.
+            contentPadding = PaddingValues(start = 42.dp, end = 26.dp, top = 32.dp, bottom = 60.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            item { AtomCard(atom, 56, lit = st == Standing.BUILT) }
+            item { ShellTrack(counts.size, st, c.shells) }
+            if (run != null) item { NextShell(run, onBuild) }
             item {
-                Canvas(Modifier.size(112.dp)) {
-                    val share = c.share(z)
-                    nebula.draw(ComposePen(this, 112.0), 56.0, 56.0, 52.0, frame() / 1e6, share, still = share <= 0)
-                }
-            }
-            item {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    IdPlate(atom, 56)
-                    Label(atom.name, size = 18.sp, weight = FontWeight.SemiBold)
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Canvas(Modifier.size(104.dp)) {
+                        val share = c.share(z)
+                        nebula.draw(ComposePen(this, 104.0), 52.0, 52.0, 48.0, frame() / 1e6, share, still = share <= 0)
+                    }
                     val (says, color) = c.says(z)
                     Label(says, size = 13.sp, color = Color(color))
                 }
@@ -406,26 +443,70 @@ fun AtomBuildScreen(model: AppModel, z: Int, onBuild: () -> Unit, onAtlas: (Int)
                     Pill("Go to ${now.symbol}", Icon.CHEVRON, { onAtom(now.z) })
                 }
             }
-            for (i in counts.indices) item {
-                val shellState = when {
-                    st == Standing.BUILT || (st == Standing.BUILDING && i < c.shells) -> Standing.BUILT
-                    st == Standing.BUILDING && i == c.shells -> Standing.BUILDING
-                    else -> Standing.LATER
-                }
-                ShellStep(model, z, i, counts[i], shellState, onBuild)
-            }
             item {
                 Para("Each shell is one game: clear its levels to build it. The outer shells are harder.")
             }
             item { Neighbors(model, z, onAtom) }
-            item { Pill("View in Atlas", Icon.ATLAS, { onAtlas(z) }) }
         }
-        Canvas(Modifier.fillMaxSize()) { ComposePen(this).shellRing(counts.size, done, st == Standing.BUILT) }
+        Canvas(Modifier.fillMaxSize()) { ComposePen(this).shellRing(counts.size, done, st == Standing.BUILT, next = st == Standing.BUILDING) }
+        CurvedTitle(atom.name, inset = 12.dp)
         Box(
-            Modifier.align(Alignment.CenterStart).size(width = 34.dp, height = 56.dp).clickable(onClick = onBack),
+            Modifier.align(Alignment.CenterStart).size(width = 40.dp, height = 56.dp).clickable(onClick = onBack),
             contentAlignment = Alignment.CenterEnd,
         ) {
-            IconMark(Icon.BACK, 26, Ink.WHITE, disc = Ink.K800)
+            IconMark(Icon.BACK, 30, Ink.K200, disc = Ink.K900)
+        }
+        EdgeButton({ onAtlas(z) }) { EdgeLabel("View in Atlas", Tone.cyan, Icon.ATLAS) }
+    }
+}
+
+/** The atom's shells as a track of discs, four to a row: built ones green with a check, the next
+ *  rose and the ones after dark, each with its number. */
+@Composable
+private fun ShellTrack(need: Int, st: Standing, shells: Int) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        for (row in (0 until need).chunked(TRACK_ROW)) Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            for (i in row) {
+                val s = when {
+                    st == Standing.BUILT || (st == Standing.BUILDING && i < shells) -> Standing.BUILT
+                    st == Standing.BUILDING && i == shells -> Standing.BUILDING
+                    else -> Standing.LATER
+                }
+                Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) {
+                    Canvas(Modifier.size(28.dp)) {
+                        val pen = ComposePen(this, 28.0)
+                        when (s) {
+                            Standing.BUILT -> { pen.dot(14.0, 14.0, 14.0, Ink.GREEN); pen.icon(Icon.CHECK, 14.0, 14.0, 17.0, Ink.K975) }
+                            Standing.BUILDING -> pen.dot(14.0, 14.0, 14.0, Ink.ROSE)
+                            Standing.LATER -> pen.dot(14.0, 14.0, 14.0, Ink.K900)
+                        }
+                    }
+                    if (s != Standing.BUILT) Label(
+                        "${i + 1}", size = 14.sp, lines = 1,
+                        weight = if (s == Standing.BUILDING) FontWeight.SemiBold else FontWeight.Medium,
+                        color = if (s == Standing.BUILDING) Tone.ink else Tone.text2,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** The next shell: a soft pill with a rose Play, its game and its difficulty's pips. Plays it. */
+@Composable
+private fun NextShell(run: RunSpec, onBuild: () -> Unit) {
+    Row(
+        Modifier
+            .background(Tone.plate, RoundedCornerShape(22.dp))
+            .clickable(onClick = onBuild)
+            .padding(start = 6.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(9.dp),
+    ) {
+        IconMark(Icon.PLAY, 30, Ink.K975, disc = Ink.ROSE)
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Label(run.game.label, size = 15.sp, weight = FontWeight.SemiBold, align = TextAlign.Start, lines = 1)
+            Canvas(Modifier.size(width = 30.dp, height = 8.dp)) { ComposePen(this, 30.0, wide = true).pips(15.0, 4.0, 28.0, run.dial) }
         }
     }
 }
@@ -443,54 +524,13 @@ private fun Neighbors(model: AppModel, z: Int, onAtom: (Int) -> Unit) {
 @Composable
 private fun Neighbor(atom: Atom, back: Boolean, onClick: () -> Unit) {
     Row(
-        Modifier.clickable(onClick = onClick).padding(2.dp),
+        Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         if (back) IconMark(Icon.BACK, 14, Ink.K300)
         IdPlate(atom, 42)
         if (!back) IconMark(Icon.CHEVRON, 14, Ink.K300)
-    }
-}
-
-/** One shell on the Build page's track: its letter and its electrons; built (a green check), next
- *  (a rose Play, its game and difficulty) or later (its number and difficulty, dim). */
-@Composable
-private fun ShellStep(model: AppModel, z: Int, shell: Int, electrons: Int, state: Standing, onBuild: () -> Unit) {
-    val dial = Difficulty.buildDial(z, shell)
-    val run = if (state == Standing.BUILDING) model.buildRun() else null
-    val dim = state == Standing.LATER
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .background(Tone.plate, RoundedCornerShape(26.dp))
-            .then(if (state == Standing.BUILDING) Modifier.border(1.5.dp, Tone.rose, RoundedCornerShape(26.dp)).clickable(onClick = onBuild) else Modifier)
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Box(Modifier.size(30.dp), contentAlignment = Alignment.Center) {
-            Canvas(Modifier.size(30.dp)) {
-                val pen = ComposePen(this, 30.0)
-                when (state) {
-                    Standing.BUILT -> { pen.dot(15.0, 15.0, 15.0, Ink.GREEN); pen.icon(Icon.CHECK, 15.0, 15.0, 18.0, Ink.BLACK) }
-                    Standing.BUILDING -> { pen.dot(15.0, 15.0, 15.0, Ink.ROSE); pen.icon(Icon.PLAY, 15.0, 15.0, 17.0, Ink.BLACK) }
-                    Standing.LATER -> pen.dot(15.0, 15.0, 15.0, Ink.K800)
-                }
-            }
-            if (dim) Label("${shell + 1}", size = 14.sp, color = Tone.text2)
-        }
-        Column(Modifier.weight(1f)) {
-            Label("Shell ${SHELL_LETTERS[shell]}", size = 14.sp, align = TextAlign.Start, lines = 1, color = if (dim) Tone.text2 else Tone.text)
-            Label("$electrons electron${if (electrons == 1) "" else "s"}", size = 13.sp, align = TextAlign.Start, color = Tone.text2)
-            if (state != Standing.BUILT) {
-                if (run != null) Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    GameIcon(run.game.id, 16)
-                    Label(run.game.label, size = 13.sp, lines = 1)
-                }
-                Canvas(Modifier.padding(top = 4.dp).size(width = 28.dp, height = 8.dp)) { ComposePen(this, 28.0, wide = true).pips(14.0, 4.0, 26.0, dial) }
-            }
-        }
     }
 }
 
