@@ -1,9 +1,10 @@
-// The Atlas: every atom, two ways. The wheel shows one atom large, with the whole table as ticks
-// round the rim (built ones in their own color); the crown steps through them. The table shows
-// all 118 in their standard places, the crown moving a highlight. Tapping the atom opens its
-// Atlas page, a watch-sized take on the phone's: its plate and where it sits, Build, the atom
-// itself, the headline and facts, its name and discovery, its structure, properties and
-// isotopes, and where it comes from and what it is for.
+// The Atlas: every atom, two ways, under its curved title. The list: every atom as a soft row,
+// its plate, name and kind, shrinking and fading toward the edges as the crown scrolls it. The
+// table: all 118 in their standard places, the crown moving a highlight. The edge button switches
+// between them. Tapping an atom opens its Atlas page, a watch-sized take on the phone's: its
+// plate and where it sits, Build, the atom itself, the headline and facts, its name and
+// discovery, its structure, properties and isotopes, and where it comes from and what it is for,
+// with the atoms either side on the edge.
 
 package app.buildatomos.watch.ui
 
@@ -28,14 +29,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -47,6 +46,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.wear.compose.foundation.lazy.AutoCenteringParams
+import androidx.wear.compose.foundation.lazy.items
+import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import app.buildatomos.core.ATOMS
 import app.buildatomos.core.Atom
 import app.buildatomos.core.Crowd
@@ -57,7 +59,6 @@ import app.buildatomos.core.Property
 import app.buildatomos.core.Pt
 import app.buildatomos.core.SCREEN
 import app.buildatomos.core.TAU
-import app.buildatomos.core.icon
 import app.buildatomos.core.shellCounts
 import app.buildatomos.watch.AppModel
 import java.math.BigDecimal
@@ -67,12 +68,11 @@ import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
-import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-/** Rotary pixels per atom when turning through the Atlas. */
+/** Rotary pixels per atom when turning through the Atlas's table. */
 private const val STEP_PX = 40f
 private const val MID = SCREEN / 2
 
@@ -83,24 +83,83 @@ private fun place(z: Int, group: Int?, period: Int): Pair<Int, Int> = when (z) {
     else -> (group ?: 3) to period
 }
 
+/** The Atlas, as the list or the table, starting at atom `start`; the edge button switches
+ *  between them, keeping the atom. */
 @Composable
 fun AtlasScreen(model: AppModel, start: Int, startTable: Boolean, onAtom: (Int) -> Unit) {
     model.version
-    val c = model.collection
     var z by remember { mutableIntStateOf(start.coerceIn(1, ATOMS)) }
     var table by remember { mutableStateOf(startTable) }
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        if (table) AtlasTable(model, z, { z = it }, onAtom)
+        else AtlasList(model, z, { z = it }, onAtom)
+        CurvedTitle("Atlas")
+        if (table) EdgeButton({ table = false }) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Canvas(Modifier.size(18.dp)) { ComposePen(this, 18.0).listMark(9.0, 9.0, 18.0, Ink.K200) }
+                Label("List", size = 15.sp, weight = FontWeight.SemiBold, lines = 1)
+            }
+        } else EdgeButton({ table = true }) { EdgeLabel("Table", Tone.text, Icon.TABLE) }
+    }
+}
+
+/** Every atom as a row the crown scrolls, `start` in the middle to begin with; `onCenter` hears
+ *  which atom is in the middle. */
+@Composable
+private fun AtlasList(model: AppModel, start: Int, onCenter: (Int) -> Unit, onAtom: (Int) -> Unit) {
+    val state = rememberScalingLazyListState(initialCenterItemIndex = start - 1)
+    val center = state.centerItemIndex
+    LaunchedEffect(center) { onCenter((center + 1).coerceIn(1, ATOMS)) }
+    Box(Modifier.fillMaxSize()) {
+        EdgeList(state, side = 14.dp, gap = 4.dp, autoCentering = AutoCenteringParams(itemIndex = 0)) {
+            items(model.atlas.atoms) { a -> AtlasRow(model, a) { onAtom(a.z) } }
+        }
+        EdgeScroll(state)
+    }
+}
+
+/** One atom in the Atlas's list: its plate, its name and its kind, on a soft pill. */
+@Composable
+private fun AtlasRow(model: AppModel, atom: Atom, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(Tone.plate, RoundedCornerShape(28.dp))
+            .clickable(onClick = onClick)
+            .padding(start = 7.dp, end = 12.dp, top = 7.dp, bottom = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        IdPlate(atom, 40)
+        Column(Modifier.weight(1f)) {
+            Label(atom.name, size = 16.sp, weight = FontWeight.SemiBold, align = TextAlign.Start, lines = 1)
+            Label(model.atlas.info(atom.z).kind.replaceFirstChar { it.uppercase() }, size = 13.sp, color = Tone.text2, align = TextAlign.Start, lines = 1)
+        }
+    }
+}
+
+/** The table: all 118 in their places, built ones in their own color, the picked one ringed in
+ *  white with its name above. The crown moves the pick; a tap on an atom picks it, and a tap on
+ *  the picked one (or its name) opens it. */
+@Composable
+private fun AtlasTable(model: AppModel, z: Int, onPick: (Int) -> Unit, onAtom: (Int) -> Unit) {
+    val c = model.collection
+    val at by rememberUpdatedState(z)
+    val pick by rememberUpdatedState(onPick)
+    val open by rememberUpdatedState(onAtom)
     var spun by remember { mutableFloatStateOf(0f) }
-    var frame by remember { mutableLongStateOf(0L) }
     val fr = rememberCrownFocus()
     val measurer = rememberTextMeasurer()
-    LaunchedEffect(Unit) { while (true) withFrameNanos { frame = it } }
     val atom = model.atlas.atom(z)
-    val nebula = remember(z) { Nebula(atom, model.atlas.cloud(z)) }
     var size by remember { mutableStateOf(IntSize.Zero) }
     fun court(o: Offset): Pt {
         val side = min(size.width, size.height).toFloat()
         val k = side / SCREEN
         return Pt(((o.x - (size.width - side) / 2) / k).toDouble(), ((o.y - (size.height - side) / 2) / k).toDouble())
+    }
+    fun move(to: Int) {
+        val t = to.coerceIn(1, ATOMS)
+        if (t != at) { pick(t); model.feel.buzz(15) }
     }
     // The table's cells, in court units.
     val cell = 11.6
@@ -111,71 +170,43 @@ fun AtlasScreen(model: AppModel, start: Int, startTable: Boolean, onAtom: (Int) 
     Box(
         Modifier
             .fillMaxSize()
-            .background(Color.Black)
             .onRotaryScrollEvent { e ->
                 spun += e.verticalScrollPixels
                 val steps = (spun / STEP_PX).toInt()
                 if (steps != 0) {
                     spun -= steps * STEP_PX
-                    val to = (z + steps).coerceIn(1, ATOMS)
-                    if (to != z) { z = to; model.feel.buzz(15) }
+                    move(at + steps)
                 }
                 true
             }
             .focusRequester(fr)
             .focusable()
-            .pointerInput(table) {
+            .pointerInput(Unit) {
                 size = this.size
                 detectTapGestures { o ->
                     val p = court(o)
-                    if (hypot(p.x - MID, p.y - 262) < 20) { table = !table; return@detectTapGestures }
-                    if (!table) {
-                        if (hypot(p.x - MID, p.y - 118) < 80 || abs(p.y - 214) < 16) onAtom(z)
-                        return@detectTapGestures
-                    }
-                    // In the table: a tap on the highlighted atom (or its name) opens it; on another,
-                    // moves the highlight there.
-                    if (abs(p.y - 70) < 18) { onAtom(z); return@detectTapGestures }
+                    if (abs(p.y - 70) < 18) { open(at); return@detectTapGestures }
                     var hit = 0
                     for (a in model.atlas.atoms) {
                         val (col, row) = place(a.z, a.group, a.period)
                         val q = cellAt(col, row)
                         if (abs(p.x - q.x) <= cell / 2 + 1 && abs(p.y - q.y) <= cell / 2 + 1) hit = a.z
                     }
-                    if (hit == z) onAtom(z) else if (hit != 0) { z = hit; model.feel.buzz(15) }
+                    if (hit == at) open(at) else if (hit != 0) move(hit)
                 }
             },
     ) {
         Canvas(Modifier.fillMaxSize()) {
-            frame
             val pen = ComposePen(this)
-            if (!table) {
-                for (i in 1..ATOMS) {
-                    val a = -PI / 2 + (i - 0.5) / ATOMS * TAU
-                    val here = i == z
-                    val r0 = if (here) 132.0 else 139.0
-                    val color = if (here) Ink.WHITE else if (c.isBuilt(i)) model.atlas.atom(i).color else Ink.K800
-                    pen.line(MID + cos(a) * r0, MID + sin(a) * r0, MID + cos(a) * 145, MID + sin(a) * 145, color, if (here) 3.5 else 2.0)
-                }
-                val built = c.isBuilt(z)
-                val share = if (built) 1.0 else if (z == c.building) c.progress else 0.0
-                nebula.draw(pen, MID, 118.0, 76.0, frame / 1e6, share, still = share <= 0)
-                pen.text(measurer, "${atom.z}  ${atom.name}", MID, 214.0, 17.0, if (built) Ink.WHITE else Ink.K300, FontWeight.SemiBold)
-                pen.text(measurer, model.atlas.info(z).kind.replaceFirstChar { it.uppercase() }, MID, 236.0, 13.0, Ink.K300)
-            } else {
-                pen.text(measurer, "${atom.z}  ${atom.name}", MID, 70.0, 17.0, if (c.isBuilt(z)) Ink.WHITE else Ink.K300, FontWeight.SemiBold)
-                pen.text(measurer, "${c.built.size} of $ATOMS built", MID, 92.0, 13.0, Ink.K300)
-                for (a in model.atlas.atoms) {
-                    val (col, row) = place(a.z, a.group, a.period)
-                    val q = cellAt(col, row)
-                    val color = if (c.isBuilt(a.z)) a.color else Ink.K800
-                    pen.rect(q.x - cell / 2 + 0.8, q.y - cell / 2 + 0.8, cell - 1.6, cell - 1.6, 2.0, color)
-                    if (a.z == z) pen.rectRing(q.x - cell / 2 - 0.4, q.y - cell / 2 - 0.4, cell + 0.8, cell + 0.8, 2.6, Ink.WHITE, 1.6)
-                }
+            pen.text(measurer, "${atom.z}  ${atom.name}", MID, 70.0, 17.0, if (c.isBuilt(z)) Ink.WHITE else Ink.K300, FontWeight.SemiBold)
+            pen.text(measurer, "${c.built.size} of $ATOMS built", MID, 92.0, 13.0, Ink.K300)
+            for (a in model.atlas.atoms) {
+                val (col, row) = place(a.z, a.group, a.period)
+                val q = cellAt(col, row)
+                val color = if (c.isBuilt(a.z)) a.color else Ink.K800
+                pen.rect(q.x - cell / 2 + 0.8, q.y - cell / 2 + 0.8, cell - 1.6, cell - 1.6, 2.0, color)
+                if (a.z == z) pen.rectRing(q.x - cell / 2 - 0.4, q.y - cell / 2 - 0.4, cell + 0.8, cell + 0.8, 2.6, Ink.WHITE, 1.6)
             }
-            // The switch between the wheel and the table: a small table mark, or a ring.
-            pen.dot(MID, 262.0, 16.0, Ink.K800)
-            pen.icon(if (table) Icon.WHEEL else Icon.TABLE, MID, 262.0, 20.0, Ink.WHITE)
         }
     }
 }
@@ -201,7 +232,8 @@ private fun ppm(v: Double): String = when {
 private fun round1(v: Double) = (v * 10).roundToInt() / 10.0
 private fun round3(v: Double) = if (v >= 100) v.roundToInt().toDouble() else (v * 10).roundToInt() / 10.0
 
-/** One atom's Atlas page. */
+/** One atom's Atlas page: a list the crown scrolls under the atom's name, curved at the top, and
+ *  the atoms either side on the two halves of the edge button. */
 @Composable
 fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -> Unit, onAtom: (Int) -> Unit) {
     model.version
@@ -217,109 +249,119 @@ fun AtomScreen(model: AppModel, z: Int, onBuild: (Int) -> Unit, onTable: (Int) -
     val core = NOBLE.lastOrNull { it < z }
     val coreSubs = core?.let { model.atlas.subs(it).toSet() } ?: emptySet()
     val outer = subs.filter { it !in coreSubs }
-    WatchList(start = 1) {
-        item { IdPlate(atom, 60) }
-        item {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Label(atom.name, size = 20.sp, weight = FontWeight.SemiBold)
-                Label(info.series.ifBlank { info.kind }, size = 14.sp, color = color)
-                val where = listOfNotNull(
-                    if (z in 57..71) "Lanthanide" else if (z in 89..103) "Actinide" else atom.group?.let { "Group $it" },
-                    "Period ${atom.period}",
-                ).joinToString(" · ")
-                Label(where, size = 13.sp, color = Tone.text2)
+    val state = rememberScalingLazyListState(initialCenterItemIndex = 1)
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        EdgeList(state) {
+            item { IdPlate(atom, 60) }
+            item {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Label(atom.name, size = 20.sp, weight = FontWeight.SemiBold)
+                    Label(info.series.ifBlank { info.kind }, size = 14.sp, color = color)
+                    val where = listOfNotNull(
+                        if (z in 57..71) "Lanthanide" else if (z in 89..103) "Actinide" else atom.group?.let { "Group $it" },
+                        "Period ${atom.period}",
+                    ).joinToString(" · ")
+                    Label(where, size = 13.sp, color = Tone.text2)
+                }
             }
-        }
-        item {
-            when {
-                c.isBuilt(z) -> Pill("Built", Icon.CHECK, { onBuild(z) }, ink = Tone.green)
-                z == c.building -> Pill("Build", Icon.PLAY, { onBuild(z) }, fill = Tone.rose, ink = Color.Black)
-                else -> Pill("Build", Icon.LOCK, { onBuild(z) }, ink = Tone.text2)
+            item {
+                when {
+                    c.isBuilt(z) -> Pill("Built", Icon.CHECK, { onBuild(z) }, ink = Tone.green)
+                    z == c.building -> Pill("Build", Icon.PLAY, { onBuild(z) }, fill = Tone.rose, ink = Color.Black)
+                    else -> Pill("Build", Icon.LOCK, { onBuild(z) }, ink = Tone.text2)
+                }
             }
-        }
-        item {
-            Canvas(Modifier.size(110.dp)) {
-                val share = model.share(z)
-                // The Atlas shows every atom in full; a built one turns.
-                nebula.draw(ComposePen(this, 110.0), 55.0, 55.0, 50.0, frame() / 1e6, 1.0, still = share < 1)
+            item {
+                Canvas(Modifier.size(110.dp)) {
+                    val share = model.share(z)
+                    // The Atlas shows every atom in full; a built one turns.
+                    nebula.draw(ComposePen(this, 110.0), 55.0, 55.0, 50.0, frame() / 1e6, 1.0, still = share < 1)
+                }
             }
-        }
-        item {
-            Tiles(
-                "Weight" to (if (info.mass > 0) trim(info.mass) else "[${info.massNumber}]"),
-                "Block" to atom.block,
-                "At room temperature" to (info.phase ?: "Unknown"),
-                "Electrons" to "$z",
-            )
-        }
-        item { Locator(model, z) { onTable(z) } }
-        if (info.headline.isNotBlank()) item { Para(info.headline) }
-        if (info.facts.isNotEmpty()) item { Section(model, "Facts", "${info.facts.size}") { for (f in info.facts) Bullet(f) } }
-        info.origin?.let { o -> item { Section(model, "The name", null) { Para(o, inside = true) } } }
-        item {
-            Section(model, "Discovered", info.year?.toString() ?: "Ancient") {
-                val ancient = info.year == null || info.who?.contains("ancient", true) == true
-                Label(info.year?.toString() ?: "In antiquity", size = 22.sp, weight = FontWeight.SemiBold, color = color, align = TextAlign.Start)
-                val by = listOfNotNull(info.who?.takeIf { !(ancient && it.contains("ancient", true)) }, info.where).joinToString(" · ")
-                if (by.isNotBlank()) Para(by, inside = true)
+            item {
+                Tiles(
+                    "Weight" to (if (info.mass > 0) trim(info.mass) else "[${info.massNumber}]"),
+                    "Block" to atom.block,
+                    "At room temperature" to (info.phase ?: "Unknown"),
+                    "Electrons" to "$z",
+                )
             }
-        }
-        item {
-            Section(model, "Structure", "${counts.size} shell${if (counts.size == 1) "" else "s"}") {
-                Canvas(Modifier.size(104.dp).align(Alignment.CenterHorizontally)) { shells(ComposePen(this, 96.0), counts, atom.color) }
-                // The shells as K 2, L 8, M 4.
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)) {
-                    for ((i, n) in counts.withIndex()) Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.background(Tone.chip, RoundedCornerShape(8.dp)).padding(horizontal = 5.dp, vertical = 2.dp)) {
-                        Label("$n", size = 14.sp, weight = FontWeight.SemiBold)
-                        Label("KLMNOPQ"[i].toString(), size = 13.sp, color = Tone.text2)
+            item { Locator(model, z) { onTable(z) } }
+            if (info.headline.isNotBlank()) item { Para(info.headline) }
+            if (info.facts.isNotEmpty()) item { Section(model, "Facts", "${info.facts.size}") { for (f in info.facts) Bullet(f) } }
+            info.origin?.let { o -> item { Section(model, "The name", null) { Para(o, inside = true) } } }
+            item {
+                Section(model, "Discovered", info.year?.toString() ?: "Ancient") {
+                    val ancient = info.year == null || info.who?.contains("ancient", true) == true
+                    Label(info.year?.toString() ?: "In antiquity", size = 22.sp, weight = FontWeight.SemiBold, color = color, align = TextAlign.Start)
+                    val by = listOfNotNull(info.who?.takeIf { !(ancient && it.contains("ancient", true)) }, info.where).joinToString(" · ")
+                    if (by.isNotBlank()) Para(by, inside = true)
+                }
+            }
+            item {
+                Section(model, "Structure", "${counts.size} shell${if (counts.size == 1) "" else "s"}") {
+                    Canvas(Modifier.size(104.dp).align(Alignment.CenterHorizontally)) { shells(ComposePen(this, 96.0), counts, atom.color) }
+                    // The shells as K 2, L 8, M 4.
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)) {
+                        for ((i, n) in counts.withIndex()) Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.background(Tone.chip, RoundedCornerShape(8.dp)).padding(horizontal = 5.dp, vertical = 2.dp)) {
+                            Label("$n", size = 14.sp, weight = FontWeight.SemiBold)
+                            Label("KLMNOPQ"[i].toString(), size = 13.sp, color = Tone.text2)
+                        }
+                    }
+                    // The configuration as colored pills: the noble-gas core, then the outer subshells.
+                    FlowPills(listOfNotNull(core?.let { "[${model.atlas.atom(it).symbol}]" to Ink.K700 }) + outer.map { subLabel(it) to blockColor(it) })
+                    if (z >= 104) Label("Predicted, not measured: only a few atoms have ever been made.", size = 13.sp, color = Tone.text2, align = TextAlign.Start)
+                }
+            }
+            item {
+                Section(model, "Properties", info.phase) {
+                    val crowds = remember(z) { Property.ALL.map { Crowd(it, model.atlas.infos, z) }.filter { it.value != null } }
+                    if (crowds.isEmpty()) Label("Not measured yet.", size = 14.sp, color = Tone.text2, align = TextAlign.Start)
+                    else {
+                        Label("Each dot is an atom, in its block's color. ${atom.name} is the white one.", size = 13.sp, color = Tone.text2, align = TextAlign.Start)
+                        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            for (crowd in crowds) PropertyStrip(model, crowd)
+                        }
                     }
                 }
-                // The configuration as colored pills: the noble-gas core, then the outer subshells.
-                FlowPills(listOfNotNull(core?.let { "[${model.atlas.atom(it).symbol}]" to Ink.K700 }) + outer.map { subLabel(it) to blockColor(it) })
-                if (z >= 104) Label("Predicted, not measured: only a few atoms have ever been made.", size = 13.sp, color = Tone.text2, align = TextAlign.Start)
             }
-        }
-        item {
-            Section(model, "Properties", info.phase) {
-                val crowds = remember(z) { Property.ALL.map { Crowd(it, model.atlas.infos, z) }.filter { it.value != null } }
-                if (crowds.isEmpty()) Label("Not measured yet.", size = 14.sp, color = Tone.text2, align = TextAlign.Start)
-                else {
-                    Label("Each dot is an atom, in its block's color. ${atom.name} is the white one.", size = 13.sp, color = Tone.text2, align = TextAlign.Start)
-                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        for (crowd in crowds) PropertyStrip(model, crowd)
+            item {
+                Section(model, "Isotopes", "${info.stableIsotopes} lasting") {
+                    KeyValue("Lasting", if (info.stableIsotopes == 0) "None" else "${info.stableIsotopes}")
+                    if (info.knownIsotopes > 0) KeyValue("Known", "${info.knownIsotopes}")
+                    if (info.knownIsotopes > 0) {
+                        // Lasting against all known, as a bar.
+                        Bar(info.stableIsotopes / info.knownIsotopes.toDouble(), Modifier.padding(top = 2.dp).fillMaxWidth().height(5.dp), Ink.GREEN)
+                        Label(
+                            if (info.stableIsotopes == 0) "Every one of its isotopes decays."
+                            else "${info.stableIsotopes} of ${info.knownIsotopes} never decay.",
+                            size = 13.sp, color = Tone.text2, align = TextAlign.Start,
+                        )
                     }
                 }
             }
+            if (info.origins.isNotEmpty()) item { Section(model, "Made in", null) { for (f in info.origins.take(3)) Bullet(f) } }
+            if (info.uses.isNotEmpty()) item { Section(model, "Used for", null) { for (f in info.uses.take(3)) Bullet(f) } }
         }
-        item {
-            Section(model, "Isotopes", "${info.stableIsotopes} lasting") {
-                KeyValue("Lasting", if (info.stableIsotopes == 0) "None" else "${info.stableIsotopes}")
-                if (info.knownIsotopes > 0) KeyValue("Known", "${info.knownIsotopes}")
-                if (info.knownIsotopes > 0) {
-                    // Lasting against all known, as a bar.
-                    Bar(info.stableIsotopes / info.knownIsotopes.toDouble(), Modifier.padding(top = 2.dp).fillMaxWidth().height(5.dp), Ink.GREEN)
-                    Label(
-                        if (info.stableIsotopes == 0) "Every one of its isotopes decays."
-                        else "${info.stableIsotopes} of ${info.knownIsotopes} never decay.",
-                        size = 13.sp, color = Tone.text2, align = TextAlign.Start,
-                    )
-                }
-            }
-        }
-        if (info.origins.isNotEmpty()) item { Section(model, "Made in", null) { for (f in info.origins.take(3)) Bullet(f) } }
-        if (info.uses.isNotEmpty()) item { Section(model, "Used for", null) { for (f in info.uses.take(3)) Bullet(f) } }
-        // The atoms either side, as their plates, each behind a chevron pointing its way.
-        item {
-            Row(
-                Modifier.fillMaxWidth().padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (z > 1) Neighbor(model.atlas.atom(z - 1), before = true) { onAtom(z - 1) }
-                if (z < ATOMS) Neighbor(model.atlas.atom(z + 1), before = false) { onAtom(z + 1) }
-            }
-        }
+        CurvedTitle(atom.name)
+        EdgeScroll(state)
+        // The atoms either side, each as its card behind a chevron pointing its way.
+        EdgeSplit(
+            onLeft = if (z > 1) ({ onAtom(z - 1) }) else null,
+            onRight = if (z < ATOMS) ({ onAtom(z + 1) }) else null,
+            left = { if (z > 1) NeighborCard(model.atlas.atom(z - 1), before = true) },
+            right = { if (z < ATOMS) NeighborCard(model.atlas.atom(z + 1), before = false) },
+        )
     }
+}
+
+/** A neighbor on the edge: its card, dark with its symbol in its color, and a chevron on the side
+ *  it lies. */
+@Composable
+private fun NeighborCard(atom: Atom, before: Boolean) {
+    if (before) IconMark(Icon.BACK, 16, Ink.K200)
+    AtomCard(atom, 28, lit = false, number = false, dark = Color.Black)
+    if (!before) IconMark(Icon.CHEVRON, 16, Ink.K200)
 }
 
 /** A property's value as the page writes it: temperatures in °C, amounts in ppm or ppb. The
@@ -370,20 +412,6 @@ private fun PropertyStrip(model: AppModel, crowd: Crowd) {
             Label("${model.atlas.atom(lz).symbol} ${show(p, lv, short = true)}", Modifier.weight(1f), size = 13.sp, color = Tone.text2, align = TextAlign.Start, lines = 1)
             Label("${model.atlas.atom(hz).symbol} ${show(p, hv, short = true)}", size = 13.sp, color = Tone.text2, align = TextAlign.End, lines = 1)
         }
-    }
-}
-
-/** A neighbor on the table: its plate, with a chevron on the side it lies. */
-@Composable
-private fun Neighbor(atom: Atom, before: Boolean, onClick: () -> Unit) {
-    Row(
-        Modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        if (before) IconMark(Icon.BACK, 18, Ink.K300)
-        IdPlate(atom, 52)
-        if (!before) IconMark(Icon.CHEVRON, 18, Ink.K300)
     }
 }
 
@@ -459,7 +487,7 @@ private fun FlowPills(pills: List<Pair<String, Int>>) {
 private fun Section(model: AppModel, title: String, summary: String?, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
     val open = title in model.atlasOpen
     Column(
-        Modifier.fillMaxWidth().background(Tone.plate, RoundedCornerShape(20.dp)),
+        Modifier.fillMaxWidth().background(Tone.plate, RoundedCornerShape(24.dp)),
         verticalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         Row(

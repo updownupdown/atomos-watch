@@ -42,6 +42,7 @@ import app.buildatomos.core.Games
 import app.buildatomos.core.Ink
 import app.buildatomos.core.gameIcon
 import app.buildatomos.watch.AppModel
+import kotlin.math.PI
 
 @Composable
 fun WatchList(start: Int = 0, content: ScalingLazyListScope.() -> Unit) {
@@ -132,24 +133,27 @@ private fun GameRow(model: AppModel, game: Game, nu: Boolean, onPlay: (Game, Int
     }
 }
 
-/** Sound (off to start), haptics (on to start, and soft), and starting the collection over. */
+/** Sound (off to start), haptics (on to start, and soft), and starting the collection over, under
+ *  the curved title, with the version curved along the foot. No main action, so no edge button. */
 @Composable
 fun SettingsScreen(model: AppModel) {
     model.version
     var asking by remember { mutableStateOf(false) }
-    Box(Modifier.fillMaxSize()) {
-        WatchList {
-            item { SwitchRow("Sound", model.sound) { model.sound = it; if (it) model.feel.chime(2) } }
-            item { SwitchRow("Haptics", model.haptics) { model.haptics = it; if (it) model.feel.hit(0.5) } }
+    val state = rememberScalingLazyListState(initialCenterItemIndex = 1)
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        EdgeList(state, edge = false, side = 14.dp, top = 34.dp, gap = 8.dp) {
+            item { SwitchRow("Sound", model.sound, { on -> soundMark(on) }) { model.sound = it; if (it) model.feel.chime(2) } }
+            item { SwitchRow("Haptics", model.haptics, { hapticsMark() }) { model.haptics = it; if (it) model.feel.hit(0.5) } }
             item {
                 PlateRow(onClick = { asking = true }) {
-                    Label("Start the collection over", Modifier.weight(1f), size = 14.sp, color = Color(Ink.RED), align = TextAlign.Start)
+                    Label("Start the collection over", Modifier.weight(1f), size = 14.sp, color = Color(Ink.RED))
                 }
             }
-            item {
-                Label("ATOMOS ${model.versionName}", Modifier.padding(top = 6.dp), size = 13.sp, color = Tone.text2)
-            }
         }
+        CurvedTitle("Settings")
+        val v = model.versionName
+        CurvedFoot(if (v.isBlank()) "ATOMOS" else "Version $v")
+        EdgeScroll(state)
         if (asking) Confirm(
             question = "Start the collection over? Every atom you built goes.",
             onNo = { asking = false },
@@ -158,16 +162,39 @@ fun SettingsScreen(model: AppModel) {
     }
 }
 
+/** A setting that is on or off: its mark, its name, and a switch, cyan when on. */
 @Composable
-private fun SwitchRow(label: String, on: Boolean, set: (Boolean) -> Unit) {
+private fun SwitchRow(label: String, on: Boolean, draw: ComposePen.(Boolean) -> Unit, set: (Boolean) -> Unit) {
     PlateRow(onClick = { set(!on) }) {
+        Canvas(Modifier.size(20.dp)) { ComposePen(this, 24.0).draw(on) }
         Label(label, Modifier.weight(1f), size = 15.sp, align = TextAlign.Start)
-        Canvas(Modifier.width(36.dp).height(22.dp)) {
-            val pen = ComposePen(this, 36.0, wide = true)
-            pen.rect(1.0, 1.0, 34.0, 20.0, 10.0, if (on) Ink.CYAN else Ink.K700)
-            pen.dot(if (on) 25.0 else 11.0, 11.0, 7.0, if (on) Ink.BLACK else Ink.WHITE)
+        Canvas(Modifier.width(38.dp).height(24.dp)) {
+            val pen = ComposePen(this, 38.0, wide = true)
+            pen.rect(1.0, 1.0, 36.0, 22.0, 11.0, if (on) Ink.CYAN else Ink.K700)
+            pen.dot(if (on) 26.0 else 12.0, 12.0, 8.0, if (on) Ink.BLACK else Ink.K400)
         }
     }
+}
+
+/** Sound's mark, on a 24 grid: a speaker, sounding when on, crossed out when off. */
+private fun ComposePen.soundMark(on: Boolean) {
+    val c = Ink.K200
+    poly(doubleArrayOf(4.0, 8.0, 13.0, 13.0, 8.0, 4.0, 4.0), doubleArrayOf(9.5, 9.5, 5.0, 19.0, 14.5, 14.5, 9.5), 7, c, 2.0)
+    if (on) {
+        arc(13.0, 12.0, 4.0, -PI / 4, PI / 2, c, 2.0)
+        arc(13.0, 12.0, 7.5, -PI / 4, PI / 2, c, 2.0)
+    } else {
+        line(17.0, 9.0, 21.0, 15.0, c, 2.0)
+        line(21.0, 9.0, 17.0, 15.0, c, 2.0)
+    }
+}
+
+/** Haptics' mark, on a 24 grid: a watch buzzing either side. */
+private fun ComposePen.hapticsMark() {
+    val c = Ink.K200
+    rectRing(8.0, 4.0, 8.0, 16.0, 2.5, c, 2.0)
+    line(4.0, 9.0, 4.0, 15.0, c, 2.0)
+    line(20.0, 9.0, 20.0, 15.0, c, 2.0)
 }
 
 /** A destructive action asks first: the question, a gray No and a red Yes. */

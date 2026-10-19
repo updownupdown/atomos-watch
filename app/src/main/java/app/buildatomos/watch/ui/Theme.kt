@@ -49,6 +49,9 @@ val Outfit = FontFamily(
 object Tone {
     val text = Color(Ink.WHITE)
     val text2 = Color(Ink.K300)
+    val text3 = Color(Ink.K400)
+    /** Text on a light button: rose, white or a level's color. */
+    val ink = Color(Ink.K975)
     val plate = Color(Ink.K900)
     val rose = Color(Ink.ROSE)
     val cyan = Color(Ink.CYAN)
@@ -142,6 +145,25 @@ fun IdPlate(atom: Atom, size: Int, modifier: Modifier = Modifier) {
     ) {
         Text("${atom.z}", color = ink, fontSize = (size * 0.24).sp, fontFamily = Outfit, fontWeight = FontWeight.Medium, maxLines = 1)
         Text(atom.symbol, color = ink, fontSize = (size * 0.42).sp, fontFamily = Outfit, fontWeight = FontWeight.SemiBold, maxLines = 1)
+    }
+}
+
+/** An atom's card, as on its Build page and on the Atlas page's edge: a soft square, in the
+ *  atom's color once `lit` (built), else `dark` with the symbol in the atom's color; its number
+ *  small at the top left if `number`. */
+@Composable
+fun AtomCard(atom: Atom, size: Int, lit: Boolean, modifier: Modifier = Modifier, number: Boolean = true, dark: Color = Tone.plate) {
+    val ink = if (lit) inkOn(atom.color) else Color(atom.color)
+    Box(modifier.size(size.dp).background(if (lit) Color(atom.color) else dark, RoundedCornerShape((size * 0.3).dp))) {
+        if (number) Text(
+            "${atom.z}", Modifier.align(Alignment.TopStart).padding(start = (size * 0.13).dp, top = (size * 0.05).dp),
+            color = if (lit) ink else Tone.text2, fontSize = 13.sp, fontFamily = Outfit, fontWeight = FontWeight.Medium, maxLines = 1,
+        )
+        Text(
+            atom.symbol,
+            if (number) Modifier.align(Alignment.BottomCenter).padding(bottom = (size * 0.08).dp) else Modifier.align(Alignment.Center),
+            color = ink, fontSize = (size * 0.48).coerceAtLeast(13.0).sp, fontFamily = Outfit, fontWeight = FontWeight.SemiBold, maxLines = 1,
+        )
     }
 }
 
