@@ -24,6 +24,11 @@ private const val COOL = 450.0
  *  from it: the atoms (and Nu) at three quarters of that, for more room in the bowl. */
 private const val SZ = 0.6
 private const val ZOOM = 0.75
+/** How lively the pile is: how much of its speed an atom keeps, bounced back off another atom, the
+ *  floor or the bowl (0 none, 1 all of it), and how hard an atom high on another one is pushed on
+ *  down its side, as a share of gravity, so it rolls off rather than balancing there. */
+private const val BOUNCE = 0.35
+private const val ROLL = 0.8
 /** Before Nu drops an atom by itself, the atom pulses pale this many times, each this long (ms). */
 private const val PULSES = 3
 private const val PULSE_MS = 300.0
@@ -33,11 +38,11 @@ private const val FLOOR = 256.0
 
 /**
  * Fuse (the phone's src/nu/brook.ts): Suika, Nu's way. Nu carries an atom along the top; drop it
- * and it falls into the bowl, rolling and settling. Two of the same size (and color) that touch
- * fuse into one of the next size up; two of the biggest fuse into nothing. A small dot beside Nu
- * shows the atom after this one. If the pile stays above the line for a second and a half, the
- * run is lost. The line sits at the bottom of the biggest atom Nu may be handed, so the pile can
- * grow as tall as the atom Nu holds.
+ * and it falls into the bowl, bouncing, rolling and settling. Two of the same size (and color)
+ * that touch fuse into one of the next size up; two of the biggest fuse into nothing. A small dot
+ * beside Nu shows the atom after this one. If the pile stays above the line for a second and a
+ * half, the run is lost. The line sits at the bottom of the biggest atom Nu may be handed, so the
+ * pile can grow as tall as the atom Nu holds.
  * A level is a number of fusions: 14, and one more each level, up to 24; the pile carries on from
  * level to level. Heat brings in bigger atoms to drop (which lowers the line a little), and gives
  * Nu less time to hold one.
@@ -47,6 +52,10 @@ private const val FLOOR = 256.0
  * floor just above the level counter. The atoms are drawn a quarter smaller than the phone's
  * smallest, for a roomier bowl, and each size has its own color, the middle three with a dark
  * dot and the biggest three with a dark ring, so two of a size are easy to spot.
+ * The atoms are round and lively: they bounce back off each other, the floor and the bowl with a
+ * third of their speed, and one that lands high on another doesn't balance there but rolls on
+ * down its side (unless it sits in a dip between two, or against the bowl), so the pile keeps
+ * moving a little as it grows instead of standing in a stiff stack.
  * Nu holds an atom for a while (5 s at the gentlest, 3.5 s at Expert); in the last moments the
  * atom pulses pale three times, and then Nu drops it where it is. No clock shows: a quick player
  * never sees the pulse. Each drop made that way, with no touch or crown between, shortens the next
@@ -185,10 +194,11 @@ class Fuse : Toy {
                 a.x -= nx * push * (mb / (ma + mb)); a.y -= ny * push * (mb / (ma + mb))
                 b.x += nx * push * (ma / (ma + mb)); b.y += ny * push * (ma / (ma + mb))
                 if (it > 0) continue
-                // Their velocities: a soft knock along the line between them, a little rub across it.
+                // Their velocities: a knock along the line between them, with some bounce, and a
+                // little rub across it.
                 val rel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny
                 if (rel < 0) {
-                    val j2 = -1.1 * rel / (1 / ma + 1 / mb)
+                    val j2 = -(1 + BOUNCE) * rel / (1 / ma + 1 / mb)
                     a.vx -= nx * j2 / ma; a.vy -= ny * j2 / ma
                     b.vx += nx * j2 / mb; b.vy += ny * j2 / mb
                 }
@@ -196,10 +206,27 @@ class Fuse : Toy {
                 val slide = ((b.vx - a.vx) * tx + (b.vy - a.vy) * ty) * 0.05
                 a.vx += tx * slide * (mb / (ma + mb)); a.vy += ty * slide * (mb / (ma + mb))
                 b.vx -= tx * slide * (ma / (ma + mb)); b.vy -= ty * slide * (ma / (ma + mb))
+                // Round on round: the higher of the two, if it sits near the top of the other, is
+                // pushed on down that one's side (whichever way it leans, or is moving, or either
+                // way by chance if it sits dead on top), so it rolls off instead of balancing.
+                val hi = if (b.y < a.y) b else a
+                val lo = if (hi === a) b else a
+                val ux = (hi.x - lo.x) / d
+                val uy = (hi.y - lo.y) / d
+                if (uy < -0.5) {
+                    val side = when {
+                        abs(ux) > 0.02 -> if (ux > 0) 1.0 else -1.0
+                        abs(hi.vx) > 1e-4 -> if (hi.vx > 0) 1.0 else -1.0
+                        else -> if (rnd() < 0.5) -1.0 else 1.0
+                    }
+                    val kick = ROLL * g * h
+                    hi.vx += -uy * side * kick
+                    hi.vy += ux * side * kick
+                }
             }
             for (a in atoms) {
-                if (bounceIn(s, a, a.r, 0.1)) a.vx *= 0.97
-                if (a.y + a.r > FLOOR) { a.y = FLOOR - a.r; if (a.vy > 0) a.vy *= -0.1 }
+                if (bounceIn(s, a, a.r, BOUNCE)) a.vx *= 0.97
+                if (a.y + a.r > FLOOR) { a.y = FLOOR - a.r; if (a.vy > 0) a.vy *= -BOUNCE }
             }
         }
         // Slow ones settle, so the pile rests still.
