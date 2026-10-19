@@ -140,14 +140,8 @@ class More : Toy {
     }
 
     override fun draw(s: Stage, pen: Pen, now: Double) {
-        // The line down the middle, in dashes, stopping short of the level counter.
-        val y0 = s.c.y - s.R + 58
-        val y1 = s.c.y + s.R - 38
-        var y = y0
-        while (y < y1) {
-            pen.line(s.c.x, y, s.c.x, min(y + 8, y1), Ink.K500, 3.0, 0.8)
-            y += 18
-        }
+        // The line down the middle, solid and quiet, stopping short of the level counter.
+        pen.line(s.c.x, s.c.y - s.R + 58, s.c.x, s.c.y + s.R - 38, Ink.K500, 3.0, 0.45)
         sides.forEachIndexed { i, side ->
             val lit = answered != null && i == more
             for (a in side) pen.dot(a.x, a.y, a.r, if (lit) Ink.GREEN else inks[i], if (over) 0.4 else 0.9)

@@ -120,7 +120,8 @@ class Orbit : Toy {
     override fun draw(s: Stage, pen: Pen, now: Double) {
         pen.ring(s.c, rad(s, 0), Ink.K500, 3.0, 0.55)
         val inner = rad(s, 1)
-        pen.dashed(s.c.x, s.c.y, inner, Ink.K500, 3.0, 0.55, max(6, (TAU * inner / 14).roundToInt()))
+        // The inner ring, told from the outer by a lighter weight rather than dashes.
+        pen.ring(s.c, inner, Ink.K500, 2.0, 0.32)
         // The ring just tapped, lit and fading.
         lit?.let { l ->
             val f = clamp(1 - (now - l.at) / 450, 0.0, 1.0)

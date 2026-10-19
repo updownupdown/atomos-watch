@@ -116,7 +116,7 @@ class Stick : Toy {
 
     override fun draw(s: Stage, pen: Pen, now: Double) {
         val r = shell(s)
-        pen.dashed(s.c, r, Ink.K500, 0.6)
+        pen.ring(s.c, r, Ink.K500, 2.4, 0.4)
         for (a in stuck) pen.dot(s.c.x + cos(a + rot) * r, s.c.y + sin(a + rot) * r, er, Ink.CYAN, 0.9)
         val ly = launch(s)
         val y = shot
