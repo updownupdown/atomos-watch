@@ -1,8 +1,8 @@
-// The Edge look, after Wear OS's Material 3 Expressive: a screen's main action is Wear's own edge
-// button, a wide pill at the foot whose bottom follows the round screen down to its rim, growing
-// as a list reaches its end; the screen's title curves along the top edge; lists shrink and fade
-// toward the edges (ScalingLazyColumn does that) under Wear's scroll arc on the right. The split
-// edge button (an atom's neighbors) has no Wear counterpart, so it is drawn here to match.
+// The Edge look, after Wear OS's Material 3 Expressive: a screen's main action is an edge button,
+// a wide pill at the foot whose bottom follows the round screen; the screen's title curves along
+// the top edge; lists shrink and fade toward the edges (ScalingLazyColumn does that) under Wear's
+// position arc on the right. Built here from Compose's own shapes and Wear's curved text, so the
+// app keeps to Wear Compose 1.4.
 
 package app.buildatomos.watch.ui
 
@@ -54,10 +54,6 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListScope
 import androidx.wear.compose.foundation.lazy.ScalingLazyListState
 import androidx.wear.compose.material.PositionIndicator
-import androidx.wear.compose.material3.ButtonDefaults
-import androidx.wear.compose.material3.EdgeButtonSize
-import androidx.wear.compose.material3.ScreenScaffold
-import androidx.wear.compose.material3.ScrollIndicator
 import androidx.wear.compose.material.curvedText
 import app.buildatomos.core.Difficulty
 import app.buildatomos.core.Icon
@@ -73,8 +69,8 @@ import kotlin.math.sqrt
 /** The edge shapes are worked out on a face 240 across, the mockup's, then scaled to the screen. */
 private const val FACE = 240f
 private const val MID = 120f
-/** The split button's foot: the screen's own circle, at the rim as Wear's edge button is. */
-private const val FOOT = 120f
+/** The button's foot: the screen's own circle, 10 in from the rim. */
+private const val FOOT = 110f
 /** The flat top runs this far either side of the middle before the corners round it off. */
 private const val FLAT = 38f
 /** How far a corner drops from the top before it meets the foot. */
@@ -150,50 +146,31 @@ private fun EdgePart(
     )
 }
 
-/** A screen's main action: Wear's own edge button, hugging the bottom of the screen down to its
- *  rim, one size for one line or two (`tall`, kept for the callers). Rose for Build, white for
- *  Play and All games, a gray a step lighter than the rows for the rest. `pinned` (the default)
- *  sets it at the foot of its parent, which fills the screen, so it goes last in the screen's
- *  Box; in an EdgeScaffold's button slot it is not pinned, and the scaffold places it and grows it
- *  as the list reaches its end. */
+/** A screen's main action, hugging the bottom curve of the screen. It fills its parent (the whole
+ *  screen) to find the circle, so it goes last in the screen's Box; only the button takes taps.
+ *  `tall` makes room for a second line. Rose for Build, white for Play and All games, the plate
+ *  for the rest. */
 @Composable
 fun EdgeButton(
     onClick: () -> Unit,
-    fill: Color = Tone.button,
+    fill: Color = Tone.plate,
     tall: Boolean = false,
-    pinned: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val button = @Composable {
-        androidx.wear.compose.material3.EdgeButton(
-            onClick = onClick,
-            buttonSize = EdgeButtonSize.Medium,
-            colors = ButtonDefaults.buttonColors(containerColor = fill, contentColor = Tone.text),
-        ) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val side = min(maxWidth, maxHeight)
+        val unit = side / FACE
+        val top = if (tall) TOP_TALL else TOP
+        val r = reach(top)
+        EdgePart(unit, (maxWidth - side) / 2, (maxHeight - side) / 2, top, MID - r, MID + r, fill, onClick) {
             Column(
+                Modifier.fillMaxWidth().padding(top = unit * (if (tall) 7f else 11f)),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(1.dp),
                 content = content,
             )
         }
     }
-    if (pinned) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) { button() } else button()
-}
-
-/** A list screen with Wear's own scaffold: the scroll arc on the right, and the edge button
- *  (`button`, an unpinned EdgeButton, or none) at the foot, small while the list is scrolled up
- *  and growing to its full size as the list reaches its end. `content` gets the padding that keeps
- *  the list's foot clear of the button; pass its bottom to EdgeList as `foot`. */
-@Composable
-fun EdgeScaffold(
-    state: ScalingLazyListState,
-    button: (@Composable () -> Unit)?,
-    indicator: Boolean = true,
-    content: @Composable BoxScope.(PaddingValues) -> Unit,
-) {
-    val arc: @Composable BoxScope.() -> Unit = { if (indicator) ScrollIndicator(state, Modifier.align(Alignment.CenterEnd)) }
-    if (button != null) ScreenScaffold(scrollState = state, edgeButton = { button() }, scrollIndicator = arc, content = content)
-    else ScreenScaffold(scrollState = state, scrollIndicator = arc, content = content)
 }
 
 /** The edge button split down the middle into two, each its own tap (the Atlas page's atoms
@@ -204,7 +181,7 @@ fun EdgeSplit(
     onRight: (() -> Unit)?,
     left: @Composable RowScope.() -> Unit,
     right: @Composable RowScope.() -> Unit,
-    fill: Color = Tone.button,
+    fill: Color = Tone.plate,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val side = min(maxWidth, maxHeight)
@@ -292,8 +269,7 @@ fun EdgeScroll(state: ScalingLazyListState) {
     PositionIndicator(state)
 }
 
-/** A list under a curved title, its foot left clear of the edge button: by `foot` (an
- *  EdgeScaffold's bottom padding) if given, else by enough room for a pinned one (`edge`). */
+/** A list under a curved title, its foot left clear of the edge button (`edge`). */
 @Composable
 fun EdgeList(
     state: ScalingLazyListState,
@@ -302,16 +278,14 @@ fun EdgeList(
     top: Dp = 30.dp,
     gap: Dp = 6.dp,
     autoCentering: AutoCenteringParams? = AutoCenteringParams(),
-    foot: Dp? = null,
     content: ScalingLazyListScope.() -> Unit,
 ) {
     ScalingLazyColumn(
         Modifier.fillMaxSize(),
         state = state,
-        contentPadding = PaddingValues(start = side, end = side, top = top, bottom = foot ?: if (edge) 76.dp else 30.dp),
+        contentPadding = PaddingValues(start = side, end = side, top = top, bottom = if (edge) 56.dp else 30.dp),
         verticalArrangement = Arrangement.spacedBy(gap),
-        // Under a scaffold the list ends with its last item just over the button, not centered.
-        autoCentering = if (foot != null) null else autoCentering,
+        autoCentering = autoCentering,
         content = content,
     )
 }

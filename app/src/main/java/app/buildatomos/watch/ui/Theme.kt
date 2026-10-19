@@ -57,8 +57,6 @@ object Tone {
     val cyan = Color(Ink.CYAN)
     val green = Color(Ink.GREEN)
     val chip = Color(Ink.K800)
-    /** An edge button with no color of its own: a step lighter than the rows under it. */
-    val button = Color(Ink.K700)
 }
 
 /** Black or white, whichever reads on `fill` (the phone's inkOn). */
