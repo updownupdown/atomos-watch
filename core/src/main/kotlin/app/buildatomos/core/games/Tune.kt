@@ -17,7 +17,10 @@ private const val T_LO = 1.4
 private const val T_HI = 7.0
 /** How long a stretch lasts at the gentlest and at its shortest (ms). */
 private const val LONG = 4800.0
-private const val SHORT = 1600.0
+private const val SHORT = 1300.0
+/** How much hotter than the dial Tune plays: a notch and a half, so Easy plays about as Hard
+ *  first did and the waves come harder at every level. */
+private const val NOTCH = 0.35
 /** From this stretch of a run on, a new stretch's wave also jumps along (its phase), more as it heats. */
 private const val JUMP_AT = 2
 /** How close Nu's wave is, by its colour: matched, near, nearer than far, and far (red). How
@@ -47,12 +50,12 @@ private fun wrap(x: Double) = ((((x + PI) % TAU) + TAU) % TAU) - PI
  * the last one lost loses the run.
  * Levels: a level is a few stretches matched (three, one more every three levels, up to five).
  * Lives carry from level to level, and every third level cleared gives one back. Heat makes the
- * stretches shorter (4.8 s at the gentlest, about 2.8 s at Expert, never under 1.6 s), the waves
- * roll in quicker (a third quicker at Expert, at most twice as quick), the match closer (in
- * frequency and in phase), the share of a stretch that must match larger (30% at the gentlest,
- * about 41% at Expert, at most 55%), and each stretch's wave jump along further from where the
- * last left off. Each level plays about as two levels up did at first: on Hard the next stretch
- * comes before there is time to dawdle over the last.
+ * stretches shorter (2.9 s at Easy, 2.5 s at Medium, 2.1 s at Hard, never under 1.3 s), the
+ * waves roll in quicker (up to half as quick again at Hard, at most twice as quick), the match
+ * closer (in frequency and in phase), the share of a stretch that must match larger (40% at
+ * Easy, 45% at Hard, at most 60%), and each stretch's wave jump along further from where the
+ * last left off. It runs a notch and a half hotter than the dial (`NOTCH`): on Hard the next
+ * stretch comes before there is time to dawdle over the last, and it only gets quicker.
  * On the watch there is one control instead of the phone's two sliders: the crown tunes the
  * frequency (clockwise quicker, one whole turn across the range; a drag across the screen does
  * the same), and the phase matches itself, Nu's wave sliding along onto the stretch going past
@@ -94,7 +97,9 @@ class Tune : Toy {
     /** The waves' height. */
     private fun amp(s: Stage) = s.R * 0.34
     /** The scroll speed (units/ms): quicker as it heats. */
-    private fun v(s: Stage) = W(s) / 5200 * pace(s.heat)
+    private fun v(s: Stage) = W(s) / 5200 * pace(heat(s))
+    /** How hard to play: the stage's heat and a notch and a half more. */
+    private fun heat(s: Stage) = s.heat + NOTCH
     /** The frequency of the stretch going past, and Nu's: for the tests' player. */
     internal val going: Double? get() = at(scroll)?.c
     internal val tuned: Double get() = c
@@ -115,7 +120,7 @@ class Tune : Toy {
     private fun grow(s: Stage) {
         val ahead = scroll + (s.c.x + s.R - X0(s)) + 40
         var last = segs.last()
-        val h = s.heat
+        val h = heat(s)
         while (last.u0 + last.len < ahead) {
             var nc = last.c
             for (i in 0 until 20) {
@@ -164,7 +169,7 @@ class Tune : Toy {
     override fun step(s: Stage, dt: Double, now: Double) {
         if (s.over) return
         s.part = clamp(found.toDouble() / need(s.level), 0.0, 1.0)
-        val h = s.heat
+        val h = heat(s)
         val v = v(s)
         scroll += v * dt
         ph = (ph + TAU * (c / W(s)) * v * dt) % TAU
@@ -315,10 +320,10 @@ class Tune : Toy {
         /** How much quicker the waves roll in than at the gentlest. */
         fun pace(heat: Double) = min(2.0, 1 + heat * 0.35)
         /** How close a match must be: in frequency (as a log ratio) and in phase (radians). */
-        fun tolF(heat: Double) = max(0.06, 0.15 - heat * 0.08)
-        fun tolP(heat: Double) = max(0.32, 0.7 - heat * 0.3)
+        fun tolF(heat: Double) = max(0.05, 0.15 - heat * 0.08)
+        fun tolP(heat: Double) = max(0.3, 0.7 - heat * 0.3)
         /** The share of a stretch's passing that must match for it to count. */
-        fun share(heat: Double) = min(0.55, 0.3 + heat * 0.12)
+        fun share(heat: Double) = min(0.6, 0.3 + heat * 0.12)
         /** How far a new stretch's wave may jump along, as a share of a whole turn either way. */
         fun jumps(heat: Double) = min(1.0, 0.3 + heat * 0.7)
     }

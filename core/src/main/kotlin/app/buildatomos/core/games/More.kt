@@ -7,13 +7,17 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
+/** How much hotter than the dial More plays: a notch, so Easy plays as Medium first did. */
+private const val NOTCH = 0.25
+
 /**
  * More (the phone's src/nu/lawn.ts). Two fields of atoms, one each side: tap the side with more
  * before the rim runs out. A wrong side, or the rim running out, costs one of three lives.
  * A level is a set of right answers: six at first and one more every other level, up to eleven,
  * flowing straight on. The lives carry on from level to level, and one lost comes back every
  * third level. Heat shortens the rim's time, puts more atoms in the fields and brings the two
- * counts closer, and mixes the atoms' sizes, to fool the eye, more and more often.
+ * counts closer, and mixes the atoms' sizes, to fool the eye, more and more often. It runs a
+ * notch hotter than the dial (`NOTCH`).
  * On the watch each field is half the round court (off the line down the middle, in from the
  * edge, under the menu and over the level counter), not the phone's two rectangles; Nu waits at
  * the top, just under the menu. Every atom a side should have is always placed: if the field is
@@ -40,8 +44,10 @@ class More : Toy {
     private var over = false
     /** How far the crown has turned one way during this ask. */
     private var wound = 0.0
-    /** The rim's time for one ask: 4.5 s at the easiest, 2.5 s at Expert, never under 1.1 s. */
-    private fun ms(s: Stage) = max(1100.0, 4500.0 / (1 + s.heat * 0.8))
+    /** How hard to play: the stage's heat and a notch more. */
+    private fun heat(s: Stage) = s.heat + NOTCH
+    /** The rim's time for one ask: 2.8 s at Easy, 2.35 s at Hard, never under 1.1 s. */
+    private fun ms(s: Stage) = max(1100.0, 4500.0 / (1 + heat(s) * 0.8))
     private fun need(s: Stage) = 6 + min(s.level, 10) / 2
 
     private fun home(s: Stage) = Pt(s.c.x, s.c.y - s.R + 44)
@@ -54,9 +60,9 @@ class More : Toy {
     }
 
     private fun ask(s: Stage) {
-        val h = s.heat
-        // From 3-5 a side at the easiest to 3-12 at Expert; the gap from 60% of the smaller down
-        // to an eighth of it (one atom, mostly).
+        val h = heat(s)
+        // From 3-11 a side at Easy to 3-12 from Medium on; the gap from a third of the smaller at
+        // Easy, a fifth at Hard, down to an eighth of it deeper in (one atom, mostly).
         val lo = 3 + floor(rnd() * min(10.0, 3 + h * 7)).toInt()
         val diff = max(1, (lo * max(0.12, 0.6 - h * 0.35)).roundToInt())
         more = if (rnd() < 0.5) 0 else 1

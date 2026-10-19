@@ -86,6 +86,19 @@ class LevelsDTest {
         t.crown(s, ln(want / t.tuned) / ln(8.0 / 1.2) * TAU)
     }
 
+    /** Tune, played by a quick human: `react` ms after a new stretch comes past it starts turning
+     *  the crown toward it, at most `rate` radians a frame. */
+    private fun tuneHuman(dial: Int, goal: Int?, react: Double = 300.0, rate: Double = 0.12): Stage {
+        var seen: Double? = null
+        var since = 0.0
+        return run(Tune(), dial, goal) { t, s, _ ->
+            val want = t.going ?: return@run
+            if (want != seen) { seen = want; since = s.now }
+            if (s.now - since < react) return@run
+            t.crown(s, clamp(ln(want / t.tuned) / ln(8.0 / 1.2) * TAU, -rate, rate))
+        }
+    }
+
     @Test fun shellsClearsLevels() {
         for (dial in listOf(1, 100)) assertEquals(Result.WON, shells(dial, 3).result, "shells at $dial")
     }
@@ -102,7 +115,18 @@ class LevelsDTest {
     }
 
     @Test fun tuneClearsLevels() {
-        for (dial in listOf(1, 100)) assertEquals(Result.WON, tune(dial, 3).result, "tune at $dial")
+        for (dial in listOf(50, 100)) assertEquals(Result.WON, tune(dial, 3).result, "tune at $dial")
+    }
+
+    /** A quick human who only answers a stretch once it reaches Nu wins an Easy run, still clears
+     *  levels at the top of Hard, and gets plainly less far there in free play than at Easy. */
+    @Test fun tuneComesHarderWithTheDial() {
+        val won = (1..4).count { tuneHuman(50, 5).result == Result.WON }
+        assertTrue(won >= 3, "tune at Easy won $won of 4")
+        val easy = (1..4).sumOf { tuneHuman(50, null).level }
+        val hard = (1..4).sumOf { tuneHuman(100, null).level }
+        assertTrue(hard >= 4, "tune at the top of Hard: $hard levels in 4 runs")
+        assertTrue(hard * 2 < easy, "levels in 4 runs: $easy at Easy, $hard at the top of Hard")
     }
 
     /** Free play goes on, each level a little harder, until the player fails or the top. */

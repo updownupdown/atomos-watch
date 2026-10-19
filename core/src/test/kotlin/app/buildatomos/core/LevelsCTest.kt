@@ -64,7 +64,7 @@ class LevelsCTest {
     }
 
     @Test fun pulseClears() {
-        assertEquals(Result.WON, run("pulse", 1, 3, 120_000.0, ::pulseBot).result)
+        assertEquals(Result.WON, run("pulse", 50, 5, 240_000.0, ::pulseBot).result)
         assertTrue(run("pulse", 100, null, 120_000.0, ::pulseBot).level >= 3)
     }
 
