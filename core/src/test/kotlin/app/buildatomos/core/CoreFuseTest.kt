@@ -200,12 +200,13 @@ class CoreFuseTest {
         }
     }
 
-    /** Core is felt hotter than the dial: Medium plays as Expert used to, Expert far past it. */
+    /** Core is felt hotter than the dial: Easy (the five-level Medium) plays as Expert used to,
+     *  Hard (the old Expert) far past it. */
     @Test fun coreHeat() {
-        val medium = (Difficulty.dialOf(2) - 1) / 99.0
-        val expert = (Difficulty.dialOf(4) - 1) / 99.0
-        assertTrue(Core.pace(medium) in 0.85..0.95, "Medium at ${Core.pace(medium)}")
-        assertTrue(Core.pace(expert) >= 1.45, "Expert at ${Core.pace(expert)}")
+        val medium = (Difficulty.dialOf(0) - 1) / 99.0
+        val expert = (Difficulty.dialOf(2) - 1) / 99.0
+        assertTrue(Core.pace(medium) in 0.85..0.95, "Easy at ${Core.pace(medium)}")
+        assertTrue(Core.pace(expert) >= 1.45, "Hard at ${Core.pace(expert)}")
         assertTrue(Core.pace(0.0) < 0.2)
     }
 }

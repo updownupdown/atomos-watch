@@ -74,11 +74,49 @@ class StageTest {
 
 class DifficultyTest {
     @Test fun levelsAndGoals() {
-        assertEquals(0, Difficulty.level(1)); assertEquals(0, Difficulty.level(20))
-        assertEquals(1, Difficulty.level(21)); assertEquals(4, Difficulty.level(100))
-        assertEquals(3, Difficulty.goal(5)); assertEquals(7, Difficulty.goal(90))
-        for (l in 0..4) assertEquals(l, Difficulty.level(Difficulty.dialOf(l)))
-        assertEquals(5, Difficulty.atomDial(1)); assertEquals(75, Difficulty.atomDial(118))
-        for (z in 1..ATOMS) for (sh in 0 until periodOf(z)) assertTrue(Difficulty.goal(Difficulty.buildDial(z, sh)) <= 8)
+        assertEquals(3, Difficulty.LEVELS)
+        assertEquals(listOf("Easy", "Medium", "Hard"), Difficulty.WORDS)
+        assertEquals(0, Difficulty.level(1)); assertEquals(0, Difficulty.level(41)); assertEquals(0, Difficulty.level(60))
+        assertEquals(1, Difficulty.level(61)); assertEquals(1, Difficulty.level(80))
+        assertEquals(2, Difficulty.level(81)); assertEquals(2, Difficulty.level(100))
+        assertEquals(listOf(50, 70, 90), (0..2).map { Difficulty.dialOf(it) })
+        for (l in 0..2) assertEquals(l, Difficulty.level(Difficulty.dialOf(l)))
+        assertEquals(3, Difficulty.goal(41)); assertEquals(4, Difficulty.goal(70)); assertEquals(5, Difficulty.goal(100))
+    }
+
+    /** Every shell of every atom is built inside the three levels: hydrogen at Easy's foot,
+     *  oganesson's outer shell at the top of Hard, harder atom by atom and shell by shell. */
+    @Test fun buildRunsPlayInsideTheLevels() {
+        assertEquals(41, Difficulty.atomDial(1)); assertEquals(54, Difficulty.atomDial(26))
+        assertEquals(65, Difficulty.atomDial(54)); assertEquals(77, Difficulty.atomDial(86))
+        assertEquals(88, Difficulty.atomDial(118))
+        assertEquals(100, Difficulty.buildDial(118, periodOf(118) - 1))
+        var last = 0
+        for (z in 1..ATOMS) {
+            assertTrue(Difficulty.atomDial(z) >= last, "atom $z")
+            last = Difficulty.atomDial(z)
+            for (sh in 0 until periodOf(z)) {
+                val d = Difficulty.buildDial(z, sh)
+                assertTrue(d in 41..100, "atom $z shell $sh at $d")
+                assertTrue(Difficulty.goal(d) in 3..5)
+            }
+        }
+        // Each level builds a good stretch of the table.
+        val levels = (1..ATOMS).map { Difficulty.level(Difficulty.atomDial(it)) }
+        for (l in 0..2) assertTrue(levels.count { it == l } >= 15, "level $l: ${levels.count { it == l }} atoms")
+    }
+
+    /** A save from the five-level watch: its Medium, Hard and Expert become Easy, Medium and Hard;
+     *  bests at its Very easy and Easy go, and a pick of either becomes Easy. */
+    @Test fun fiveLevelSavesMove() {
+        assertEquals(listOf(null, null, 0, 1, 2), (0..4).map { Difficulty.fromFiveLevels(it) })
+        val bests = Difficulty.bestsFromFiveLevels(
+            mapOf("orbit.0" to 30, "orbit.1" to 20, "orbit.2" to 12, "orbit.3" to 7, "orbit.4" to 3, "pop.1" to 9, "bad" to 4, "tune.x" to 2),
+        )
+        assertEquals(mapOf("orbit.0" to 12, "orbit.1" to 7, "orbit.2" to 3), bests)
+        assertEquals(
+            mapOf("orbit" to 0, "pop" to 0, "tune" to 0, "hop" to 1, "fuse" to 2),
+            Difficulty.pickedFromFiveLevels(mapOf("orbit" to 0, "pop" to 1, "tune" to 2, "hop" to 3, "fuse" to 4)),
+        )
     }
 }

@@ -8,6 +8,7 @@ package app.buildatomos.watch
 
 import android.content.Context
 import app.buildatomos.core.Collection
+import app.buildatomos.core.Difficulty
 import app.buildatomos.core.QuizDay
 import org.json.JSONArray
 import org.json.JSONObject
@@ -21,10 +22,16 @@ class Store(context: Context) {
         const val COLLECTION_V1 = "atomos.collection.v1"
         /** {building, shells, built: {z: day}}. */
         const val COLLECTION = "atomos.collection.v2"
-        /** {"<game>.<level 0..4>": best level reached in free play}. */
-        const val LEVELS = "atomos.levels.v1"
-        /** {"<game>": difficulty level 0..4 last picked for free play}. */
-        const val PICKED = "atomos.picked.v1"
+        /** {"<game>.<level 0..4>": best level reached in free play}, from the five-level watch.
+         *  Read once and moved to LEVELS (Difficulty.bestsFromFiveLevels). */
+        const val LEVELS_V1 = "atomos.levels.v1"
+        /** {"<game>.<level 0..2>": best level reached in free play}. */
+        const val LEVELS = "atomos.levels.v2"
+        /** {"<game>": difficulty level 0..4 last picked for free play}, from the five-level watch.
+         *  Read once and moved to PICKED (Difficulty.pickedFromFiveLevels). */
+        const val PICKED_V1 = "atomos.picked.v1"
+        /** {"<game>": difficulty level 0..2 last picked for free play}. */
+        const val PICKED = "atomos.picked.v2"
         /** {day, answers: [bool], streak, streakDay}. */
         const val QUIZ = "atomos.quiz.v1"
         const val SOUND = "atomos.sound"
@@ -78,9 +85,18 @@ class Store(context: Context) {
         prefs.edit().putString(key, o.toString()).apply()
     }
 
-    fun loadLevels() = intMap(LEVELS)
+    /** The map under `key`; or, the first time, the one under `old` moved over by `move` (and
+     *  saved under `key`, so it moves once). `old` is left as it was. */
+    private fun intMapMoving(key: String, old: String, move: (Map<String, Int>) -> Map<String, Int>): MutableMap<String, Int> {
+        if (prefs.contains(key) || !prefs.contains(old)) return intMap(key)
+        val moved = move(intMap(old)).toMutableMap()
+        saveIntMap(key, moved)
+        return moved
+    }
+
+    fun loadLevels() = intMapMoving(LEVELS, LEVELS_V1) { Difficulty.bestsFromFiveLevels(it) }
     fun saveLevels(m: Map<String, Int>) = saveIntMap(LEVELS, m)
-    fun loadPicked() = intMap(PICKED)
+    fun loadPicked() = intMapMoving(PICKED, PICKED_V1) { Difficulty.pickedFromFiveLevels(it) }
     fun savePicked(m: Map<String, Int>) = saveIntMap(PICKED, m)
 
     fun loadQuiz(): QuizDay? = try {

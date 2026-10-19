@@ -1,6 +1,6 @@
 // A run of one game. It opens on a card with the game's name, its difficulty and the levels to
-// reach, then the court fills the screen: the rim, the levels as a tiny atom at the bottom, and
-// the ATOMOS mark at the top, which pauses the run and opens its menu (Exit, Resume, Restart; the
+// reach, then the court fills the screen: the levels as a tiny atom at the bottom (with the time
+// left, for a game that keeps time, as a small ring round it), and the ATOMOS mark at the top, which pauses the run and opens its menu (Exit, Resume, Restart; the
 // back button does the same). The run ends on a card: what it built or reached, and what next.
 
 package app.buildatomos.watch.ui
@@ -32,7 +32,6 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntSize
-import app.buildatomos.core.COURT_R
 import app.buildatomos.core.Difficulty
 import app.buildatomos.core.Icon
 import app.buildatomos.core.Ink
@@ -48,6 +47,7 @@ import app.buildatomos.core.icon
 import app.buildatomos.core.levels
 import app.buildatomos.core.mark
 import app.buildatomos.core.pips
+import app.buildatomos.core.timer
 import app.buildatomos.watch.AppModel
 import app.buildatomos.watch.RunSpec
 import kotlin.math.PI
@@ -64,8 +64,9 @@ private const val INTRO_MS = 2200L
 private const val MID = SCREEN / 2
 /** The menu button: the mark at the top. */
 private val MENU = Pt(MID, 17.0)
-/** The levels counter at the bottom. */
+/** The levels counter at the bottom, and the radius of the timer round it. */
 private val COUNTER = Pt(MID, 272.0)
+private const val TIMER_R = 17.5
 
 private enum class Phase { INTRO, PLAY, PAUSED, OVER }
 
@@ -195,12 +196,11 @@ fun GameScreen(model: AppModel, spec: RunSpec, onLeave: () -> Unit, onNextRun: (
             val s = run.stage
             run.toy.draw(s, pen, s.now)
             s.fx.draw(pen, s.now, if (phase == Phase.PLAY) 16.0 else 0.0)
-            s.rim?.let { left ->
-                pen.arc(s.c.x, s.c.y, COURT_R + 7, -PI / 2, TAU * left.coerceIn(0.0, 1.0), Ink.CYAN, 4.0, 0.8)
-            }
             if (phase == Phase.PLAY) {
                 pen.dot(MENU.x, MENU.y, 15.0, Ink.BLACK, 0.7)
                 pen.mark(MENU.x, MENU.y, 24.0, Ink.WHITE)
+                // The time left (Stage.rim), quietly, round the counter rather than the whole rim.
+                s.rim?.let { left -> pen.timer(COUNTER.x, COUNTER.y, TIMER_R, left) }
                 pen.levels(COUNTER.x, COUNTER.y, 32.0, s.level, s.goal, s.part)
                 if (s.waiting != null) nextButton(pen)
             }

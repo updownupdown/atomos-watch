@@ -225,7 +225,7 @@ enum class Result { WON, LOST }
 /**
  * Where a game plays: the round court filling the watch's screen. `c` is its middle and `R` its
  * radius, both in court units. The shell (the app) owns the stage: it keeps the clock, draws the
- * rim, the levels and the menu, and shows the card at the end.
+ * levels and the timer round them, and the menu, and shows the card at the end.
  *
  * A run is played in levels. The game calls `clear` when the player finishes one and `lose` when
  * they fail; a run for an atom is won at its `goal`, free play at MAX_LEVEL. The game reads how
@@ -242,7 +242,8 @@ class Stage(val out: Out = object : Out {}) {
     var now = 0.0
     val nu = Body()
     val fx = Fx { now }
-    /** The rim's countdown, 0..1 left, or null for none. */
+    /** The time left to play, 0..1, or null for none: the shell draws it as a small ring round the
+     *  level counter (Pen.timer). A game with its own way of showing time leaves it null. */
     var rim: Double? = null
     /** A level is done and the next waits for the player: the shell shows Next, which calls this. */
     var waiting: (() -> Unit)? = null

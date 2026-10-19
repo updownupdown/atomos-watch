@@ -31,7 +31,11 @@ class CounterMockTest {
                 val level = if (free) 13 else 2
                 val part = 0.6
                 when (style) {
-                    "a" -> pen.levels(150.0, 272.0, 32.0, level, if (free) null else 5, part)
+                    "a" -> {
+                        // With the time left round it, as for a game that keeps time.
+                        pen.timer(150.0, 272.0, 17.5, if (free) 0.2 else 0.6)
+                        pen.levels(150.0, 272.0, 32.0, level, if (free) null else 5, part)
+                    }
                     "b" -> {
                         pen.rect(150.0 - 22, 262.0, 44.0, 20.0, 10.0, Ink.K900)
                         pen.text(if (free) "$level" else "$level/5", 150.0, 272.0, 13.0, Ink.WHITE, 600)

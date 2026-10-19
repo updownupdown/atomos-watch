@@ -1,5 +1,5 @@
-// Small drawings the app shares: the ATOMOS mark (a lithium ion), a run's levels as a tiny atom,
-// a difficulty's pips, and the games' icons, all drawn with a Pen in flat circles, rings and lines like the phone's.
+// Small drawings the app shares: the ATOMOS mark (a lithium ion), a run's levels as a tiny atom
+// and the timer round it, a difficulty's pips, and the games' icons, all drawn with a Pen in flat circles, rings and lines like the phone's.
 
 package app.buildatomos.core
 
@@ -74,15 +74,27 @@ fun Pen.levels(cx: Double, cy: Double, size: Double, level: Int, goal: Int?, par
     }
 }
 
-/** The five pips of a difficulty: as many lit as its level, all in that level's color. */
+/** The pips of a difficulty, one for each level, `size` across: as many lit as its level, all in
+ *  that level's color. */
 fun Pen.pips(cx: Double, cy: Double, size: Double, dial: Int) {
     val n = Difficulty.level(dial) + 1
     val color = Difficulty.color(dial)
-    val r = size / 12
+    val step = size / Difficulty.LEVELS
+    val r = size / 10
     for (i in 0 until Difficulty.LEVELS) {
-        val x = cx + (i - 2) * size / 5
+        val x = cx + (i - (Difficulty.LEVELS - 1) / 2.0) * step
         if (i < n) dot(x, cy, r, color) else dot(x, cy, r, Ink.K700)
     }
+}
+
+/** How long is left to play, `left` 0..1, as a small ring round the level counter at (cx, cy):
+ *  a dark track, and over it the time left, from the top clockwise, emptying as it goes. Quiet
+ *  gray until the last quarter, then amber. */
+fun Pen.timer(cx: Double, cy: Double, r: Double, left: Double) {
+    val t = left.coerceIn(0.0, 1.0)
+    val w = r * 0.15
+    ring(cx, cy, r, Ink.K800, w)
+    if (t > 0) arc(cx, cy, r, -PI / 2, TAU * t, if (t > 0.25) Ink.K300 else Ink.AMBER, w)
 }
 
 /** A game's icon (the phone's 24x24 icons in src/nu/games.ts), round (cx, cy), `size` across. */

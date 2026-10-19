@@ -7,8 +7,14 @@ playing them. It works on its own, with no phone and no sync, and it is free.
   - **Build**: the atom you are building (its cloud fills with color shell by shell, the rose
     Build button, and under it the game and difficulty of the next shell), and your collection.
   - **Atlas**: the atom of the day (the same one the phone shows) and every atom.
-  - **Games**: the game Nu picked for today, Nu's three questions of the day (the same ones the
-    phone asks), and Play all games, each on its own card.
+  - **Games**: the game Nu picked for today (with its three difficulties, as in the games list),
+    Nu's three questions of the day (the same ones the phone asks), and Play all games, each on
+    its own card.
+- **The games list** has every game, A to Z: its icon (Nu's pick with a rose dot on it), its
+  name, and under the name its three difficulties, Easy, Medium and Hard, as dots in green,
+  yellow and red. A dot with a best holds it in black; one without is an empty ring. A tap on a
+  dot plays that difficulty at once; a tap anywhere else on the row plays the one last played
+  (Easy to start).
   - The Settings button.
 - **Build** shows every atom three ways; the button at the foot switches between them (the
   choice lasts until the app closes):
@@ -34,21 +40,27 @@ playing them. It works on its own, with no phone and no sync, and it is free.
   ring round its icon, in the difficulty's color, that fills until play starts (a tap or a turn
   of the crown starts it sooner). The ATOMOS mark at the top of the screen (or the back button)
   pauses it: Exit on the left, Resume in the middle, Restart on the right, with the level reached
-  and the best at the foot. The levels show as a tiny atom at the bottom of the screen. Exit from
-  free play goes back to the games list (or Home, for Nu's pick), past the game's page.
-  - A run for an atom has a goal: 3 levels at Very easy up to 7 at Expert. Each level cleared
+  and the best at the foot. The levels show as a tiny atom at the bottom of the screen; a game
+  that keeps time shows the time left as a small ring round it, gray, then amber in the last
+  quarter (no game draws a countdown round the whole bezel). Exit from free play goes back to
+  the games list (or Home, for Nu's pick).
+  - A run for an atom has a goal: 3 levels at Easy, 4 at Medium, 5 at Hard. Each level cleared
     fills one electron slot. Win, and the atom's next shell is built.
   - Free play has no goal. The tiny atom counts levels in binary across 8 slots, up to 255, and
-    every level is harder than the last. A game's page picks the difficulty: tap a dot or turn
-    the crown.
+    every level is harder than the last. Its difficulty is the dot tapped in the games list.
 - **Settings** has Sound (off to start), Haptics (on to start, and soft), and starting the
   collection over.
 - **The tile** and **the Play with Nu complication** open straight into the next run for the
   atom. **The building complication** shows the atom being built on a watch face.
 
 Atom Z has as many shells as its period: hydrogen takes 1 win, carbon 2, iron 4 and oganesson
-7, so the whole table takes 620. Each shell is played at the atom's difficulty (the phone's
-`atomDial`, 5 for hydrogen up to 75 for oganesson), a little harder for each shell further out.
+7, so the whole table takes 620. Each shell is played at the atom's difficulty (`atomDial`, the
+phone's curve moved up into the watch's three levels: 41 for hydrogen up to 88 for oganesson),
+a little harder for each shell further out, up to 100 for oganesson's seventh.
+
+The difficulty is the phone's dial, 1 to 100, seen in three levels: Easy (41 to 60), Medium (61
+to 80) and Hard (81 to 100), the phone's Medium, Hard and Expert. Free play plays each at its
+middle, 50, 70 and 90.
 
 ## Run it on your watch
 
@@ -87,8 +99,10 @@ The watch keeps everything in one SharedPreferences file, `atomos`:
 | --- | --- |
 | `atomos.collection.v2` | `{building, shells, built: {z: day}}` |
 | `atomos.collection.v1` | The first builds' `{building, electrons, built}`: read once, moved to v2 |
-| `atomos.levels.v1` | `{"<game>.<difficulty 0..4>": best level in free play}` |
-| `atomos.picked.v1` | `{"<game>": difficulty 0..4 last picked for free play}` |
+| `atomos.levels.v2` | `{"<game>.<difficulty 0..2>": best level in free play}` (0 Easy, 1 Medium, 2 Hard) |
+| `atomos.levels.v1` | The five-level watch's `{"<game>.<difficulty 0..4>": best}`: read once, moved to v2 (its 2, 3, 4 become 0, 1, 2; bests at 0 and 1 are dropped) |
+| `atomos.picked.v2` | `{"<game>": difficulty 0..2 last picked for free play}` |
+| `atomos.picked.v1` | The five-level watch's `{"<game>": difficulty 0..4}`: read once, moved to v2 (0 and 1 become 0) |
 | `atomos.quiz.v1` | `{day, answers: [bool], streak, streakDay}` |
 | `atomos.sound` | Sound on or off (off to start) |
 | `atomos.haptics` | Haptics on or off (on to start) |

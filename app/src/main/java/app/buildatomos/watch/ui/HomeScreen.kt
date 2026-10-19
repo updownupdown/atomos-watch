@@ -29,14 +29,13 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.Text
 import app.buildatomos.core.ATOMS
-import app.buildatomos.core.Difficulty
+import app.buildatomos.core.Game
 import app.buildatomos.core.Games
 import app.buildatomos.core.Icon
 import app.buildatomos.core.Ink
 import app.buildatomos.core.atomOfDay
 import app.buildatomos.core.icon
 import app.buildatomos.core.mark
-import app.buildatomos.core.pips
 import app.buildatomos.watch.AppModel
 
 @Composable
@@ -47,7 +46,7 @@ fun HomeScreen(
     onBuildAtom: (Int) -> Unit,
     onAtlas: () -> Unit,
     onAtom: (Int) -> Unit,
-    onGame: (String) -> Unit,
+    onPlay: (Game, Int) -> Unit,
     onGames: () -> Unit,
     onSettings: () -> Unit,
 ) {
@@ -72,7 +71,7 @@ fun HomeScreen(
         item { MinorRow("Explore all atoms", null, null, onAtlas) }
 
         item { SectionLabel("Games") }
-        item { TodayGameCard(model, onGame) }
+        item { TodayGameCard(model, onPlay) }
         item { QuizCard(model, onAtom) }
         item { AllGamesCard(onGames) }
 
@@ -136,30 +135,26 @@ private fun AtomOfDayCard(model: AppModel, onAtom: (Int) -> Unit) {
     }
 }
 
-/** The game Nu picked for today, at the difficulty last played: opens its page for free play. */
+/** The game Nu picked for today: its icon and name, and its three difficulties as dots with
+ *  their bests, as in the games list. A tap on a dot plays that difficulty; anywhere else on the
+ *  card, the one last played. */
 @Composable
-private fun TodayGameCard(model: AppModel, onGame: (String) -> Unit) {
+private fun TodayGameCard(model: AppModel, onPlay: (Game, Int) -> Unit) {
     val game = model.nuPick()
-    val level = model.pickedLevel(game)
-    val best = model.bestLevel(game, level)
     Row(
         Modifier
             .fillMaxWidth()
             .background(Tone.plate, RoundedCornerShape(26.dp))
-            .clickable { onGame(game.id) }
+            .clickable { onPlay(game, model.pickedLevel(game)) }
             .padding(horizontal = 10.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         GameIcon(game.id, 38)
         Column(Modifier.weight(1f)) {
-            Label("Play ${game.label}", size = 15.sp, weight = FontWeight.SemiBold, align = TextAlign.Start, lines = 1)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                Canvas(Modifier.size(width = 28.dp, height = 8.dp)) { ComposePen(this, 28.0, wide = true).pips(14.0, 4.0, 26.0, Difficulty.dialOf(level)) }
-                if (best > 0) Label("Best: $best", size = 13.sp, color = Tone.text2)
-            }
+            Label("Play ${game.label}", Modifier.padding(start = 2.dp), size = 15.sp, weight = FontWeight.SemiBold, align = TextAlign.Start, lines = 1)
+            LevelDots(model, game) { onPlay(game, it) }
         }
-        IconMark(Icon.PLAY, 32, Ink.BLACK, disc = Ink.WHITE)
     }
 }
 

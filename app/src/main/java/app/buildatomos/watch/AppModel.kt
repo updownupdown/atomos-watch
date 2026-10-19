@@ -106,7 +106,8 @@ class AppModel(private val context: Context) {
 
     fun freeRun(game: Game, level: Int = pickedLevel(game)): RunSpec = RunSpec(game, Difficulty.dialOf(level), null, null)
 
-    fun pickedLevel(game: Game): Int { version; return picked[game.id] ?: 1 }
+    /** The difficulty level last picked for `game`, Easy until one is. */
+    fun pickedLevel(game: Game): Int { version; return (picked[game.id] ?: 0).coerceIn(0, Difficulty.LEVELS - 1) }
     fun pick(game: Game, level: Int) {
         picked[game.id] = level.coerceIn(0, Difficulty.LEVELS - 1)
         store.savePicked(picked)

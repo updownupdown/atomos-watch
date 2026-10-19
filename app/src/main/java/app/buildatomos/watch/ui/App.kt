@@ -1,6 +1,7 @@
 // The screens and the way between them. Home first; from it the next shell's run, the Build
 // screen and each atom's Build page, the Atlas and each atom's Atlas page (each page links to the
-// other), every game for free play, and Settings. Swipe right goes back
+// other), every game for free play (a tap on one of a game's difficulty dots plays it at once),
+// and Settings. Swipe right goes back
 // everywhere but in a run, where the game owns the screen and the mark at the top (or the back
 // button) opens the run's menu.
 
@@ -16,6 +17,7 @@ import androidx.wear.compose.material.SwipeToDismissBox
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
+import app.buildatomos.core.Game
 import app.buildatomos.core.Games
 import app.buildatomos.watch.AppModel
 
@@ -30,7 +32,6 @@ object Routes {
     fun build(z: Int) = "build/$z"
     fun atlas(z: Int, table: Boolean = false) = "atlas/$z/${if (table) "table" else "wheel"}"
     fun atom(z: Int) = "atom/$z"
-    fun game(id: String) = "game/$id"
     fun free(id: String, level: Int) = "free/$id/$level"
 }
 
@@ -41,6 +42,11 @@ fun App(model: AppModel, launchBuild: Boolean, onLaunched: () -> Unit, onExit: (
     val route = entry?.destination?.route ?: ""
     val inRun = route == Routes.RUN || route.startsWith("free/")
     val run = { if (model.buildRun() != null) nav.go(Routes.RUN) }
+    /** Free play of `game` at difficulty `level`, kept as the game's pick for next time. */
+    val play = { game: Game, level: Int ->
+        model.pick(game, level)
+        nav.go(Routes.free(game.id, level))
+    }
 
     // The tile's and the complication's Play open straight into the next run for the atom.
     LaunchedEffect(launchBuild) {
@@ -63,7 +69,7 @@ fun App(model: AppModel, launchBuild: Boolean, onLaunched: () -> Unit, onExit: (
                         onBuildAtom = { nav.go(Routes.build(it)) },
                         onAtlas = { nav.go(Routes.atlas(model.buildingZ)) },
                         onAtom = { nav.go(Routes.atom(it)) },
-                        onGame = { nav.go(Routes.game(it)) },
+                        onPlay = play,
                         onGames = { nav.go(Routes.GAMES) },
                         onSettings = { nav.go(Routes.SETTINGS) },
                     )
@@ -79,7 +85,7 @@ fun App(model: AppModel, launchBuild: Boolean, onLaunched: () -> Unit, onExit: (
             }
             composable("free/{id}/{level}") { e ->
                 val game = e.arguments?.getString("id")?.let(Games::byId) ?: Games.all.first()
-                val level = e.arguments?.getString("level")?.toIntOrNull() ?: 1
+                val level = e.arguments?.getString("level")?.toIntOrNull() ?: 0
                 val spec = remember { model.freeRun(game, level) }
                 GameScreen(model, spec, onLeave = { nav.leaveFreeRun() }, onNextRun = { nav.leaveFreeRun() })
             }
@@ -95,11 +101,7 @@ fun App(model: AppModel, launchBuild: Boolean, onLaunched: () -> Unit, onExit: (
                     onBack = { nav.popBackStack() },
                 )
             }
-            composable(Routes.GAMES) { GamesScreen(model) { id -> nav.go(Routes.game(id)) } }
-            composable("game/{id}") { e ->
-                val game = e.arguments?.getString("id")?.let(Games::byId) ?: Games.all.first()
-                FreePlayScreen(model, game) { level -> nav.go(Routes.free(game.id, level)) }
-            }
+            composable(Routes.GAMES) { GamesScreen(model, play) }
             composable("atlas/{z}/{view}") { e ->
                 AtlasScreen(model, e.arguments?.getString("z")?.toIntOrNull() ?: 1, e.arguments?.getString("view") == "table") { nav.go(Routes.atom(it)) }
             }
@@ -118,13 +120,11 @@ fun App(model: AppModel, launchBuild: Boolean, onLaunched: () -> Unit, onExit: (
 
 private fun NavHostController.go(route: String) = navigate(route) { launchSingleTop = true }
 
-/** Leaving a free run goes past the game's page (where its difficulty was picked) to wherever the
- *  game was chosen: the games list, or Home for Nu's pick. Does nothing once the run has gone, so
- *  a second tap on Exit can't pop further. */
+/** Leaving a free run goes back to wherever the game was chosen: the games list, or Home for
+ *  Nu's pick. Does nothing once the run has gone, so a second tap on Exit can't pop further. */
 private fun NavHostController.leaveFreeRun() {
     if (currentBackStackEntry?.destination?.route != "free/{id}/{level}") return
     popBackStack()
-    if (currentBackStackEntry?.destination?.route == "game/{id}") popBackStack()
 }
 
 /** Stepping to a neighbor replaces this page rather than stacking another. */
