@@ -20,6 +20,8 @@ private const val FIRST_MS = 1500.0
 private const val CALM_MS = 1200.0
 /** A ring resolved stays on the screen this long, fading (ms). */
 private const val FADE_MS = 320.0
+/** The electrons sit on a clock face of this many steps round the shell (30 degrees each). */
+private const val STEPS = 12
 
 /**
  * Fit, made for the watch (the phone has no crown). Nu is a nucleus in the middle with a few
@@ -32,11 +34,15 @@ private const val FADE_MS = 320.0
  * A level is a set of rings passed: four, and one more every other level, up to eight. Between
  * levels the shell takes a new set of electrons. Lives carry on from level to level, and one comes
  * back every third level.
+ * The electrons sit on a clock face of twelve 30-degree steps, never closer than two steps (60
+ * degrees; 90 for three, 120 for two), so a shape reads at a glance: where the spacing is uneven
+ * it is uneven by a step or more, never by a sliver that takes a squint to see.
  * Heat brings more electrons (two at the gentlest, four at Expert, five past it), spaced unevenly
- * from a little past Very easy, so only one turn fits; narrower gaps (52 degrees at the gentlest,
- * 31 at Expert, never under 24); quicker rings (4 s from the edge at the gentlest, 2.2 s at
- * Expert, never under 1.4 s), closer together, so from a little past Medium two are on their way
- * at once; and from Medium some rings that turn as they come.
+ * more and more often from a little past Very easy (always from Hard on), so only one turn fits;
+ * narrower gaps (52 degrees at the gentlest, 31 at Expert, never under 24); quicker rings (4 s
+ * from the edge at the gentlest, 2.2 s at Expert, never under 1.4 s), closer together, so from a
+ * little past Medium two are on their way at once; and from Medium some rings that turn as they
+ * come.
  * Every ring comes in turned well away from where the shell sits, so a run nobody plays loses a
  * life a ring and ends. A finger twisted round the screen turns the shell too.
  */
@@ -81,18 +87,15 @@ class Fit : Toy {
         s.rim = null
     }
 
-    /** A new set of electrons for the shell: how many, and how unevenly spaced. */
+    /** A new set of electrons for the shell: how many, and whether evenly spaced or not. */
     private fun deal(h: Double) {
         val k = electrons(h)
-        val w = gap(h)
-        val jitter = clamp((h - 0.2) * 0.8, 0.0, 0.5) * PI / k
-        repeat(60) {
-            val p = DoubleArray(k) { i -> i * TAU / k + (rnd() * 2 - 1) * jitter }.sorted().toDoubleArray()
-            // Gaps never run into each other: there is always ring between them.
-            val ok = (0 until k).all { i -> ((p[(i + 1) % k] - p[i]) % TAU + TAU) % TAU >= w + 0.3 }
-            if (ok) { pattern = p; return }
-        }
-        pattern = DoubleArray(k) { i -> i * TAU / k }
+        val all = shapes(k)
+        val uneven = all.filter { p -> p.any { it != p[0] } }
+        val even = all.firstOrNull { p -> p.all { it == p[0] } }
+        val pick = if (even != null && (uneven.isEmpty() || rnd() >= unevenShare(h))) even else uneven[(rnd() * uneven.size).toInt()]
+        var at = 0.0
+        pattern = DoubleArray(k) { i -> at.also { at += pick[i] * TAU / STEPS } }
     }
 
     /** True if, with the shell at `at`, every electron sits in a gap of a ring turned `phi`, gaps
@@ -234,6 +237,20 @@ class Fit : Toy {
         const val LIVES = 3
         /** Electrons on the shell: two at the gentlest, four at Expert, five past it. */
         fun electrons(heat: Double) = min(5, 2 + floor(max(0.0, heat) * 2.4).toInt())
+        /** The fewest clock steps between two electrons next to each other, for `k` of them. */
+        fun least(k: Int) = when (k) { 2 -> 4; 3 -> 3; else -> 2 }
+        /** Every shape `k` electrons can make: the steps from each to the next, all the way round. */
+        fun shapes(k: Int): List<IntArray> {
+            val out = mutableListOf<IntArray>()
+            fun go(done: List<Int>, left: Int) {
+                if (done.size == k - 1) { if (left >= least(k)) out += (done + left).toIntArray(); return }
+                for (n in least(k)..left - least(k) * (k - 1 - done.size)) go(done + n, left - n)
+            }
+            go(emptyList(), STEPS)
+            return out
+        }
+        /** The share of shells spaced unevenly: none at the gentlest, all from Hard on. */
+        fun unevenShare(heat: Double) = clamp((heat - 0.2) / 0.4, 0.0, 1.0)
         /** A gap's width (radians). */
         fun gap(heat: Double) = max(0.42, 0.95 - 0.45 * heat)
         /** A ring's time from the edge to the shell (ms). */
