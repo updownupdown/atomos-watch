@@ -38,8 +38,8 @@ class LevelsHTest {
 
     // ---- Hue ----
 
-    /** Turns the ring ahead with the crown (a quick hand, not an instant one) to bring Nu's colour
-     *  to the crossing it will pass next, and hops: on up while the colour is there, else holding
+    /** Turns the ring ahead with the crown (a quick hand, not an instant one) to bring Nu's color
+     *  to the crossing it will pass next, and hops: on up while the color is there, else holding
      *  below the crossing until it is. */
     private val huer: (Hue, Stage) -> Unit = { t, s ->
         val q = t.target()
@@ -77,7 +77,7 @@ class LevelsHTest {
         assertTrue(topAt - hopped in 280.0..430.0, "a hop topped out after ${topAt - hopped} ms")
     }
 
-    @Test fun hueHeatAddsColoursAndSpin() {
+    @Test fun hueHeatAddsColorsAndSpin() {
         fun first(dial: Int): Pair<Int, Double> {
             val s = Stage()
             s.dial = dial
@@ -87,13 +87,13 @@ class LevelsHTest {
         }
         val (n0, v0) = first(50)
         val (n1, v1) = first(100)
-        assertEquals(2, n0, "Easy starts a set at two colours")
+        assertEquals(2, n0, "Easy starts a set at two colors")
         assertEquals(3, first(70).first, "Medium starts a set at three")
-        assertTrue(n1 == 3 && v1 > v0, "colours $n0 -> $n1, spin $v0 -> $v1")
+        assertTrue(n1 == 3 && v1 > v0, "colors $n0 -> $n1, spin $v0 -> $v1")
     }
 
     /** A run keeps getting harder as it climbs, at every dial: six levels into Hard the rings
-     *  turn plainly faster, come closer and have more colours than at its start. */
+     *  turn plainly faster, come closer and have more colors than at its start. */
     @Test fun hueClimbsWithLevels() {
         val t = Hue()
         for (dial in listOf(50, 90)) {
@@ -103,7 +103,7 @@ class LevelsHTest {
             repeat(6) { s.clear() }
             val h6 = t.heat(s)
             assertTrue(t.spin(h6, 3) >= t.spin(h0, 3) * 1.3, "spin at dial $dial: ${t.spin(h0, 3)} -> ${t.spin(h6, 3)}")
-            assertTrue(t.extra(h6) >= t.extra(h0) + 2, "colours at dial $dial: +${t.extra(h0)} -> +${t.extra(h6)}")
+            assertTrue(t.extra(h6) >= t.extra(h0) + 2, "colors at dial $dial: +${t.extra(h0)} -> +${t.extra(h6)}")
             assertTrue(t.gap(h6) < t.gap(h0) || t.gap(h6) == 72.0, "gap at dial $dial: ${t.gap(h0)} -> ${t.gap(h6)}")
         }
     }

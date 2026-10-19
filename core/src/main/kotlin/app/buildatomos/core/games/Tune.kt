@@ -23,7 +23,7 @@ private const val SHORT = 1300.0
 private const val NOTCH = 0.35
 /** From this stretch of a run on, a new stretch's wave also jumps along (its phase), more as it heats. */
 private const val JUMP_AT = 2
-/** How close Nu's wave is, by its colour: matched, near, nearer than far, and far (red). How
+/** How close Nu's wave is, by its color: matched, near, nearer than far, and far (red). How
  *  near is how many times the match's tolerance it's off by. */
 private const val BLUE = 0xFF5F8AE0.toInt()
 private const val AMBER = 0xFFD98A2B.toInt()
@@ -160,7 +160,7 @@ class Tune : Toy {
         s.nu.y = cy(s) - mine(s, scroll)
     }
 
-    /** Nu's wave's colour: white before it counts, then by how close it is. */
+    /** Nu's wave's color: white before it counts, then by how close it is. */
     private fun hue(s: Stage): Int {
         if (!started || s.over) return Ink.WHITE
         return if (matched) Ink.GREEN else if (near < NEAR) BLUE else if (near < MID) AMBER else Ink.RED
@@ -259,7 +259,7 @@ class Tune : Toy {
             val y = cy - target(s, q.u0)
             if (x > x0 + 4 && x < x1 && dist(x, y, s.c.x, s.c.y) < s.R - 4) pen.dot(x, y, 3.5, Ink.K300, 0.9)
         }
-        // Nu's wave, thin and solid: its trace to the left in the colour of how close it was at
+        // Nu's wave, thin and solid: its trace to the left in the color of how close it was at
         // each point, and ahead of it as it is set now, over the incoming wave.
         val hue = hue(s)
         for (i in 1 until trail.size) {
@@ -276,7 +276,7 @@ class Tune : Toy {
     }
 
     /** The frequency, as a short arc on the rim by the crown: its track, the part up to the knob in
-     *  Nu's colour, and the knob. Clockwise is quicker, as the crown turns. */
+     *  Nu's color, and the knob. Clockwise is quicker, as the crown turns. */
     private fun gauge(s: Stage, pen: Pen, color: Int) {
         val r = s.R - 12
         val f = clamp(ln(c / LO) / ln(HI / LO), 0.0, 1.0)

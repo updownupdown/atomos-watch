@@ -39,7 +39,7 @@ private const val NOTCH = 0.25
  * Gate (the phone's src/nu/brook.ts). Slalom, Nu's way: Nu glides down while the course rolls up
  * past it. Each gate is two posts and a bar between them, the next one green. Through it
  * counts; past it outside the posts costs one of three lives, and so does a red dot. The course
- * comes in sections, each with its own pace and its own colour on the posts and a row of small
+ * comes in sections, each with its own pace and its own color on the posts and a row of small
  * dots across its start: calm wide gates, rushes of quick close ones, wide swings from side to
  * side and tight slaloms between red dots. The gates come on one side or the other in runs of one to three, near the middle or
  * far out, and a gate on the same side as the last is far in where that one was far out (or the
@@ -286,7 +286,7 @@ class Gate : Toy {
         calm = true
     }
 
-    /** Nu enters a new section: a wave in its colour and a chime for its kind. */
+    /** Nu enters a new section: a wave in its color and a chime for its kind. */
     private fun section(s: Stage, p: Pair) {
         val c = p.kind.c
         s.fx.ring(s.nu.p, c, s.nu.r + 4, s.hw * 0.7, 900.0)
@@ -320,7 +320,7 @@ class Gate : Toy {
     override fun draw(s: Stage, pen: Pen, now: Double) {
         val nu = s.nu
         val next = pairs.firstOrNull { it.state == State.AHEAD }
-        // The start of each section: a row of small dots across in its colour.
+        // The start of each section: a row of small dots across in its color.
         for (p in pairs) {
             if (!p.first) continue
             val y = sy(s, p.y - GAP * U * p.kind.gap * 0.3)
@@ -362,7 +362,7 @@ class Gate : Toy {
         lives(s, pen, left, LIVES)
     }
 
-    /** The bar across a gate, between its posts' inner edges: solid and flat in the posts' colour,
+    /** The bar across a gate, between its posts' inner edges: solid and flat in the posts' color,
      *  fainter than they are. Only the part inside the rim and below the menu shows, fading in
      *  over the horizon as the posts do. */
     private fun bar(s: Stage, pen: Pen, x0: Double, x1: Double, y: Double, c: Int, a: Double) {

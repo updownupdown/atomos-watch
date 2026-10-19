@@ -32,33 +32,33 @@ private const val NOTCH = 0.25
  *  harder as it climbs, at every dial. */
 private const val CLIMB = 0.1
 
-/** The black room between two colours on a ring, along it (court units), past the arcs' caps. */
+/** The black room between two colors on a ring, along it (court units), past the arcs' caps. */
 private const val SPLIT = 6.0
 
-/** The rings' colours, far apart in lightness as well as hue so they tell apart at a glance even
- *  small and turning: yellow, blue, orange, green and violet. A ring of n colours has the first n. */
+/** The rings' colors, far apart in lightness as well as hue so they tell apart at a glance even
+ *  small and turning: yellow, blue, orange, green and violet. A ring of n colors has the first n. */
 private val HUES = intArrayOf(0xFFF5D547.toInt(), 0xFF3F7BF5.toInt(), 0xFFF28A2E.toInt(), 0xFF2FD07A.toInt(), 0xFF8338D0.toInt())
 
 /**
  * Hue (the phone's src/nu/meadow.ts). Rings stacked up the court, turning, each in two to five
- * colours. Nu wears one colour (the ring round it); a tap hops it up and it falls between taps.
- * It may pass through a ring only where the ring is in its colour; a little spinning dot between
- * rings changes Nu's colour to one of the next ring's. Touch another colour, or fall off the
+ * colors. Nu wears one color (the ring round it); a tap hops it up and it falls between taps.
+ * It may pass through a ring only where the ring is in its color; a little spinning dot between
+ * rings changes Nu's color to one of the next ring's. Touch another color, or fall off the
  * bottom, and the run is lost.
- * A level is a set of four rings passed: two colours, then three, four, five, and the next set
- * starts again at two. The colours are split by black, so no two touch. Heat turns the rings
- * faster, brings them closer together and adds colours to the first rings of a set: one from
+ * A level is a set of four rings passed: two colors, then three, four, five, and the next set
+ * starts again at two. The colors are split by black, so no two touch. Heat turns the rings
+ * faster, brings them closer together and adds colors to the first rings of a set: one from
  * Medium, more as a run climbs, till deep in every ring has five. It runs a notch hotter than the
  * dial (`NOTCH`) and climbs faster than the stage does with every level (`CLIMB`), so each level
  * is plainly harder than the last. Nu falls slowly and hops gently, so a hop is a small step up
  * the court, not a leap past the next ring.
  * On the watch Nu climbs straight up the middle of the round court, and the view climbs with it.
  * The crown turns the ring Nu is about to pass (drawn a little bolder): spin it forward or back
- * to bring Nu's colour round, while the rings still turn by themselves. A tap still hops. Nu
+ * to bring Nu's color round, while the rings still turn by themselves. A tap still hops. Nu
  * waits on its perch a moment at the start, then drops on its own, so a run left alone is lost.
  */
 class Hue : Toy {
-    /** A ring: its middle's height in the world, its turn, its spin, its colours and its number. */
+    /** A ring: its middle's height in the world, its turn, its spin, its colors and its number. */
     internal class Ring(val y: Double, var a: Double, val v: Double, val n: Int, val i: Int, val gap: Double) {
         var passed = false
         var swap = true
@@ -70,7 +70,7 @@ class Hue : Toy {
     internal var vy = 0.0
         private set
     private var cam = 0.0
-    /** Nu's colour. */
+    /** Nu's color. */
     internal var hue = 0
         private set
     private var made = 0
@@ -84,11 +84,11 @@ class Hue : Toy {
     /** How hard the rings come: the stage's heat, a notch more, and more for each level cleared. */
     internal fun heat(s: Stage) = s.heat + NOTCH + s.level * CLIMB
 
-    /** Colours added to the first rings of a set at heat `h`: none at Easy, one from Medium, and
+    /** Colors added to the first rings of a set at heat `h`: none at Easy, one from Medium, and
      *  one more for each half of heat past that. */
     internal fun extra(h: Double) = max(0, floor((h - 0.4) * 2).toInt())
 
-    /** How fast a ring of `n` colours turns at heat `h` (radians/ms, before its way round). */
+    /** How fast a ring of `n` colors turns at heat `h` (radians/ms, before its way round). */
     internal fun spin(h: Double, n: Int) = min(0.0024, 0.0005 + h * 0.0005) * (0.7 + n * 0.06)
 
     /** The room between one ring and the next at heat `h`: closer as it climbs, never under 72. */
@@ -112,7 +112,7 @@ class Hue : Toy {
         rings += Ring(y, rnd() * TAU, v, n, i, gap(h))
     }
 
-    /** The colour of a ring at its bottom (dir 1) or top (−1). */
+    /** The color of a ring at its bottom (dir 1) or top (−1). */
     private fun colorAt(q: Ring, dir: Int): Int {
         val at = if (dir > 0) PI / 2 else -PI / 2
         val k = (((at - q.a) % TAU) + TAU) % TAU / (TAU / q.n)
@@ -148,7 +148,7 @@ class Hue : Toy {
             if (abs(abs(d) - RING_R) < 4 + nu.r * 0.55 && colorAt(q, if (d >= 0) 1 else -1) != hue) { lose(s); return }
             if (q.swap && y < q.y - RING_R - q.gap / 2) {
                 q.swap = false
-                // A colour of the next ring, not the one Nu has.
+                // A color of the next ring, not the one Nu has.
                 val n = rings.firstOrNull { it.i == q.i + 1 }?.n ?: 5
                 hue = if (hue < n) (hue + 1 + floor(rnd() * (n - 1)).toInt()) % n else floor(rnd() * n).toInt()
                 s.out.tick(3)
@@ -186,13 +186,13 @@ class Hue : Toy {
             val bold = q === aim && !over
             val w = if (bold) 9.0 else 7.0
             val alpha = (if (over) 0.4 else if (bold) 0.95 else 0.75) * fade
-            // Each colour's arc stops short of its share by its round caps and the black split.
+            // Each color's arc stops short of its share by its round caps and the black split.
             val cut = (w + SPLIT) / RING_R
             for (k in 0 until q.n) {
                 pen.arc(s.c.x, cy, RING_R, q.a + k * TAU / q.n + cut / 2, TAU / q.n - cut, HUES[k], w, alpha)
             }
             if (q.swap) {
-                // The colour-changer, above the ring, in the next ring's colours.
+                // The color-changer, above the ring, in the next ring's colors.
                 val py = q.y - RING_R - q.gap / 2 - cam
                 val n = rings.firstOrNull { it.i == q.i + 1 }?.n ?: 5
                 for (k in 0 until n) {
