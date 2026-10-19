@@ -69,15 +69,16 @@ import kotlin.math.sqrt
 /** The edge shapes are worked out on a face 240 across, the mockup's, then scaled to the screen. */
 private const val FACE = 240f
 private const val MID = 120f
-/** The button's foot: the screen's own circle, 10 in from the rim. */
-private const val FOOT = 110f
+/** The button's foot: the screen's own circle, right at the rim. */
+private const val FOOT = 120f
 /** The flat top runs this far either side of the middle before the corners round it off. */
 private const val FLAT = 38f
 /** How far a corner drops from the top before it meets the foot. */
 private const val DROP = 24.5f
-/** The top of a one-line button, and of a two-line one. */
-private const val TOP = 182f
-private const val TOP_TALL = 176f
+/** The top of a one-line button, and of a two-line one: as tall as when the foot sat 10 in from
+ *  the rim, the whole button lowered onto it. */
+private const val TOP = 192f
+private const val TOP_TALL = 186f
 /** Half the gap between the two halves of a split button. */
 private const val SPLIT = 3f
 
