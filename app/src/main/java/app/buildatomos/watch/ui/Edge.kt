@@ -49,13 +49,12 @@ import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.foundation.CurvedDirection
 import androidx.wear.compose.foundation.CurvedLayout
-import androidx.wear.compose.foundation.CurvedTextStyle
-import androidx.wear.compose.foundation.curvedText
 import androidx.wear.compose.foundation.lazy.AutoCenteringParams
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListScope
 import androidx.wear.compose.foundation.lazy.ScalingLazyListState
 import androidx.wear.compose.material.PositionIndicator
+import androidx.wear.compose.material.curvedText
 import app.buildatomos.core.Difficulty
 import app.buildatomos.core.Icon
 import app.buildatomos.core.Pen
@@ -237,7 +236,7 @@ fun InkPips(dial: Int, ink: Color) {
 @Composable
 fun CurvedTitle(text: String, inset: Dp = 6.dp, color: Color = Tone.text2) {
     CurvedLayout(Modifier.fillMaxSize().padding(inset)) {
-        curvedText(text, style = CurvedTextStyle(color = color, fontSize = 14.sp, fontFamily = Outfit, fontWeight = FontWeight.Medium))
+        curvedText(text, color = color, fontSize = 14.sp, fontFamily = Outfit, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -245,7 +244,7 @@ fun CurvedTitle(text: String, inset: Dp = 6.dp, color: Color = Tone.text2) {
 @Composable
 fun CurvedFoot(text: String, inset: Dp = 6.dp, color: Color = Tone.text3) {
     CurvedLayout(Modifier.fillMaxSize().padding(inset), anchor = 90f, angularDirection = CurvedDirection.Angular.Reversed) {
-        curvedText(text, style = CurvedTextStyle(color = color, fontSize = 13.sp, fontFamily = Outfit, fontWeight = FontWeight.Normal))
+        curvedText(text, color = color, fontSize = 13.sp, fontFamily = Outfit, fontWeight = FontWeight.Normal)
     }
 }
 
