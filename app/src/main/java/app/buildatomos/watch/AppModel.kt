@@ -44,6 +44,8 @@ class AppModel(private val context: Context) {
     private val levels: MutableMap<String, Int> = store.loadLevels()
     /** The difficulty level last picked for each game in free play. */
     private val picked: MutableMap<String, Int> = store.loadPicked()
+    /** The game each shell of each atom was built with, innermost first (null where unknown). */
+    private val shellGames: MutableMap<Int, MutableList<String?>> = store.loadShellGames()
 
     /** Bumps whenever something the screens show changes. */
     var version by mutableIntStateOf(0)
@@ -114,6 +116,9 @@ class AppModel(private val context: Context) {
         version++
     }
 
+    /** The game shell `shell` (0 the innermost) of atom `z` was built with, if known. */
+    fun shellGame(z: Int, shell: Int): Game? { version; return shellGames[z]?.getOrNull(shell)?.let(Games::byId) }
+
     /** The best level reached in free play in `game` at difficulty `level`, 0 for none. */
     fun bestLevel(game: Game, level: Int): Int { version; return levels["${game.id}.$level"] ?: 0 }
 
@@ -128,6 +133,10 @@ class AppModel(private val context: Context) {
                 val shell = collection.shells
                 val done = collection.win(today())
                 store.saveCollection(collection)
+                val games = shellGames.getOrPut(z) { mutableListOf() }
+                while (games.size <= shell) games.add(null)
+                games[shell] = run.game.id
+                store.saveShellGames(shellGames)
                 payout = Payout(z, shell, done != null)
             }
         } else {
@@ -148,6 +157,7 @@ class AppModel(private val context: Context) {
         collection.building = 1
         collection.shells = 0
         collection.built.clear()
+        shellGames.clear()
         payout = null
         version++
         refreshWatchFace()

@@ -97,6 +97,7 @@ fun App(model: AppModel, launchBuild: Boolean, onLaunched: () -> Unit, onExit: (
                 AtomBuildScreen(
                     model, e.arguments?.getString("z")?.toIntOrNull() ?: 1,
                     onBuild = run,
+                    onPlay = play,
                     onAtlas = { nav.across("atom/{z}", it) },
                     onAtom = { z -> nav.swap(Routes.build(z)) },
                 )

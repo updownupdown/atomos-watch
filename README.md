@@ -34,11 +34,15 @@ playing them. It works on its own, with no phone and no sync, and it is free.
     picked atom's cloud, name and state in the middle.
 
   In both the crown moves a pick, a tap on an atom picks it, and a tap on the picked one (or its
-  card) opens it. Each atom's Build page is a list the crown scrolls, inside its shells drawn as
-  the bezel (built ones white, the next rose), which stay put: its number, symbol and name; while
-  it is being built, the next shell's game on a card, which plays it; its cloud and where it
-  stands (before its turn, the atom being built and the way to it); View in Atlas; and the
-  atoms either side.
+  card) opens it. Each atom's Build page is a list the crown scrolls: its cloud, symbol and name
+  and how many shells are built; then every shell, innermost first, on a gray card (its letter
+  and electrons small at the top, in line on every card), with a progress track down the right
+  as on the phone: a green check by each built shell and a green line up to it, a rose dot by
+  the next, an empty ring by each to come. A built shell's card shows the game it was built with
+  (a tap plays it again at that shell's difficulty; shells built before the watch kept this just
+  say Built); the next shell's card is taller, with today's game, its difficulty and goal, and
+  the rose Build; a later shell's card, its difficulty and a lock. Then (before its turn) the
+  atom being built and the way to it, View in Atlas, and the atoms either side.
 - **The Atlas** is a wheel: one atom on a gray card, its number, its symbol large in its color
   and its name, and the atoms round the rim as dots in their colors with a tick between periods,
   the crown turning them the same way as the Build screen's dial. A bare icon at the foot
@@ -126,6 +130,7 @@ The watch keeps everything in one SharedPreferences file, `atomos`:
 | `atomos.sound` | Sound on or off (off to start) |
 | `atomos.haptics` | Haptics on or off (on to start) |
 | `atomos.runs` | Runs played, used to change Nu's pick after each run |
+| `atomos.shellGames.v1` | `{"<z>": ["<game>", ...]}`: the game each shell of an atom was built with, innermost first (null where not known) |
 
 Game ids are part of the contract. Adding keys and games is safe. Never rename or reshape a key,
 or rename a game id, without a migration.

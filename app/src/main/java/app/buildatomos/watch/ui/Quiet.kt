@@ -6,22 +6,22 @@
 package app.buildatomos.watch.ui
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.foundation.lazy.AutoCenteringParams
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
+import androidx.wear.compose.foundation.lazy.ScalingLazyColumnDefaults
 import androidx.wear.compose.foundation.lazy.ScalingLazyListScope
 import androidx.wear.compose.foundation.lazy.ScalingLazyListState
 import androidx.wear.compose.material.PositionIndicator
@@ -68,7 +69,9 @@ fun Face(content: @Composable BoxScope.(u: Dp) -> Unit) {
  *  but never under 13. */
 fun Dp.text(n: Int): TextUnit = maxOf(value * n, minOf(n, 13).toFloat()).sp
 
-/** The list every scrolling screen uses, its items shrinking and fading toward the edges. */
+/** The list every scrolling screen uses, its items shrinking and fading toward the edges (only
+ *  fading, if not `shrink`: for a list whose items line up with each other, as an atom's Build
+ *  page's progress track does). */
 @Composable
 fun QuietList(
     state: ScalingLazyListState,
@@ -77,11 +80,13 @@ fun QuietList(
     bottom: Dp = 24.dp,
     gap: Dp = 8.dp,
     autoCentering: AutoCenteringParams? = AutoCenteringParams(),
+    shrink: Boolean = true,
     content: ScalingLazyListScope.() -> Unit,
 ) {
     ScalingLazyColumn(
         Modifier.fillMaxSize(),
         state = state,
+        scalingParams = if (shrink) ScalingLazyColumnDefaults.scalingParams() else ScalingLazyColumnDefaults.scalingParams(edgeScale = 1f),
         contentPadding = PaddingValues(start = side, end = side, top = top, bottom = bottom),
         verticalArrangement = Arrangement.spacedBy(gap),
         autoCentering = autoCentering,

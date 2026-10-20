@@ -37,6 +37,9 @@ class Store(context: Context) {
         const val SOUND = "atomos.sound"
         const val HAPTICS = "atomos.haptics"
         const val RUNS = "atomos.runs"
+        /** {"<z>": ["<game>", ...]}: the game each shell of an atom was built with, innermost
+         *  first; null for a shell built before this was kept. */
+        const val SHELL_GAMES = "atomos.shellGames.v1"
     }
 
     fun loadCollection(): Collection {
@@ -99,6 +102,26 @@ class Store(context: Context) {
     fun loadPicked() = intMapMoving(PICKED, PICKED_V1) { Difficulty.pickedFromFiveLevels(it) }
     fun savePicked(m: Map<String, Int>) = saveIntMap(PICKED, m)
 
+    fun loadShellGames(): MutableMap<Int, MutableList<String?>> {
+        val out = mutableMapOf<Int, MutableList<String?>>()
+        try {
+            val o = JSONObject(prefs.getString(SHELL_GAMES, null) ?: return out)
+            o.keys().forEach { k ->
+                val z = k.toIntOrNull() ?: return@forEach
+                val a = o.optJSONArray(k) ?: return@forEach
+                out[z] = MutableList(a.length()) { i -> if (a.isNull(i)) null else a.optString(i) }
+            }
+        } catch (_: Exception) {
+        }
+        return out
+    }
+
+    fun saveShellGames(m: Map<Int, List<String?>>) {
+        val o = JSONObject()
+        m.forEach { (z, games) -> o.put(z.toString(), JSONArray(games.map { it ?: JSONObject.NULL })) }
+        prefs.edit().putString(SHELL_GAMES, o.toString()).apply()
+    }
+
     fun loadQuiz(): QuizDay? = try {
         val o = JSONObject(prefs.getString(QUIZ, null) ?: "")
         val a = o.optJSONArray("answers") ?: JSONArray()
@@ -128,6 +151,6 @@ class Store(context: Context) {
         set(v) = prefs.edit().putInt(RUNS, v).apply()
 
     fun clearCollection() {
-        prefs.edit().remove(COLLECTION).remove(COLLECTION_V1).apply()
+        prefs.edit().remove(COLLECTION).remove(COLLECTION_V1).remove(SHELL_GAMES).apply()
     }
 }
