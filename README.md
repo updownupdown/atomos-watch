@@ -1,145 +1,41 @@
-# ATOMOS for Wear OS
+# Atomos for Wear OS
 
-The watch companion to ATOMOS: Nu's games on the wrist, and a collection of atoms you build by
-playing them. It works on its own, with no phone and no sync, and it is free.
+**Quick mini-games on your wrist that build a collection of all 118 atoms, shell by shell.**
 
-- **The look** is Quiet, grouped: calm on black, with each part of a screen on its own soft
-  plate and room between (Home's sections, each game in the list, each part of an atom's page);
-  the thing to tap first a disc (rose for Build and Next, white for Play and Resume, red to
-  confirm a reset), and a word under each button where a row of them needs reading (the run's
-  menu and cards, the confirm); numbers as the app's tiny atoms; one accent a screen. Lists shrink and fade toward the edges, with Wear's scroll arc on the right;
-  the screens that don't scroll are laid out on a face 240 across and scaled to the watch.
-- **Home** is a list the crown scrolls, the mark and ATOMOS, then four plates and Settings:
-  - Build: the atom you are building as its cloud (filling with color shell by shell), its name
-    and which shell is next; the rose Build, which opens its Build page; the next shell's game,
-    name and difficulty on a card, which plays it; and Collection.
-  - Atlas: the atom of the day (the same one the phone shows) as its plate, name and "Atom of
-    the day", one of its facts (a different one each day), and All atoms.
-  - Games: the game Nu picked for today (its white disc plays it, its dots play a difficulty),
-    and All games.
-  - Nu asks: Nu's three questions of the day (the same ones the phone asks).
-  - Settings, a gear on a dark disc.
-- **The games list** has every game, A to Z, each on its own plate: its icon black on a white
-  disc (Nu's pick with a rose dot on it) and its name. A tap opens the game's difficulties on
-  one screen: Easy, Medium and Hard as three circles in a row, each in its color, filled with
-  the best level reached in black, or a ring only until there is one, its word under it. A tap
-  on one plays it; a black chevron on a white disc at the foot goes back.
-- **Build** shows every atom two ways, switched with a bare icon at the foot as in the Atlas
-  (the choice lasts until the app closes):
-  - the table, laid out as the Atlas's: every atom in its place, built ones in their own color,
-    the one being built ringed in rose, the picked one ringed in white and named (number and
-    symbol over its name) on a gray card above, and how many are built as a ring round the
-    bezel;
-  - the dial: the atoms as plates round the rim, the crown turning them past the top, and the
-    picked atom's cloud, name and state in the middle.
+This is the watch companion to [Atomos](https://github.com/updownupdown/atomos) ([buildatomos.app](https://buildatomos.app)). It runs entirely on its own, with no phone or account needed. Play any of 32 short games, chosen daily by Nu, the app's neutrino guide; each run you win builds the next electron shell of the atom you're working on, from hydrogen (one shell) all the way to oganesson (seven). Atoms show as their real probability clouds, an Atlas covers every element's properties, facts, isotopes and discovery, and Nu asks three science questions a day (the same ones as on the phone). A tile and two watch-face complications drop you straight into your next run.
 
-  In both the crown moves a pick, a tap on an atom picks it, and a tap on the picked one (or its
-  card) opens it. Each atom's Build page is a list the crown scrolls: its cloud, symbol and name
-  and how many shells are built; then every shell, innermost first, on a gray card (its letter
-  and electrons small at the top, in line on every card), with a progress track down the right
-  as on the phone: a green check by each built shell and a green line up to it, a rose dot by
-  the next, an empty ring by each to come. A built shell's card shows the game it was built with
-  (a tap plays it again at that shell's difficulty; shells built before the watch kept this just
-  say Built); the next shell's card is taller, with today's game, its difficulty and goal, and
-  the rose Build; a later shell's card, its difficulty and a lock. Then (before its turn) the
-  atom being built and the way to it, View in Atlas, and the atoms either side.
-- **The Atlas** is a wheel: one atom on a gray card, its number, its symbol large in its color
-  and its name, and the atoms round the rim as dots in their colors with a tick between periods,
-  the crown turning them the same way as the Build screen's dial. A bare icon at the foot
-  switches to the table (the picked atom named on a gray card above it) and back. A tap on the
-  card opens
-  its Atlas page, a list: its symbol and name, where it sits, Build, the atom itself, the
-  headline on a plate, the little table, then titled plates: Properties (each a slider, a track
-  from the lowest atom to the highest, this one a dot in its color), Facts, Structure,
-  Discovered (with where its name comes from), Isotopes, Made in and Used for; and the atoms
-  either side.
-- **A run** opens on a card: the game's icon in a ring that fills, in the difficulty's color,
-  until play starts; its name and difficulty; and the levels to reach (an empty tiny atom and
-  "Reach 3 levels"), or Free play (a tap or a turn of the crown starts it sooner). The ATOMOS
-  mark, dim at the top of the screen (or the back button), pauses it: the game's icon and name
-  and its difficulty; Exit, the big white Resume and Restart, each named under it; and how far
-  the run has come ("Level 2 of 5", or the level and the best in free play). It ends on a card
-  with what it built or reached, and Exit beside the disc that goes on, each named: the rose
-  Next after a shell is built, else Again. The
-  levels show as a tiny atom at the bottom of the screen; a game that keeps time shows the time
-  left as a small ring round it, gray, then amber in the last quarter (no game draws a countdown
-  round the whole bezel). Exit from free play goes back to the game's difficulties (or Home,
-  for Nu's pick).
-  - A run for an atom has a goal: 3 levels at Easy, 4 at Medium, 5 at Hard. Each level cleared
-    fills one electron slot. Win, and the atom's next shell is built.
-  - Free play has no goal. The tiny atom counts levels in binary across 8 slots, up to 255, and
-    every level is harder than the last. Its difficulty is the one tapped on the game's
-    difficulties (or the dot tapped on Home, for Nu's pick).
-- **Settings** has Sound (off to start) and Haptics (on to start, and soft), each its mark,
-  its name and a switch on one plate, and starting the collection over (it asks first: Cancel,
-  or the red Yes, each named under its disc), with the version under them.
-- **The tile** and **the Play with Nu complication** open straight into the next run for the
-  atom. **The building complication** shows the atom being built on a watch face.
+## Built with
 
-Atom Z has as many shells as its period: hydrogen takes 1 win, carbon 2, iron 4 and oganesson
-7, so the whole table takes 620. Each shell is played at the atom's difficulty (`atomDial`, the
-phone's curve moved up into the watch's three levels: 41 for hydrogen up to 88 for oganesson),
-a little harder for each shell further out, up to 100 for oganesson's seventh.
+Kotlin and Compose for Wear OS. The game logic, all 32 games and the atom clouds live in a plain-Kotlin `core` module with no Android dependency, so it's unit-tested on any machine and can render every game to SVG for review. Atom data and clouds are baked from the phone app's own orbital sampler, so both apps show exactly the same atoms.
 
-The difficulty is the phone's dial, 1 to 100, seen in three levels: Easy (41 to 60), Medium (61
-to 80) and Hard (81 to 100), the phone's Medium, Hard and Expert. Free play plays each at its
-middle, 50, 70 and 90.
+## Install it on your watch (sideload)
 
-## Run it on your watch
+You build it from source and push it to the watch over Wi-Fi. You'll need [Android Studio](https://developer.android.com/studio) (which brings the Android SDK, `adb` and a JDK) and a watch running Wear OS 3 or later.
 
-1. Open this folder in Android Studio and let it sync Gradle.
-2. On the watch, turn on Developer options (Settings, System, About, tap the build number seven
-   times). Then, in Developer options, turn on ADB debugging and Wireless debugging.
-3. In Android Studio, open Device Manager, choose **Pair devices using Wi-Fi**, and pair with the
-   code the watch shows under Wireless debugging. Or, from a terminal:
-   `adb pair <ip>:<pairing port>`, then `adb connect <ip>:<port>`.
-4. Pick the `app` run configuration and the watch, then press Run.
+1. **Turn on developer mode on the watch:** Settings → System → About → Versions, then tap **Build number** seven times.
+2. **Turn on debugging:** Settings → Developer options → enable **ADB debugging** and **Wireless debugging**. Keep the watch and your computer on the same Wi-Fi.
+3. **Connect:** in Wireless debugging, tap **Pair new device** and run, with the IP, port and code the watch shows:
+   ```sh
+   adb pair <ip>:<pairing-port>
+   adb connect <ip>:<port>
+   ```
+4. **Build and install:**
+   ```sh
+   git clone https://github.com/updownupdown/atomos-watch
+   cd atomos-watch
+   ./gradlew :app:installDebug
+   ```
+   Or open the folder in Android Studio, pick the `app` configuration and the watch, and press Run.
 
-From a terminal: `gradlew :app:installDebug` builds and installs to the connected watch.
+Tip: if the watch drops off Wi-Fi, put it on its charger while installing. After a restart, run `adb connect` again (the port changes).
 
-## Layout
+## Development
 
-- `core/` is plain Kotlin with no Android in it: the game kit, the 32 games, the collection, the
-  atom clouds and the drawn marks. It is tested on any machine with
-  `gradle -p core test` (or `gradlew -p core test`).
-  `RENDER=1 gradle -p core test` also draws every game and cloud into `core/build/render/*.svg`.
-- `app/` is the Wear OS app: Compose screens, the tile and the complication, haptics and sound,
-  and the store.
-- `app/src/main/assets/atoms.json` and `atoms.bin` are the 118 atoms and their clouds, baked from
-  the phone app's own orbital sampler. To bake them again, from a checkout of the phone app:
-  `npx -y tsx ../atomos-watch/tools/gen-atoms.mts . ../atomos-watch/app/src/main/assets`.
-- `atoms-info.json` is what the Atlas tells about each atom, baked the same way with
-  `tools/gen-info.mts`.
-- `core/.../Quiz.kt` deals Nu's daily questions as the phone does. `QuizTest` checks it against
-  the phone's own deal in `core/src/test/resources/quiz-phone.json`, made with
-  `npx -y tsx ../atomos-watch/tools/gen-quiz.mts . <out file> [from day] [to day]`.
+```sh
+./gradlew -p core test             # core rules and games
+RENDER=1 ./gradlew -p core test    # also draws every game and cloud to core/build/render/*.svg
+```
 
-## Players' saved data
+Screen-by-screen design notes, the data pipeline and the saved-data format are in [docs/DESIGN.md](docs/DESIGN.md). There's no CI; run the core tests and an app build before merging.
 
-The watch keeps everything in one SharedPreferences file, `atomos`:
-
-| Key | What it holds |
-| --- | --- |
-| `atomos.collection.v2` | `{building, shells, built: {z: day}}` |
-| `atomos.collection.v1` | The first builds' `{building, electrons, built}`: read once, moved to v2 |
-| `atomos.levels.v2` | `{"<game>.<difficulty 0..2>": best level in free play}` (0 Easy, 1 Medium, 2 Hard) |
-| `atomos.levels.v1` | The five-level watch's `{"<game>.<difficulty 0..4>": best}`: read once, moved to v2 (its 2, 3, 4 become 0, 1, 2; bests at 0 and 1 are dropped) |
-| `atomos.picked.v2` | `{"<game>": difficulty 0..2 last picked for free play}` |
-| `atomos.picked.v1` | The five-level watch's `{"<game>": difficulty 0..4}`: read once, moved to v2 (0 and 1 become 0) |
-| `atomos.quiz.v1` | `{day, answers: [bool], streak, streakDay}` |
-| `atomos.sound` | Sound on or off (off to start) |
-| `atomos.haptics` | Haptics on or off (on to start) |
-| `atomos.runs` | Runs played, used to change Nu's pick after each run |
-| `atomos.shellGames.v1` | `{"<z>": ["<game>", ...]}`: the game each shell of an atom was built with, innermost first (null where not known) |
-
-Game ids are part of the contract. Adding keys and games is safe. Never rename or reshape a key,
-or rename a game id, without a migration.
-
-## No CI
-
-There are no GitHub Actions workflows, to keep Actions minutes free. Run the core tests and an
-app build locally before merging.
-
-## Fonts
-
-Outfit, under the SIL Open Font License (`licenses/Outfit-OFL.txt`).
+Font: Outfit, under the SIL Open Font License.
