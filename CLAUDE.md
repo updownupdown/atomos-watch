@@ -1,6 +1,7 @@
 # ATOMOS for Wear OS
 
-- No GitHub Actions workflows. The owner's Actions minutes are limited; test locally.
+- No CI workflows: test locally. The one workflow, `release.yml`, only runs when started by hand
+  (or on a `v*` tag) to build the sideload APK for a GitHub Release.
 - `core/` must stay free of Android so `gradle -p core test` runs anywhere. Run it before
   every push.
 - Every game must end when ignored, and must never restart itself; the shell's Again does that.

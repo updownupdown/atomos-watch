@@ -1,0 +1,86 @@
+# Builds a signed APK for sideloading and attaches it to a GitHub Release.
+# Runs only when started by hand (Actions > Release APK > Run workflow) or when a
+# v* tag is pushed, never on ordinary pushes. Public repositories don't use Actions
+# minutes on standard runners.
+#
+# Needs two repository secrets (Settings > Secrets and variables > Actions):
+#   SIDELOAD_KEYSTORE_BASE64    the keystore, base64-encoded
+#   SIDELOAD_KEYSTORE_PASSWORD  its password (store and key share it; alias "sideload")
+# Keep the same keystore for every release, or watches can't update over an earlier install.
+name: Release APK
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Android SDK platform
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" > /dev/null
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Signing key
+        env:
+          KEYSTORE: ${{ secrets.SIDELOAD_KEYSTORE_BASE64 }}
+          PASSWORD: ${{ secrets.SIDELOAD_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE" ] || [ -z "$PASSWORD" ]; then
+            echo "::error::Add the SIDELOAD_KEYSTORE_BASE64 and SIDELOAD_KEYSTORE_PASSWORD repository secrets first."
+            exit 1
+          fi
+          echo "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/sideload.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/sideload.jks"
+            echo "storePassword=$PASSWORD"
+            echo "keyAlias=sideload"
+            echo "keyPassword=$PASSWORD"
+          } > keystore.properties
+
+      - name: Build
+        run: ./gradlew --console=plain :app:assembleRelease
+
+      - name: Version
+        id: version
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            tag="$GITHUB_REF_NAME"
+          else
+            tag="v$(sed -nE 's/.*versionName = "([^"]+)".*/\1/p' app/build.gradle.kts | head -1)"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          cp app/build/outputs/apk/release/app-release.apk "atomos-watch-$tag.apk"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          apk="atomos-watch-$TAG.apk"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" "$apk" --clobber
+          else
+            gh release create "$TAG" "$apk" --target "$GITHUB_SHA" --title "Atomos for Wear OS $TAG" --notes "Sideload onto a Wear OS 3+ watch: see [Install it on your watch](https://github.com/$GITHUB_REPOSITORY#install-it-on-your-watch-sideload) in the README, then run \`adb install $apk\`."
+          fi
+
+      - name: Clean up
+        if: always()
+        run: rm -f keystore.properties "$RUNNER_TEMP/sideload.jks"

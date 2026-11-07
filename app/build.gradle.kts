@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -19,10 +20,27 @@ android {
         versionName = "0.1.0"
     }
 
+    // The signing key, kept out of the repo in keystore.properties: storeFile, storePassword,
+    // keyAlias, keyPassword. The Release workflow writes it from the repo's secrets. Without it
+    // the release build is left unsigned.
+    val keys = rootProject.file("keystore.properties").takeIf { it.exists() }
+        ?.let { file -> Properties().apply { file.inputStream().use(::load) } }
+    signingConfigs {
+        if (keys != null) {
+            create("release") {
+                storeFile = rootProject.file(keys.getProperty("storeFile"))
+                storePassword = keys.getProperty("storePassword")
+                keyAlias = keys.getProperty("keyAlias")
+                keyPassword = keys.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 

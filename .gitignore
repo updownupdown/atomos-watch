@@ -11,3 +11,6 @@ captures/
 *.apk
 *.aab
 .claude/
+keystore.properties
+*.jks
+*.keystore

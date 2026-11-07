@@ -10,24 +10,26 @@ Kotlin and Compose for Wear OS. The game logic, all 32 games and the atom clouds
 
 ## Install it on your watch (sideload)
 
-You build it from source and push it to the watch over Wi-Fi. You'll need [Android Studio](https://developer.android.com/studio) (which brings the Android SDK, `adb` and a JDK) and a watch running Wear OS 3 or later.
+You'll need a watch running Wear OS 3 or later, and `adb` on your computer (it comes with [Android's platform tools](https://developer.android.com/tools/releases/platform-tools)).
 
-1. **Turn on developer mode on the watch:** Settings → System → About → Versions, then tap **Build number** seven times.
-2. **Turn on debugging:** Settings → Developer options → enable **ADB debugging** and **Wireless debugging**. Keep the watch and your computer on the same Wi-Fi.
-3. **Connect:** in Wireless debugging, tap **Pair new device** and run, with the IP, port and code the watch shows:
+1. **Download** the latest `atomos-watch-….apk` from [Releases](https://github.com/updownupdown/atomos-watch/releases/latest).
+2. **Turn on developer mode on the watch:** Settings → System → About → Versions, then tap **Build number** seven times.
+3. **Turn on debugging:** Settings → Developer options → enable **ADB debugging** and **Wireless debugging**. Keep the watch and your computer on the same Wi-Fi.
+4. **Connect:** in Wireless debugging, tap **Pair new device**, then run these with the IP, ports and code the watch shows:
    ```sh
    adb pair <ip>:<pairing-port>
    adb connect <ip>:<port>
    ```
-4. **Build and install:**
+5. **Install:**
    ```sh
-   git clone https://github.com/updownupdown/atomos-watch
-   cd atomos-watch
-   ./gradlew :app:installDebug
+   adb install atomos-watch-<version>.apk
    ```
-   Or open the folder in Android Studio, pick the `app` configuration and the watch, and press Run.
 
-Tip: if the watch drops off Wi-Fi, put it on its charger while installing. After a restart, run `adb connect` again (the port changes).
+The app appears in the watch's app list. To update, install a newer APK the same way; your progress is kept.
+
+Tips: if the watch drops off Wi-Fi, put it on its charger while installing. After a restart, run `adb connect` again (the port changes). You can turn Wireless debugging off again afterwards.
+
+Or build it yourself: clone the repo and run `./gradlew :app:installDebug`, or open the folder in Android Studio, pick the `app` configuration and press Run.
 
 ## Development
 
@@ -36,6 +38,6 @@ Tip: if the watch drops off Wi-Fi, put it on its charger while installing. After
 RENDER=1 ./gradlew -p core test    # also draws every game and cloud to core/build/render/*.svg
 ```
 
-Screen-by-screen design notes, the data pipeline and the saved-data format are in [docs/DESIGN.md](docs/DESIGN.md). There's no CI; run the core tests and an app build before merging.
+Screen-by-screen design notes, the data pipeline and the saved-data format are in [docs/DESIGN.md](docs/DESIGN.md). There's no CI; run the core tests and an app build before merging. To publish a sideload release, bump `versionName` in `app/build.gradle.kts` and run **Actions → Release APK → Run workflow**; it builds a signed APK and attaches it to a GitHub Release.
 
 Font: Outfit, under the SIL Open Font License.
